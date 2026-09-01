@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import java.util.List;
 
 @Entity
 @Table(name = "listings")
@@ -38,10 +37,8 @@ public class Listing {
     @Column(nullable = false)
     private BigDecimal price;
 
-    @ElementCollection
-    @CollectionTable(name = "listing_images", joinColumns = @JoinColumn(name = "listing_id"))
-    @Column(name = "image")
-    private List<String> images;
+    @Column(columnDefinition = "text[]")
+    private String[] images;
 
     @Column(nullable = false)
     private String status;
