@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "connect-recommend": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/connect-recommend/SKILL.md",
+      "computedHash": "aae17b6d265ff04d0ce91b68effc84270f2e829d086091b6b6bc1791209dcc80"
+    },
+    "connect-required-verification-information": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/connect-required-verification-information/SKILL.md",
+      "computedHash": "6c4f598f44c1e2ef192dfeb6b0db3966d063886f7117f18de03ee80b9d0a4386"
+    },
+    "stripe-apps": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/stripe-apps/SKILL.md",
+      "computedHash": "802d370ba6dd29017cd4771e3e5a756c965ea32b79dc7b9b2c0fd56b5be8f524"
+    },
+    "stripe-best-practices": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/stripe-best-practices/SKILL.md",
+      "computedHash": "5017941782c4196338f08f045ca6a8203cc739c4d467a669d4cba38858c34f7a"
+    },
+    "stripe-directory": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/stripe-directory/SKILL.md",
+      "computedHash": "fa2ceb4486b319ff1220a9fc0419ad80e1ee9bdade099fac94b970ccc33f72a6"
+    },
+    "stripe-docs": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/stripe-docs/SKILL.md",
+      "computedHash": "c9f90c8b96aaef1f331b60e2ff89175934fbb9193abad3d5091f6b9110a732d2"
+    },
+    "stripe-projects": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/stripe-projects/SKILL.md",
+      "computedHash": "d6b477f453725bb85c71448f64f141da4b4656c771e82602b6a8352bd78d8cf9"
+    },
+    "upgrade-stripe": {
+      "source": "stripe/ai",
+      "sourceType": "github",
+      "skillPath": "skills/upgrade-stripe/SKILL.md",
+      "computedHash": "af187260bce6f695c3f069af32641b3436f25d804f6eb8a5ff591e5e2c502526"
+    }
+  }
+}

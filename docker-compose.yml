@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: listit-postgres
+    environment:
+      POSTGRES_USER: listit_user
+      POSTGRES_PASSWORD: listit_password
+      POSTGRES_DB: listit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: listit-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
