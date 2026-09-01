@@ -79,7 +79,6 @@ export default async function Home() {
       
       {/* Bottom padding spacer */}
       <div className="h-24 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-zinc-800 flex items-center justify-center text-sm text-gray-400">
-        TradeMe Clone UI Implementation - Listme © 2026
       </div>
     </div>
   );
