@@ -1,56 +1,54 @@
 package ie.listit.backend.model;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.locationtech.jts.geom.Point;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
+import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.List;
 
 @Entity
 @Table(name = "listings")
-@Inheritance(strategy = InheritanceType.JOINED)
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public abstract class Listing {
+public class Listing {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seller_id", nullable = false)
-    private User seller;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
+    @Column(name = "seller_id", nullable = false)
+    private UUID sellerId;
 
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "text")
     private String description;
 
+    @Column(nullable = false)
+    private String category;
+
+    @Column(nullable = false)
+    private String condition;
+
+    @Column(name = "price_type", nullable = false)
+    private String priceType;
+
+    @Column(nullable = false)
     private BigDecimal price;
-
-    @Enumerated(EnumType.STRING)
-    private ListingStatus status = ListingStatus.PENDING_MODERATION;
-
-    @Column(columnDefinition = "geometry(Point,4326)")
-    private Point location; // Used for 5km radius search
 
     @ElementCollection
     @CollectionTable(name = "listing_images", joinColumns = @JoinColumn(name = "listing_id"))
-    @Column(name = "image_url")
-    private List<String> images; // Up to 5 images
+    @Column(name = "image")
+    private List<String> images;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+    @Column(nullable = false)
+    private String status;
 
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", insertable = false, updatable = false)
+    private OffsetDateTime updatedAt;
 }
