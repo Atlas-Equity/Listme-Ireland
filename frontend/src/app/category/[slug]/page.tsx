@@ -14,25 +14,30 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
 
   const supabase = await createClient();
 
-    // Fetch user to check if they are a business
-  const { data: { user } } = await supabase.auth.getUser();
+  // Parallelize user check and category listings fetch
+  const [userResult, listingsResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from('listings')
+      .select('*')
+      .ilike('category', categoryName)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+  ]);
+
+  const user = userResult.data?.user;
+  const listings = listingsResult.data;
+  const error = listingsResult.error;
+
   let isBusiness = false;
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('account_type')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     isBusiness = profile?.account_type === 'business';
   }
-
-  // Fetch listings for this category
-  const { data: listings, error } = await supabase
-    .from('listings')
-    .select('*')
-    .ilike('category', categoryName)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching category listings:', error);

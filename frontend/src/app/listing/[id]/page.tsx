@@ -18,73 +18,52 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   
   const supabase = await createClient();
 
-  // 0. Get current user
-  const { data: { user } } = await supabase.auth.getUser();
+  // Parallel Phase 1: Fetch user and listing simultaneously
+  const [userResult, listingResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('listings').select('*').eq('id', id).single()
+  ]);
 
-  // 1. Fetch the listing
-  const { data: listing, error: listingError } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const user = userResult.data?.user;
+  const listing = listingResult.data;
 
-  if (listingError || !listing) {
-    console.error('Error fetching listing:', listingError);
+  if (listingResult.error || !listing) {
+    console.error('Error fetching listing:', listingResult.error);
     notFound();
   }
 
-  // 2. Fetch the seller's profile
-  const { data: seller, error: sellerError } = await supabase
-    .from('profiles')
-    .select('username, account_type, created_at')
-    .eq('id', listing.seller_id)
-    .single();
-
-  // 3. Fetch reviews for the seller
-  const { data: reviews } = await supabase
-    .from('reviews')
-    .select('rating')
-    .eq('reviewee_id', listing.seller_id);
-
-  // 4. Check if current user has this item watchlisted and seller favourited
-  let isWatchlisted = false;
-  let isSellerFavourited = false;
-  if (user) {
-    const { data: watchlistEntry } = await supabase
-      .from('wishlists')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('listing_id', id)
-      .single();
-    
-    if (watchlistEntry) isWatchlisted = true;
-
-    const { data: favouriteEntry } = await supabase
-      .from('favourite_sellers')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('seller_id', listing.seller_id)
-      .single();
-      
-    if (favouriteEntry) isSellerFavourited = true;
-  }
-
-  // 5. Fetch bids if it's an auction
   const isAuction = listing.price_type?.toLowerCase() === 'auction';
+
+  // Parallel Phase 2: Fetch seller, reviews, bids, watchlist, and favourite status concurrently
+  const [
+    sellerResult,
+    reviewsResult,
+    bidsResult,
+    watchlistResult,
+    favouriteResult
+  ] = await Promise.all([
+    supabase.from('profiles').select('username, account_type, created_at').eq('id', listing.seller_id).maybeSingle(),
+    supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id),
+    isAuction 
+      ? supabase.from('bids').select('amount', { count: 'exact' }).eq('listing_id', id).order('amount', { ascending: false }).limit(1)
+      : Promise.resolve({ data: null, count: 0 }),
+    user 
+      ? supabase.from('wishlists').select('id').eq('user_id', user.id).eq('listing_id', id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    user 
+      ? supabase.from('favourite_sellers').select('id').eq('user_id', user.id).eq('seller_id', listing.seller_id).maybeSingle()
+      : Promise.resolve({ data: null })
+  ]);
+
+  const seller = sellerResult.data;
+  const reviews = reviewsResult.data;
+  const isWatchlisted = !!watchlistResult.data;
+  const isSellerFavourited = !!favouriteResult.data;
+
   let highestBidAmount = null;
-  let totalBids = 0;
-  
-  if (isAuction) {
-    const { data: bids } = await supabase
-      .from('bids')
-      .select('amount')
-      .eq('listing_id', id)
-      .order('amount', { ascending: false });
-      
-    if (bids && bids.length > 0) {
-      totalBids = bids.length;
-      highestBidAmount = bids[0].amount;
-    }
+  let totalBids = bidsResult.count || 0;
+  if (isAuction && bidsResult.data && bidsResult.data.length > 0) {
+    highestBidAmount = bidsResult.data[0].amount;
   }
 
   const currentPrice = highestBidAmount !== null ? highestBidAmount : listing.price;

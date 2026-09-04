@@ -8,22 +8,25 @@ import { createClient } from "@/utils/supabase/server";
 export default async function Home() {
   const supabase = await createClient();
 
-  // Fetch recent fixed price listings
-  const { data: latestListings } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(4);
+  // Fetch recent fixed price listings and auctions concurrently
+  const [latestResult, auctionResult] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(4),
+    supabase
+      .from('listings')
+      .select('*')
+      .eq('status', 'active')
+      .ilike('price_type', 'Auction')
+      .order('created_at', { ascending: false })
+      .limit(4)
+  ]);
 
-  // Fetch recent auction listings
-  const { data: auctionListings } = await supabase
-    .from('listings')
-    .select('*')
-    .eq('status', 'active')
-    .ilike('price_type', 'Auction')
-    .order('created_at', { ascending: false })
-    .limit(4);
+  const latestListings = latestResult.data;
+  const auctionListings = auctionResult.data;
 
   return (
     <div className="w-full bg-white dark:bg-black min-h-screen">

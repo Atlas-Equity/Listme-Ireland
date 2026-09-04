@@ -21,6 +21,7 @@ export function ListingCard({ id, title, price, priceType, condition, images, cr
   return (
     <Link 
       href={`/listing/${id}`} 
+      prefetch={true}
       className="group block bg-white dark:bg-[#1a1a1a] rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
     >
       <div className="relative aspect-square bg-gray-100 dark:bg-zinc-800 w-full overflow-hidden">

@@ -56,7 +56,6 @@ export default function MessagesPage() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(initialConvId);
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
@@ -68,12 +67,20 @@ export default function MessagesPage() {
   const [filterTab, setFilterTab] = useState<'all' | 'buying' | 'selling'>('all');
   const [tableReady, setTableReady] = useState(true);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll to bottom when messages update
+  // Derived active conversation (no state sync needed)
+  const activeConversation = conversations.find(c => c.id === selectedConvId) || null;
+
+  // Scroll to bottom of chat container only (never the window)
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior,
+      });
+    }
   };
 
   // Fetch conversations list
@@ -91,16 +98,19 @@ export default function MessagesPage() {
         setTableReady(data.tableReady !== false);
 
         // Auto-select first if none selected and on desktop
-        if (!selectedConvId && data.conversations.length > 0 && window.innerWidth >= 768) {
-          setSelectedConvId(data.conversations[0].id);
-        }
+        setSelectedConvId(current => {
+          if (!current && data.conversations.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 768) {
+            return data.conversations[0].id;
+          }
+          return current;
+        });
       }
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
       if (!silent) setLoadingList(false);
     }
-  }, [router, selectedConvId]);
+  }, [router]);
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async (convId: string, silent = false) => {
@@ -115,10 +125,12 @@ export default function MessagesPage() {
       setMessages(data.messages || []);
       setCurrentUserId(data.currentUserId);
 
-      // Mark unread as 0 locally in conversations list
-      setConversations(prev => prev.map(c => 
-        c.id === convId ? { ...c, unreadCount: 0 } : c
-      ));
+      // Mark unread as 0 locally only if there were unread messages (prevents unnecessary re-render loops)
+      setConversations(prev => {
+        const item = prev.find(c => c.id === convId);
+        if (!item || item.unreadCount === 0) return prev;
+        return prev.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c);
+      });
 
       if (!silent) {
         setTimeout(() => scrollToBottom('auto'), 50);
@@ -139,13 +151,10 @@ export default function MessagesPage() {
   useEffect(() => {
     if (selectedConvId) {
       fetchMessages(selectedConvId);
-      const conv = conversations.find(c => c.id === selectedConvId);
-      if (conv) setActiveConversation(conv);
     } else {
-      setActiveConversation(null);
       setMessages([]);
     }
-  }, [selectedConvId, conversations, fetchMessages]);
+  }, [selectedConvId, fetchMessages]);
 
   // Background polling for real-time message updates
   useEffect(() => {
@@ -154,7 +163,7 @@ export default function MessagesPage() {
         fetchMessages(selectedConvId, true);
       }
       fetchConversations(true);
-    }, 3500);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [selectedConvId, fetchMessages, fetchConversations]);
@@ -487,7 +496,7 @@ export default function MessagesPage() {
                 )}
 
                 {/* Messages Body */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                   {loadingChat ? (
                     <div className="h-full flex items-center justify-center text-gray-400 text-xs">
                       <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -535,7 +544,6 @@ export default function MessagesPage() {
                       );
                     })
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input Area */}

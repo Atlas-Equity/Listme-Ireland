@@ -22,7 +22,7 @@ export default async function Header() {
   return (
     <header className="sticky top-0 z-50 w-full flex flex-col">
       {/* Primary Header */}
-      <div className="w-full bg-white dark:bg-[#202020] text-gray-800 dark:text-white border-b border-gray-200 dark:border-zinc-800">
+      <div className="w-full bg-white dark:bg-[#202020] text-gray-800 dark:text-white border-b border-gray-200 dark:border-zinc-800 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-[72px]">
             
@@ -98,26 +98,26 @@ export default async function Header() {
       </div>
 
       {/* Secondary Navigation (Categories) */}
-      <div className="w-full bg-[#1a1a1a] text-gray-300 hidden md:block">
+      <div className="w-full bg-gray-50 dark:bg-[#151515] text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-zinc-800 hidden md:block transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center space-x-8 h-12 text-sm font-medium">
-            <Link href="/category/marketplace" className="flex items-center hover:text-white transition-colors">
-              <ShoppingBag className="w-4 h-4 mr-2 text-gray-400" /> Marketplace
+          <nav className="flex items-center space-x-8 h-11 text-sm font-medium">
+            <Link href="/category/marketplace" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <ShoppingBag className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Marketplace
             </Link>
-            <Link href="/category/property" className="flex items-center hover:text-white transition-colors">
-              <Home className="w-4 h-4 mr-2 text-gray-400" /> Property
+            <Link href="/category/property" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <Home className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Property
             </Link>
-            <Link href="/category/motors" className="flex items-center hover:text-white transition-colors">
-              <Car className="w-4 h-4 mr-2 text-gray-400" /> Motors
+            <Link href="/category/motors" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <Car className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Motors
             </Link>
-            <Link href="/category/jobs" className="flex items-center hover:text-white transition-colors">
-              <Briefcase className="w-4 h-4 mr-2 text-gray-400" /> Jobs
+            <Link href="/category/jobs" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <Briefcase className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Jobs
             </Link>
-            <Link href="/category/services" className="flex items-center hover:text-white transition-colors">
-              <Wrench className="w-4 h-4 mr-2 text-gray-400" /> Services
+            <Link href="/category/services" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <Wrench className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Services
             </Link>
-            <Link href="/community" className="flex items-center hover:text-white transition-colors">
-              <Users className="w-4 h-4 mr-2 text-gray-400" /> Community
+            <Link href="/community" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <Users className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Community
             </Link>
           </nav>
         </div>

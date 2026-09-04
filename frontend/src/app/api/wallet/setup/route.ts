@@ -19,51 +19,68 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe is not configured.' }, { status: 500 });
     }
 
+    let returnUrl = '/my-listme';
+    try {
+      const body = await req.json();
+      if (body?.returnUrl) {
+        returnUrl = body.returnUrl;
+      }
+    } catch {
+      // Body may be empty if called without JSON
+    }
+
     // 2. Fetch user profile
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+    let customerId = profile?.stripe_customer_id;
+
+    // Look for existing Stripe customer by email if not saved on profile
+    if (!customerId) {
+      const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existingCustomers.data && existingCustomers.data.length > 0) {
+        customerId = existingCustomers.data[0].id;
+      }
     }
 
-    let customerId = profile.stripe_customer_id;
-
-    // 3. Create Stripe Customer if they don't have one
+    // 3. Create Stripe Customer if none exists
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: profile.email || user.email,
-        name: profile.username || 'ListMe User',
+        email: profile?.email || user.email,
+        name: profile?.username || user.email?.split('@')[0] || 'ListMe User',
         metadata: {
           supabase_uid: user.id
         }
       });
       customerId = customer.id;
+    }
 
-      // Save it to Supabase
-      const { error: updateError } = await supabase
+    // Attempt to save customerId to Supabase (if column exists)
+    try {
+      await supabase
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id);
-
-      if (updateError) {
-        console.error('Error saving Stripe customer ID:', updateError);
-        // Note: Even if this fails, we can proceed with the session, but we should log it
-      }
+    } catch (e) {
+      // Non-blocking if column doesn't exist
     }
 
     // 4. Generate Checkout Session in 'setup' mode
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
+    const successRedirect = returnUrl.includes('?') 
+      ? `${origin}${returnUrl}&wallet_linked=true`
+      : `${origin}${returnUrl}?wallet_linked=true`;
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'setup',
       customer: customerId,
-      success_url: `${origin}/wallet-setup/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/my-listme`,
+      success_url: successRedirect,
+      cancel_url: `${origin}${returnUrl}`,
     });
 
     return NextResponse.json({ url: session.url });
