@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/utils/supabase/server';
 
-const JAVA_BACKEND_URL = process.env.JAVA_BACKEND_URL;
-
 async function createDirectStripeConnect(req: NextRequest, user: any, supabase: any) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) {
@@ -12,6 +10,96 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
 
   const stripe = new Stripe(stripeKey);
   const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  // Helper to create a new connected account and save to Supabase profile
+  const createNewAccount = async () => {
+    let accountId: string;
+
+    // Retrieve platform account country to match supported Express onboarding countries
+    let platformCountry = 'IE';
+    try {
+      const platform = await (stripe.accounts as any).retrieve();
+      platformCountry = platform.country || 'IE';
+    } catch (e: any) {
+      console.warn('Could not retrieve platform country, defaulting to IE:', e.message);
+    }
+
+    // Try Accounts v2 first (Stripe requirement for new Connect platforms)
+    try {
+      const v2Account = await stripe.v2.core.accounts.create({
+        contact_email: user.email,
+        display_name: user.email?.split('@')[0] || 'Seller',
+        identity: { country: platformCountry },
+        dashboard: 'express',
+        defaults: {
+          responsibilities: {
+            fees_collector: 'application',
+            losses_collector: 'application'
+          }
+        },
+        configuration: {
+          merchant: {}
+        }
+      });
+      accountId = v2Account.id;
+    } catch (v2Err: any) {
+      console.warn('Stripe Accounts v2 creation fallback to Accounts v1:', v2Err.message);
+      // Fallback to Accounts v1
+      const v1Account = await stripe.accounts.create({
+        type: 'express',
+        email: user.email,
+        capabilities: {
+          transfers: { requested: true },
+        },
+        business_type: 'individual',
+        metadata: {
+          supabase_uid: user.id,
+        },
+      });
+      accountId = v1Account.id;
+    }
+
+    // Update profile in Supabase
+    await supabase
+      .from('profiles')
+      .update({ stripe_account_id: accountId, stripe_onboarding_complete: false })
+      .eq('id', user.id);
+
+    return accountId;
+  };
+
+  // Helper to create onboarding link (tries standard accountLinks, then v2 accountLinks)
+  const createLinkForAccount = async (accId: string) => {
+    try {
+      const link = await stripe.accountLinks.create({
+        account: accId,
+        refresh_url: `${origin}/stripe-setup`,
+        return_url: `${origin}/stripe-setup/success`,
+        type: 'account_onboarding',
+      });
+      return link.url;
+    } catch (linkErr: any) {
+      if ((stripe as any).v2?.core?.accountLinks) {
+        try {
+          const v2Link = await (stripe as any).v2.core.accountLinks.create({
+            account: accId,
+            use_case: {
+              type: 'account_onboarding',
+              account_onboarding: {
+                configurations: ['merchant'],
+                refresh_url: `${origin}/stripe-setup`,
+                return_url: `${origin}/stripe-setup/success`,
+              }
+            }
+          });
+          return v2Link.url;
+        } catch (v2LinkErr) {
+          throw linkErr;
+        }
+      }
+      throw linkErr;
+    }
+  };
 
   // Fetch user profile to see if they already have a stripe account
   const { data: profile } = await supabase
@@ -22,42 +110,33 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
 
   let accountId = profile?.stripe_account_id;
 
-  if (!accountId) {
-    // Create new Stripe Express account
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email: user.email,
-      capabilities: {
-        transfers: { requested: true },
-      },
-      business_type: 'individual',
-      metadata: {
-        supabase_uid: user.id,
-      },
-    });
-
-    accountId = account.id;
-
-    // Save stripe_account_id to profiles table
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ stripe_account_id: accountId })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.warn('Could not save stripe_account_id to profile:', updateError);
+  // Validate existing account with Stripe if present
+  if (accountId) {
+    try {
+      const existing = await stripe.accounts.retrieve(accountId);
+      if (!existing || (existing as any).deleted) {
+        accountId = null;
+      }
+    } catch (retrieveErr: any) {
+      console.warn(`Stripe account ${accountId} is invalid or from a different Stripe key. Recreating...`, retrieveErr.message);
+      accountId = null;
     }
   }
 
-  // Create account onboarding link
-  const accountLink = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${origin}/stripe-setup`,
-    return_url: `${origin}/stripe-setup/success`,
-    type: 'account_onboarding',
-  });
+  if (!accountId) {
+    accountId = await createNewAccount();
+  }
 
-  return { url: accountLink.url };
+  // Create account onboarding link with auto-recovery
+  try {
+    const url = await createLinkForAccount(accountId);
+    return { url };
+  } catch (linkErr: any) {
+    console.warn(`Account link failed for ${accountId}, re-provisioning fresh account:`, linkErr.message);
+    const freshAccountId = await createNewAccount();
+    const url = await createLinkForAccount(freshAccountId);
+    return { url };
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -66,45 +145,10 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
-    // Attempt proxying to Java backend with a fast 3-second timeout if configured
-    if (JAVA_BACKEND_URL) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-          const res = await fetch(`${JAVA_BACKEND_URL}/api/connect`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json'
-            },
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (res.ok) {
-            const text = await res.text();
-            try {
-              const data = JSON.parse(text);
-              if (data?.url) {
-                return NextResponse.json(data);
-              }
-            } catch {
-              console.warn('Java backend returned non-JSON, falling back to direct Stripe');
-            }
-          }
-        } catch (backendErr: any) {
-          console.warn('Java backend unavailable, switching to direct Stripe handler:', backendErr.message);
-        }
-      }
-    }
-
-    // Direct Stripe Connect onboarding
+    // Direct, resilient Stripe Connect onboarding
     const result = await createDirectStripeConnect(req, user, supabase);
     return NextResponse.json(result);
 

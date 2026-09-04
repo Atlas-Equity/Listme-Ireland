@@ -16,7 +16,18 @@ export default function OnboardingPage() {
       const res = await fetch('/api/connect', {
         method: 'POST',
       });
-      const data = await res.json();
+      
+      const rawText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        const isHtml = rawText.trim().startsWith('<');
+        const cleanMsg = isHtml 
+          ? `Server returned status ${res.status}. Please try again.` 
+          : (rawText.trim().substring(0, 200) || `Server error (${res.status})`);
+        throw new Error(cleanMsg);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to start onboarding');
@@ -71,7 +82,7 @@ export default function OnboardingPage() {
         <button
           onClick={startOnboarding}
           disabled={loading}
-          className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 transition-colors"
+          className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 transition-colors cursor-pointer"
         >
           {loading ? (
             <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Connecting...</>
