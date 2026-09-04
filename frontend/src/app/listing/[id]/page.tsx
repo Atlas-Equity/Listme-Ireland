@@ -10,6 +10,7 @@ import ListingCarousel from '@/components/ListingCarousel';
 import WatchlistButton from '@/components/WatchlistButton';
 import BiddingForm from '@/components/BiddingForm';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
+import ContactSellerButton from '@/components/ContactSellerButton';
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -207,12 +208,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 Questions & Answers (0)
               </div>
               <div>
-                <div className="bg-white dark:bg-[#242424] rounded-sm p-4 text-center border border-gray-200 dark:border-[#333] flex items-center justify-between cursor-pointer hover:bg-[#2a2a2a] transition-colors">
-                  <span className="text-gray-700 dark:text-gray-300">Ask a question</span>
-                  <div className="bg-[#b38000] text-black w-6 h-6 rounded-sm flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4" />
-                  </div>
-                </div>
+                <ContactSellerButton
+                  listingId={listing.id}
+                  sellerId={listing.seller_id}
+                  sellerUsername={seller?.username || 'Seller'}
+                  listingTitle={listing.title}
+                  listingPrice={currentPrice}
+                  listingImage={mainImage}
+                  currentUserId={user?.id || null}
+                  variant="qa"
+                />
               </div>
 
             </div>
@@ -282,6 +287,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
+            {/* Contact Seller Action */}
+            <ContactSellerButton
+              listingId={listing.id}
+              sellerId={listing.seller_id}
+              sellerUsername={seller?.username || 'Seller'}
+              listingTitle={listing.title}
+              listingPrice={currentPrice}
+              listingImage={mainImage}
+              currentUserId={user?.id || null}
+              variant="primary"
+            />
+
             {/* Buyer Protection */}
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] flex gap-4">
               <ShieldCheck className="w-8 h-8 text-[#0073e6] flex-shrink-0" />
@@ -295,19 +312,31 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Seller Mini Profile */}
-            <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] flex items-center">
-              <div className="w-12 h-12 bg-[#4a3b3b] rounded-full flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white mr-4">
-                {seller?.username ? seller.username.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div>
-                <div className="font-bold text-[#0073e6] hover:underline cursor-pointer">{seller?.username || 'Unknown'}</div>
-                <div className="text-xs text-gray-700 dark:text-gray-300">
-                  {totalReviews > 0 ? `${feedbackPercentage}% positive feedback` : 'No feedback yet'}
+            <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-[#4a3b3b] rounded-full flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white mr-4">
+                  {seller?.username ? seller.username.charAt(0).toUpperCase() : 'U'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Seller located in {itemLocation}
+                <div>
+                  <div className="font-bold text-[#0073e6] hover:underline cursor-pointer">{seller?.username || 'Unknown'}</div>
+                  <div className="text-xs text-gray-700 dark:text-gray-300">
+                    {totalReviews > 0 ? `${feedbackPercentage}% positive feedback` : 'No feedback yet'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Seller located in {itemLocation}
+                  </div>
                 </div>
               </div>
+              <ContactSellerButton
+                listingId={listing.id}
+                sellerId={listing.seller_id}
+                sellerUsername={seller?.username || 'Seller'}
+                listingTitle={listing.title}
+                listingPrice={currentPrice}
+                listingImage={mainImage}
+                currentUserId={user?.id || null}
+                variant="secondary"
+              />
             </div>
 
           </div>

@@ -1,34 +1,112 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
 import { createClient } from '@/utils/supabase/server';
 
-const JAVA_BACKEND_URL = process.env.JAVA_BACKEND_URL || 'http://localhost:8080';
+const JAVA_BACKEND_URL = process.env.JAVA_BACKEND_URL;
+
+async function createDirectCheckoutSession(req: NextRequest, user: any, body: any, supabase: any) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured.');
+  }
+
+  const { listingId } = body;
+  if (!listingId) {
+    throw new Error('Listing ID is required');
+  }
+
+  const { data: listing, error: listingError } = await supabase
+    .from('listings')
+    .select('*')
+    .eq('id', listingId)
+    .single();
+
+  if (listingError || !listing) {
+    throw new Error('Listing not found');
+  }
+
+  if (listing.seller_id === user.id) {
+    throw new Error('Cannot buy your own listing');
+  }
+
+  const stripe = new Stripe(stripeKey);
+  const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const priceInCents = Math.round(Number(listing.price) * 100);
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: listing.title,
+            description: listing.description?.substring(0, 200) || undefined,
+            images: listing.images && listing.images.length > 0 ? [listing.images[0]] : undefined,
+          },
+          unit_amount: priceInCents,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&listing_id=${listing.id}`,
+    cancel_url: `${origin}/listing/${listing.id}`,
+    metadata: {
+      listing_id: listing.id,
+      buyer_id: user.id,
+      seller_id: listing.seller_id,
+    },
+  });
+
+  return { sessionId: session.id, url: session.url };
+}
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!session?.access_token) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
 
-    const res = await fetch(`${JAVA_BACKEND_URL}/api/checkout`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    // Fast check if Java backend is responsive
+    if (JAVA_BACKEND_URL) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Backend Error');
+          const res = await fetch(`${JAVA_BACKEND_URL}/api/checkout`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
 
-    return NextResponse.json(data);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.url) return NextResponse.json(data);
+          }
+        } catch {
+          // Java backend not available, fall back to direct Next.js Stripe session
+        }
+      }
+    }
+
+    const result = await createDirectCheckoutSession(req, user, body, supabase);
+    return NextResponse.json(result);
+
   } catch (err: any) {
-    console.error('Checkout Proxy POST Error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Checkout Error:', err);
+    return NextResponse.json({ error: err.message || 'Checkout failed' }, { status: 500 });
   }
 }

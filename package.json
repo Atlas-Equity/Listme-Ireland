@@ -5,6 +5,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && .\\mvnw.cmd spring-boot:run",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "build": "npm --prefix frontend run build",
+    "build:frontend": "npm --prefix frontend run build",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down"
   },

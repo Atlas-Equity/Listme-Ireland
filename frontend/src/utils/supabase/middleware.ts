@@ -6,6 +6,42 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  const pathname = request.nextUrl.pathname;
+
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
+  const isProtectedRoute = 
+    pathname.startsWith('/my-listme') || 
+    pathname.startsWith('/sell') || 
+    pathname.startsWith('/messages') || 
+    pathname.startsWith('/stripe-setup') || 
+    pathname.startsWith('/wallet-setup');
+  const isSignoutRoute = pathname.startsWith('/auth/signout');
+
+  // Fast path: for public browsing routes (homepage, categories, search, listing view),
+  // do not block page navigation on a remote Supabase Auth network call!
+  if (!isAuthRoute && !isOnboardingRoute && !isProtectedRoute && !isSignoutRoute) {
+    return supabaseResponse;
+  }
+
+  // Check if any supabase auth cookie exists
+  const hasAuthCookie = request.cookies.getAll().some(c => 
+    c.name.includes('sb-') && c.name.includes('-auth-token')
+  );
+
+  // If on an auth route and no auth cookie is present, allow immediate render without remote call
+  if (isAuthRoute && !hasAuthCookie) {
+    return supabaseResponse;
+  }
+
+  // If on a protected route and no auth cookie is present, redirect to login immediately
+  if (isProtectedRoute && !hasAuthCookie) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('next', pathname);
+    return NextResponse.redirect(url);
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -15,7 +51,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -27,25 +63,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
-  const isOnboardingRoute = request.nextUrl.pathname.startsWith('/onboarding');
-  const isSignoutRoute = request.nextUrl.pathname.startsWith('/auth/signout');
-
-  if (
-    !user &&
-    request.nextUrl.pathname.startsWith('/my-listme')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.searchParams.set('next', pathname);
     return NextResponse.redirect(url)
   }
 
