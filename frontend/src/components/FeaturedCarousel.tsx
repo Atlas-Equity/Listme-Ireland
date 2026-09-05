@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock, Star } from 'lucide-react';
 
 const mockListings = [
   { id: 1, title: '[EXAMPLE TITLE]', price: '[EXAMPLE PAYMENT]', type: 'auction', bids: '[EXAMPLE BID]', timeRemaining: '[EXAMPLE TIME]', image: '[EXAMPLE IMAGE]' },
@@ -70,7 +70,10 @@ export default function FeaturedCarousel() {
                   )}
                   {listing.type === 'service' && (
                     <>
-                      <span className="font-medium text-amber-500">★ {listing.rating}</span>
+                      <span className="font-medium text-amber-500 flex items-center">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400 mr-1 shrink-0" />
+                        <span>{listing.rating}</span>
+                      </span>
                       <span className="ml-1 text-gray-400">({listing.reviews})</span>
                     </>
                   )}

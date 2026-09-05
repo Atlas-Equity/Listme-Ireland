@@ -2,7 +2,7 @@ import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { Clock, MapPin, ShieldCheck, Heart, Share2, AlertCircle, Info, ChevronRight, MessageSquare } from 'lucide-react';
+import { Clock, MapPin, ShieldCheck, Heart, Share2, AlertCircle, Info, ChevronRight, MessageSquare, Banknote } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import Link from 'next/link';
 import CheckoutButton from '@/components/CheckoutButton';
@@ -172,8 +172,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     {paymentOptions.map((opt) => {
                       if (opt === 'stripe') return null;
                       if (opt === 'cash') return (
-                        <li key={opt} className="flex items-center">
-                          <span className="font-semibold text-green-600 mr-2">💵</span> Cash On Pick-Up
+                        <li key={opt} className="flex items-center gap-2">
+                          <Banknote className="w-4 h-4 text-green-600 shrink-0" />
+                          <span>Cash On Pick-Up</span>
                         </li>
                       );
                       return <li key={opt}>{opt}</li>;

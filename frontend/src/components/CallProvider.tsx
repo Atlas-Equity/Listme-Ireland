@@ -90,6 +90,23 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const outgoingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
+  // Call session tracking & deduplication refs
+  const isCallerRef = useRef<boolean>(false);
+  const hasLoggedCallRef = useRef<boolean>(false);
+  const callDurationRef = useRef<number>(0);
+  const participantRef = useRef<CallParticipant | null>(null);
+  const callStatusRef = useRef<CallStatus>('idle');
+
+  const updateCallStatus = (status: CallStatus) => {
+    callStatusRef.current = status;
+    setCallStatus(status);
+  };
+
+  const updateParticipant = (participant: CallParticipant | null) => {
+    participantRef.current = participant;
+    setCurrentParticipant(participant);
+  };
+
   // 1. Load authenticated user
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -148,14 +165,53 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     pendingCandidatesRef.current = [];
     setCallDuration(0);
+    callDurationRef.current = 0;
     setIsMuted(false);
   }, []);
 
+  // Post call log event to conversation chat feed (Snapchat/WhatsApp style)
+  const logCallToChat = useCallback(
+    async (status: 'completed' | 'missed' | 'declined', duration: number) => {
+      // Only the caller records the call event to prevent duplicates
+      if (!isCallerRef.current || hasLoggedCallRef.current) return;
+      hasLoggedCallRef.current = true;
+
+      const participant = participantRef.current;
+      if (!participant) return;
+
+      const convId = participant.conversationId;
+      const participantId = participant.id;
+      if (!convId && !participantId) return;
+
+      const payloadContent = `CALL_LOG:${JSON.stringify({
+        status,
+        duration: Math.max(0, Math.floor(duration)),
+        timestamp: new Date().toISOString(),
+      })}`;
+
+      try {
+        await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: convId || undefined,
+            recipientId: participantId,
+            content: payloadContent,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to log call event to chat:', err);
+      }
+    },
+    []
+  );
+
   // End Call handler
   const endCall = useCallback(() => {
-    if (currentParticipant && currentUserId) {
+    const participant = participantRef.current || currentParticipant;
+    if (participant && currentUserId) {
       // Send hangup event to other user
-      const targetChannel = supabase.channel(`user_call_signals_${currentParticipant.id}`);
+      const targetChannel = supabase.channel(`user_call_signals_${participant.id}`);
       targetChannel.send({
         type: 'broadcast',
         event: 'call_signal',
@@ -166,14 +222,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
+    if (callStatusRef.current === 'calling') {
+      logCallToChat('missed', 0);
+    } else if (callStatusRef.current === 'connected') {
+      logCallToChat('completed', callDurationRef.current);
+    }
+
     playCallEndedTone();
     cleanupMedia();
-    setCallStatus('ended');
+    updateCallStatus('ended');
     setTimeout(() => {
-      setCallStatus('idle');
-      setCurrentParticipant(null);
+      updateCallStatus('idle');
+      updateParticipant(null);
     }, 1200);
-  }, [currentParticipant, currentUserId, cleanupMedia, supabase]);
+  }, [currentParticipant, currentUserId, cleanupMedia, logCallToChat, supabase]);
 
   // Handle incoming call signal
   const handleSignal = useCallback(
@@ -186,7 +248,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       switch (payload.type) {
         case 'offer': {
           // If already in a call, send busy signal
-          if (callStatus !== 'idle') {
+          if (callStatusRef.current !== 'idle') {
             const replyChannel = supabase.channel(`user_call_signals_${payload.callerId}`);
             replyChannel.send({
               type: 'broadcast',
@@ -196,16 +258,21 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          setCurrentParticipant({
+          isCallerRef.current = false;
+          hasLoggedCallRef.current = false;
+          callDurationRef.current = 0;
+
+          const callerParticipant: CallParticipant = {
             id: payload.callerId,
             name: payload.callerName,
             avatar: payload.callerAvatar,
             conversationId: payload.conversationId,
-          });
+          };
+          updateParticipant(callerParticipant);
 
           // Store offer payload for when user clicks Accept
           (window as any).__pendingCallOffer = payload.sdp;
-          setCallStatus('incoming');
+          updateCallStatus('incoming');
           startRingtone();
 
           // Also trigger browser push notification if permitted
@@ -221,7 +288,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
 
         case 'answer': {
-          if (peerConnectionRef.current && callStatus === 'calling') {
+          if (peerConnectionRef.current && callStatusRef.current === 'calling') {
             stopRingtone();
             if (outgoingTimeoutRef.current) {
               clearTimeout(outgoingTimeoutRef.current);
@@ -239,11 +306,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             }
 
             playCallConnectedTone();
-            setCallStatus('connected');
+            updateCallStatus('connected');
 
             // Start duration timer
             durationTimerRef.current = setInterval(() => {
-              setCallDuration((prev) => prev + 1);
+              setCallDuration((prev) => {
+                const next = prev + 1;
+                callDurationRef.current = next;
+                return next;
+              });
             }, 1000);
           }
           break;
@@ -265,48 +336,54 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
 
         case 'decline': {
+          logCallToChat('declined', 0);
           stopRingtone();
           playCallEndedTone();
           cleanupMedia();
-          setCallStatus('ended');
+          updateCallStatus('ended');
           setTimeout(() => {
-            setCallStatus('idle');
-            setCurrentParticipant(null);
+            updateCallStatus('idle');
+            updateParticipant(null);
           }, 1500);
           break;
         }
 
         case 'busy': {
+          logCallToChat('declined', 0);
           stopRingtone();
           playCallEndedTone();
           cleanupMedia();
-          setCallStatus('ended');
+          updateCallStatus('ended');
           setTimeout(() => {
-            setCallStatus('idle');
-            setCurrentParticipant(null);
+            updateCallStatus('idle');
+            updateParticipant(null);
           }, 1500);
           break;
         }
 
         case 'hangup': {
+          if (callStatusRef.current === 'connected') {
+            logCallToChat('completed', callDurationRef.current);
+          }
           playCallEndedTone();
           cleanupMedia();
-          setCallStatus('ended');
+          updateCallStatus('ended');
           setTimeout(() => {
-            setCallStatus('idle');
-            setCurrentParticipant(null);
+            updateCallStatus('idle');
+            updateParticipant(null);
           }, 1200);
           break;
         }
       }
     },
-    [currentUserId, callStatus, cleanupMedia, supabase]
+    [currentUserId, cleanupMedia, logCallToChat, supabase]
   );
 
   // Accept incoming call
   const acceptCall = async () => {
     stopRingtone();
-    if (!currentParticipant || !currentUserId) return;
+    const participant = participantRef.current || currentParticipant;
+    if (!participant || !currentUserId) return;
 
     try {
       const sdpOffer = (window as any).__pendingCallOffer;
@@ -336,8 +413,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       // Handle ICE candidates
       pc.onicecandidate = (event) => {
-        if (event.candidate && currentParticipant) {
-          const targetChannel = supabase.channel(`user_call_signals_${currentParticipant.id}`);
+        if (event.candidate && participantRef.current) {
+          const targetChannel = supabase.channel(`user_call_signals_${participantRef.current.id}`);
           targetChannel.send({
             type: 'broadcast',
             event: 'call_signal',
@@ -358,7 +435,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       await pc.setLocalDescription(answer);
 
       // 5. Send answer to caller
-      const targetChannel = supabase.channel(`user_call_signals_${currentParticipant.id}`);
+      const targetChannel = supabase.channel(`user_call_signals_${participant.id}`);
       targetChannel.send({
         type: 'broadcast',
         event: 'call_signal',
@@ -370,11 +447,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       });
 
       playCallConnectedTone();
-      setCallStatus('connected');
+      updateCallStatus('connected');
 
       // Start duration timer
       durationTimerRef.current = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
+        setCallDuration((prev) => {
+          const next = prev + 1;
+          callDurationRef.current = next;
+          return next;
+        });
       }, 1000);
     } catch (err: any) {
       console.error('Error accepting call:', err);
@@ -386,8 +467,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // Decline incoming call
   const declineCall = () => {
     stopRingtone();
-    if (currentParticipant && currentUserId) {
-      const targetChannel = supabase.channel(`user_call_signals_${currentParticipant.id}`);
+    const participant = participantRef.current || currentParticipant;
+    if (participant && currentUserId) {
+      const targetChannel = supabase.channel(`user_call_signals_${participant.id}`);
       targetChannel.send({
         type: 'broadcast',
         event: 'call_signal',
@@ -399,8 +481,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     }
 
     cleanupMedia();
-    setCallStatus('idle');
-    setCurrentParticipant(null);
+    updateCallStatus('idle');
+    updateParticipant(null);
   };
 
   // Start outgoing call
@@ -422,14 +504,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     cleanupMedia();
 
+    isCallerRef.current = true;
+    hasLoggedCallRef.current = false;
+    callDurationRef.current = 0;
+
     try {
-      setCurrentParticipant({
+      const targetParticipant: CallParticipant = {
         id: targetUserId,
         name: targetUsername,
         avatar: targetAvatar,
         conversationId,
-      });
-      setCallStatus('calling');
+      };
+      updateParticipant(targetParticipant);
+      updateCallStatus('calling');
 
       // 1. Get microphone audio stream
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -488,7 +575,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       // Ringing timeout (30 seconds no answer)
       outgoingTimeoutRef.current = setTimeout(() => {
-        if (callStatus === 'calling') {
+        if (callStatusRef.current === 'calling') {
+          logCallToChat('missed', 0);
           endCall();
         }
       }, 30000);
@@ -496,8 +584,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       console.error('Error starting call:', err);
       alert('Could not start call: ' + (err?.message || 'Check microphone access.'));
       cleanupMedia();
-      setCallStatus('idle');
-      setCurrentParticipant(null);
+      updateCallStatus('idle');
+      updateParticipant(null);
     }
   };
 
@@ -569,6 +657,26 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
             const senderName = senderProfile?.username || 'A ListMe user';
 
+            const rawContent = msg.content || '';
+            let displayContent = rawContent;
+            if (rawContent.startsWith('CALL_LOG:')) {
+              try {
+                const data = JSON.parse(rawContent.slice(9));
+                if (data.status === 'missed') {
+                  displayContent = 'Missed voice call';
+                } else if (data.status === 'declined') {
+                  displayContent = 'Call declined';
+                } else {
+                  const mins = Math.floor((data.duration || 0) / 60);
+                  const secs = (data.duration || 0) % 60;
+                  const dur = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                  displayContent = `Voice call ended (${dur})`;
+                }
+              } catch {
+                displayContent = 'Voice call';
+              }
+            }
+
             // Play message sound chime!
             playMessageChime();
 
@@ -576,7 +684,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             setMessageToast({
               id: msg.id,
               senderName,
-              content: msg.content,
+              content: displayContent,
               conversationId: msg.conversation_id,
             });
 
@@ -588,7 +696,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               Notification.permission === 'granted'
             ) {
               new Notification(`New message from ${senderName}`, {
-                body: msg.content,
+                body: displayContent,
                 icon: '/clover-logo.png',
               });
             }

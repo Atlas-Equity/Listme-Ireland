@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { conversationId, listingId, sellerId, content } = body;
+    const { conversationId, listingId, sellerId, recipientId, content } = body;
 
     if (!content || !content.trim()) {
       return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
@@ -121,28 +121,31 @@ export async function POST(req: NextRequest) {
     const trimmedContent = content.trim();
     let targetConversationId = conversationId;
 
-    // If conversationId is not provided, look up or create conversation using listingId & sellerId
+    // If conversationId is not provided, look up or create conversation using listingId & sellerId/recipientId
     if (!targetConversationId) {
-      if (!sellerId) {
-        return NextResponse.json({ error: 'sellerId or conversationId is required' }, { status: 400 });
+      const otherUserId = sellerId || recipientId;
+      if (!otherUserId) {
+        return NextResponse.json({ error: 'sellerId, recipientId or conversationId is required' }, { status: 400 });
       }
 
-      if (sellerId === user.id) {
+      if (otherUserId === user.id) {
         return NextResponse.json({ error: 'Cannot message yourself' }, { status: 400 });
       }
 
-      // Look up existing conversation
+      // Look up existing conversation between the two users
       let query = supabase
         .from('conversations')
         .select('id')
-        .eq('buyer_id', user.id)
-        .eq('seller_id', sellerId);
+        .or(`and(buyer_id.eq.${user.id},seller_id.eq.${otherUserId}),and(buyer_id.eq.${otherUserId},seller_id.eq.${user.id})`);
 
       if (listingId) {
         query = query.eq('listing_id', listingId);
       }
 
-      const { data: existingConv } = await query.maybeSingle();
+      const { data: existingConv } = await query
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (existingConv?.id) {
         targetConversationId = existingConv.id;
@@ -154,7 +157,7 @@ export async function POST(req: NextRequest) {
           .insert({
             listing_id: listingId || null,
             buyer_id: user.id,
-            seller_id: sellerId,
+            seller_id: otherUserId,
             last_message: trimmedContent,
             last_message_at: now,
             updated_at: now,

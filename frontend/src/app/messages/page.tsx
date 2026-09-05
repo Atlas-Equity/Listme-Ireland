@@ -17,11 +17,56 @@ import {
   ShoppingBag,
   Tag,
   Phone,
+  PhoneMissed,
+  PhoneOff,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { createClient as createBrowserSupabase } from '@/utils/supabase/client';
 import { useCall } from '@/components/CallProvider';
 import { playMessageChime } from '@/utils/callSounds';
+
+interface CallLogData {
+  status: 'completed' | 'missed' | 'declined';
+  duration?: number;
+  timestamp?: string;
+}
+
+function parseCallLog(content: string): CallLogData | null {
+  if (!content || !content.startsWith('CALL_LOG:')) return null;
+  try {
+    return JSON.parse(content.slice(9));
+  } catch {
+    return null;
+  }
+}
+
+function formatCallDuration(seconds?: number): string {
+  if (!seconds || seconds <= 0) return '0s';
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins === 0) return `${secs}s`;
+  if (secs === 0) return `${mins}m`;
+  return `${mins}m ${secs}s`;
+}
+
+function formatLastMessageSnippet(lastMessage?: string | null): string {
+  if (!lastMessage) return 'No messages yet';
+  if (lastMessage.startsWith('CALL_LOG:')) {
+    try {
+      const data = JSON.parse(lastMessage.slice(9));
+      if (data.status === 'missed') return 'Missed voice call';
+      if (data.status === 'declined') return 'Call declined';
+      if (data.status === 'completed') {
+        const dur = data.duration ? ` (${formatCallDuration(data.duration)})` : '';
+        return `Voice call${dur}`;
+      }
+      return 'Voice call';
+    } catch {
+      return 'Voice call';
+    }
+  }
+  return lastMessage;
+}
 
 interface Conversation {
   id: string;
@@ -504,7 +549,7 @@ export default function MessagesPage() {
                             ? 'font-bold text-gray-900 dark:text-white' 
                             : 'text-gray-500 dark:text-gray-400'
                         }`}>
-                          {conv.lastMessage || 'No messages yet'}
+                          {formatLastMessageSnippet(conv.lastMessage)}
                         </p>
                       </div>
                     </div>
@@ -639,7 +684,96 @@ export default function MessagesPage() {
                     </div>
                   ) : (
                     messages.map((msg) => {
+                      const callLog = parseCallLog(msg.content);
                       const isMe = msg.sender_id === currentUserId;
+
+                      if (callLog) {
+                        const isMissed = callLog.status === 'missed';
+                        const isDeclined = callLog.status === 'declined';
+                        const isCompleted = callLog.status === 'completed';
+
+                        return (
+                          <div key={msg.id} className="flex flex-col items-center my-3 px-2 animate-in fade-in duration-200">
+                            <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gray-50/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 shadow-sm hover:border-gray-300 dark:hover:border-zinc-700 transition-all max-w-sm w-full backdrop-blur-sm">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {/* Call Status Icon Badge */}
+                                <div
+                                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${
+                                    isMissed
+                                      ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                      : isDeclined
+                                      ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                      : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                  }`}
+                                >
+                                  {isMissed ? (
+                                    <PhoneMissed className="w-5 h-5" />
+                                  ) : isDeclined ? (
+                                    <PhoneOff className="w-5 h-5" />
+                                  ) : (
+                                    <Phone className="w-5 h-5" />
+                                  )}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-xs text-gray-900 dark:text-white truncate">
+                                    {isMissed
+                                      ? isMe ? 'Outgoing Call (No answer)' : 'Missed Voice Call'
+                                      : isDeclined
+                                      ? isMe ? 'Call Declined' : 'Call Declined'
+                                      : 'Voice Call'}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                                    {isCompleted && callLog.duration !== undefined ? (
+                                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                        {formatCallDuration(callLog.duration)}
+                                      </span>
+                                    ) : isMissed ? (
+                                      <span className="text-red-500 font-medium">
+                                        {isMe ? 'No answer' : 'Missed'}
+                                      </span>
+                                    ) : (
+                                      <span className="text-amber-500 font-medium">
+                                        Declined
+                                      </span>
+                                    )}
+                                    <span>•</span>
+                                    <span>
+                                      {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Action: Call Back / Call Again Button */}
+                              {activeConversation && (
+                                <button
+                                  type="button"
+                                  disabled={callStatus !== 'idle'}
+                                  onClick={() => {
+                                    startCall(
+                                      activeConversation.otherUser.id,
+                                      activeConversation.otherUser.username,
+                                      undefined,
+                                      activeConversation.id
+                                    );
+                                  }}
+                                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer ${
+                                    isMissed && !isMe
+                                      ? 'bg-red-500 hover:bg-red-600 text-white'
+                                      : 'bg-primary hover:bg-green-700 text-white'
+                                  }`}
+                                  title={`Call ${activeConversation.otherUser.username}`}
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>{isMe || isCompleted ? 'Call Again' : 'Call Back'}</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={msg.id}

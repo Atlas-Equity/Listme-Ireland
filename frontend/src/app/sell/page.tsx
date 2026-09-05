@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Package, Camera, CheckCircle2, ChevronRight, ChevronLeft, UploadCloud, X, Loader2, AlertCircle } from 'lucide-react';
+import { Package, Camera, CheckCircle2, ChevronRight, ChevronLeft, UploadCloud, X, Loader2, AlertCircle, Banknote } from 'lucide-react';
 import { uploadListingImage } from '@/utils/supabase/storage';
 import { createListing } from './actions';
 import Image from 'next/image';
@@ -398,7 +398,12 @@ export default function SellPage() {
                         className="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary"
                       />
                       <span className="font-medium flex items-center text-gray-900 dark:text-white">
-                        {method === 'cash' && <span className="font-semibold text-green-600 mr-2">💵 Cash On Pick-Up</span>}
+                        {method === 'cash' && (
+                          <span className="font-semibold text-green-600 flex items-center gap-1.5 mr-2">
+                            <Banknote className="w-5 h-5 text-green-600" />
+                            <span>Cash On Pick-Up</span>
+                          </span>
+                        )}
                         {method === 'stripe' && (
                           <img 
                             src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
