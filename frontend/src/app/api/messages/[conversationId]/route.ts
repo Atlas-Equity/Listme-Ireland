@@ -29,52 +29,51 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch message history
-    const { data: messages, error: msgError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-
-    if (msgError) {
-      return NextResponse.json({ error: msgError.message }, { status: 500 });
-    }
-
-    // Fetch other user's profile
     const otherUserId = conversation.buyer_id === user.id ? conversation.seller_id : conversation.buyer_id;
-    const { data: otherProfile } = await supabase
-      .from('profiles')
-      .select('id, username')
-      .eq('id', otherUserId)
-      .single();
 
-    // Fetch listing info if present
-    let listing = null;
-    if (conversation.listing_id) {
-      const { data: listingData } = await supabase
-        .from('listings')
-        .select('id, title, price, price_type, images, status, condition, location')
-        .eq('id', conversation.listing_id)
-        .single();
-      listing = listingData;
+    // Parallelize message history, other participant profile, and listing lookups
+    const [messagesResult, profileResult, listingResult] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('id, conversation_id, sender_id, content, is_read, created_at')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+        .limit(100),
+      supabase
+        .from('profiles')
+        .select('id, username')
+        .eq('id', otherUserId)
+        .maybeSingle(),
+      conversation.listing_id
+        ? supabase
+            .from('listings')
+            .select('id, title, price, price_type, images, status, condition, location')
+            .eq('id', conversation.listing_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null })
+    ]);
+
+    if (messagesResult.error) {
+      return NextResponse.json({ error: messagesResult.error.message }, { status: 500 });
     }
 
-    // Mark messages from other user as read
-    await supabase
+    // Mark unread messages from other user as read asynchronously (non-blocking)
+    supabase
       .from('messages')
       .update({ is_read: true })
       .eq('conversation_id', conversationId)
       .eq('sender_id', otherUserId)
-      .eq('is_read', false);
+      .eq('is_read', false)
+      .then();
 
     return NextResponse.json({
       conversation,
-      messages: messages || [],
+      messages: messagesResult.data || [],
       otherUser: {
         id: otherUserId,
-        username: otherProfile?.username || 'User',
+        username: profileResult.data?.username || 'User',
       },
-      listing,
+      listing: listingResult.data,
       currentUserId: user.id,
     });
 

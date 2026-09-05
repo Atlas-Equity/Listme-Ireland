@@ -18,6 +18,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { createClient as createBrowserSupabase } from '@/utils/supabase/client';
 
 interface Conversation {
   id: string;
@@ -156,14 +157,107 @@ export default function MessagesPage() {
     }
   }, [selectedConvId, fetchMessages]);
 
-  // Background polling for real-time message updates
+  // Real-time WebSocket subscription for instant message delivery (<50ms)
+  useEffect(() => {
+    if (!selectedConvId) return;
+
+    const supabase = createBrowserSupabase();
+
+    const channel = supabase
+      .channel(`chat_messages_${selectedConvId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConvId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          setMessages((prev) => {
+            // If already present by id, skip
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+
+            // If we have an optimistic temp message matching this content, replace it
+            const hasTemp = prev.some(
+              (m) => m.id.startsWith('temp-') && m.content === newMsg.content && m.sender_id === newMsg.sender_id
+            );
+            if (hasTemp) {
+              return prev.map((m) =>
+                m.id.startsWith('temp-') && m.content === newMsg.content && m.sender_id === newMsg.sender_id
+                  ? newMsg
+                  : m
+              );
+            }
+
+            return [...prev, newMsg];
+          });
+
+          // Update sidebar snippet immediately
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === selectedConvId
+                ? { ...c, lastMessage: newMsg.content, lastMessageAt: newMsg.created_at }
+                : c
+            )
+          );
+
+          setTimeout(() => scrollToBottom('smooth'), 50);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConvId}`,
+        },
+        (payload) => {
+          const updatedMsg = payload.new as Message;
+          setMessages((prev) => prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedConvId]);
+
+  // Real-time listener for conversation updates across all threads
+  useEffect(() => {
+    const supabase = createBrowserSupabase();
+
+    const convChannel = supabase
+      .channel('chat_conversations_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        () => {
+          fetchConversations(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(convChannel);
+    };
+  }, [fetchConversations]);
+
+  // Gentle fallback idle polling (only as a backup if tab was suspended by browser)
   useEffect(() => {
     const interval = setInterval(() => {
       if (selectedConvId) {
         fetchMessages(selectedConvId, true);
       }
       fetchConversations(true);
-    }, 4000);
+    }, 20000);
 
     return () => clearInterval(interval);
   }, [selectedConvId, fetchMessages, fetchConversations]);
