@@ -399,7 +399,7 @@ export default function MessagesPage() {
               <MessageSquare className="w-6 h-6 text-primary" />
               Messages
             </h1>
-            <span className="text-xs bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-semibold px-2 py-0.5 rounded-full border border-gray-200 dark:border-zinc-700">
               {conversations.length} {conversations.length === 1 ? 'chat' : 'chats'}
             </span>
           </div>
@@ -496,7 +496,7 @@ export default function MessagesPage() {
                       onClick={() => setSelectedConvId(conv.id)}
                       className={`p-3 sm:p-4 cursor-pointer transition-colors flex items-start gap-3 relative ${
                         isSelected
-                          ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-primary'
+                          ? 'bg-gray-100 dark:bg-zinc-800/90 border-l-4 border-primary'
                           : 'hover:bg-gray-50 dark:hover:bg-zinc-900/60'
                       }`}
                     >
@@ -512,7 +512,7 @@ export default function MessagesPage() {
                             />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary font-bold text-lg flex items-center justify-center border border-primary/20">
+                          <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 font-bold text-lg flex items-center justify-center border border-gray-200 dark:border-zinc-700">
                             {conv.otherUser.username.charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -578,7 +578,7 @@ export default function MessagesPage() {
                       <ArrowLeft className="w-5 h-5" />
                     </button>
 
-                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 font-bold flex items-center justify-center text-sm shrink-0 border border-gray-200 dark:border-zinc-700">
                       {activeConversation?.otherUser?.username?.charAt(0).toUpperCase() || 'U'}
                     </div>
 
@@ -620,7 +620,7 @@ export default function MessagesPage() {
                       <Link
                         href={`/listing/${activeConversation.listing.id}`}
                         target="_blank"
-                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline bg-primary/5 dark:bg-primary/10 px-2.5 py-1.5 rounded-lg shrink-0"
+                        className="flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-primary bg-gray-100 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg shrink-0 border border-gray-200 dark:border-zinc-700 transition-colors"
                       >
                         <span>View item</span>
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -835,7 +835,7 @@ export default function MessagesPage() {
             ) : (
               /* No Conversation Selected Placeholder */
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-400 flex items-center justify-center mb-4">
                   <MessageSquare className="w-8 h-8" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">

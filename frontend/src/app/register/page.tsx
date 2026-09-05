@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, AlertCircle, UserPlus } from 'lucide-react';
+import { Mail, Lock, AlertCircle, UserPlus, Phone, CheckCircle2 } from 'lucide-react';
+import { validatePhoneNumber } from '@/utils/phoneValidation';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accountType, setAccountType] = useState<'personal' | 'business'>('personal');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,24 @@ export default function RegisterPage() {
       return;
     }
 
+    let validatedPhoneE164: string | undefined = undefined;
+
+    if (accountType === 'business' && !phone.trim()) {
+      setError("A valid contact phone number is required for business accounts.");
+      setLoading(false);
+      return;
+    }
+
+    if (phone.trim()) {
+      const phoneValidation = validatePhoneNumber(phone.trim());
+      if (!phoneValidation.isValid) {
+        setError(phoneValidation.error || "Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).");
+        setLoading(false);
+        return;
+      }
+      validatedPhoneE164 = phoneValidation.e164 || phone.trim();
+    }
+
     const { error, data } = await supabase.auth.signUp({
       email,
       password,
@@ -44,6 +64,7 @@ export default function RegisterPage() {
         data: {
           username: username,
           account_type: accountType,
+          phone: validatedPhoneE164 || undefined,
         }
       }
     });
@@ -219,6 +240,57 @@ export default function RegisterPage() {
                   placeholder="you@example.com"
                 />
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="phone">
+                  Phone number {accountType === 'business' ? <span className="text-red-500">*</span> : '(Optional)'}
+                </label>
+                {accountType === 'business' && (
+                  <span className="text-xs font-medium text-primary">
+                    Required for Business
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="phone"
+                  type="tel"
+                  required={accountType === 'business'}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={`block w-full pl-10 pr-10 px-3 py-2 border rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 sm:text-sm transition-colors ${
+                    phone.trim() && !validatePhoneNumber(phone).isValid
+                      ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400 focus:border-red-400'
+                      : accountType === 'business' && !phone.trim()
+                      ? 'border-amber-400 dark:border-amber-600/70 focus:ring-amber-400'
+                      : 'border-gray-300 dark:border-zinc-700 focus:ring-primary focus:border-primary'
+                  }`}
+                  placeholder="+353 87 123 4567"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  {phone.trim() ? (
+                    validatePhoneNumber(phone).isValid ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )
+                  ) : null}
+                </div>
+              </div>
+              {phone.trim() && !validatePhoneNumber(phone).isValid ? (
+                <p className="text-xs text-red-500 mt-1">
+                  {validatePhoneNumber(phone).error || 'Please enter a valid phone number (e.g. +353 87 123 4567).'}
+                </p>
+              ) : accountType === 'business' ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Required for business accounts to allow customer communication & seller verification.
+                </p>
+              ) : null}
             </div>
 
             <div>

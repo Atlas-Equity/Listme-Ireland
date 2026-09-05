@@ -2,9 +2,11 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Phone, Mail, Sparkles } from 'lucide-react';
+import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Phone, Mail, ShieldAlert } from 'lucide-react';
 import { updateProfileSettings, uploadAvatarAction, ProfileData } from './actions';
 import { useRouter } from 'next/navigation';
+import PhoneVerificationModal from '@/components/PhoneVerificationModal';
+import { validatePhoneNumber } from '@/utils/phoneValidation';
 
 interface ProfileSettingsFormProps {
   initialData: {
@@ -16,9 +18,10 @@ interface ProfileSettingsFormProps {
     location: string;
     email: string;
   };
+  accountType?: 'personal' | 'business';
 }
 
-export default function ProfileSettingsForm({ initialData }: ProfileSettingsFormProps) {
+export default function ProfileSettingsForm({ initialData, accountType = 'personal' }: ProfileSettingsFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,8 +37,9 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialData.avatarUrl || null);
   const [isAvatarRemoved, setIsAvatarRemoved] = useState(false);
 
-  // Status state
+  // Status and verification state
   const [isSaving, setIsSaving] = useState(false);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -69,17 +73,16 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSave = async (phoneToSave: string, finalAvatarUrlParam?: string) => {
     setIsSaving(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
-      let finalAvatarUrl = avatarUrl;
+      let finalAvatarUrl = finalAvatarUrlParam !== undefined ? finalAvatarUrlParam : avatarUrl;
 
-      // 1. If user selected a new file, upload it first
-      if (selectedFile) {
+      // 1. If user selected a new file and it has not been uploaded yet
+      if (selectedFile && finalAvatarUrlParam === undefined) {
         const formData = new FormData();
         formData.append('avatar', selectedFile);
         const uploadRes = await uploadAvatarAction(formData);
@@ -92,7 +95,7 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
 
         finalAvatarUrl = uploadRes.publicUrl;
         setAvatarUrl(finalAvatarUrl);
-      } else if (isAvatarRemoved) {
+      } else if (isAvatarRemoved && finalAvatarUrlParam === undefined) {
         finalAvatarUrl = '';
       }
 
@@ -102,7 +105,7 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
         fullName,
         bio,
         avatarUrl: finalAvatarUrl,
-        phone,
+        phone: phoneToSave,
         location,
       };
 
@@ -123,6 +126,48 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const trimmedPhone = phone.trim();
+    const initialTrimmedPhone = (initialData.phone || '').trim();
+
+    // If account is business, phone number is mandatory
+    if (accountType === 'business' && !trimmedPhone) {
+      setErrorMessage('A valid contact phone number is required for business accounts.');
+      return;
+    }
+
+    // If a phone number is entered, strictly validate format
+    if (trimmedPhone) {
+      const val = validatePhoneNumber(trimmedPhone);
+      if (!val.isValid) {
+        setErrorMessage(val.error || 'Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).');
+        return;
+      }
+    }
+
+    // Check if phone was changed
+    const isPhoneChanged = trimmedPhone !== initialTrimmedPhone;
+
+    if (isPhoneChanged && trimmedPhone) {
+      // Require phone OTP verification before saving
+      setIsVerifyingPhone(true);
+      return;
+    }
+
+    // Phone unchanged or cleared (for personal accounts) -> proceed to save directly
+    await executeSave(trimmedPhone);
+  };
+
+  const handlePhoneVerified = async (verifiedPhoneE164: string) => {
+    setIsVerifyingPhone(false);
+    setPhone(verifiedPhoneE164);
+    await executeSave(verifiedPhoneE164);
   };
 
   const displayName = fullName || username || initialData.email.split('@')[0] || 'User';
@@ -322,21 +367,59 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Contact Phone (Optional)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Contact Phone {accountType === 'business' ? <span className="text-red-500">*</span> : '(Optional)'}
+              </label>
+              {accountType === 'business' ? (
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Required for Business
+                </span>
+              ) : (
+                phone.trim() && phone.trim() !== (initialData.phone || '').trim() && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    Verification required
+                  </span>
+                )
+              )}
+            </div>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                 <Phone className="w-4 h-4" />
               </div>
               <input
                 type="tel"
+                required={accountType === 'business'}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. +353 87 123 4567"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                className={`w-full pl-10 pr-10 py-2.5 rounded-lg border ${
+                  phone.trim() && !validatePhoneNumber(phone).isValid
+                    ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400'
+                    : 'border-gray-300 dark:border-zinc-700 focus:ring-primary'
+                } bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 text-sm`}
               />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                {phone.trim() ? (
+                  validatePhoneNumber(phone).isValid ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  )
+                ) : null}
+              </div>
             </div>
+            {phone.trim() && !validatePhoneNumber(phone).isValid && (
+              <p className="text-xs text-red-500 mt-1">
+                {validatePhoneNumber(phone).error || 'Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).'}
+              </p>
+            )}
+            {phone.trim() && validatePhoneNumber(phone).isValid && phone.trim() !== (initialData.phone || '').trim() && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                Updating your phone number requires 6-digit SMS verification on save.
+              </p>
+            )}
           </div>
         </div>
 
@@ -376,13 +459,18 @@ export default function ProfileSettingsForm({ initialData }: ProfileSettingsForm
               Saving Profile...
             </>
           ) : (
-            <>
-              <Sparkles className="w-4 h-4" />
-              Save Changes
-            </>
+            'Save Changes'
           )}
         </button>
       </div>
+
+      {/* Phone OTP Verification Modal */}
+      <PhoneVerificationModal
+        isOpen={isVerifyingPhone}
+        onClose={() => setIsVerifyingPhone(false)}
+        onVerified={handlePhoneVerified}
+        phone={phone}
+      />
     </form>
   );
 }

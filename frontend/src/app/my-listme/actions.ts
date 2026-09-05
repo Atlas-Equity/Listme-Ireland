@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { validatePhoneNumber } from '@/utils/phoneValidation';
 
 export async function updateAccountType(newType: 'personal' | 'business') {
   const supabase = await createClient();
@@ -11,6 +12,23 @@ export async function updateAccountType(newType: 'personal' | 'business') {
 
   if (!user) {
     return { error: 'Not authenticated' };
+  }
+
+  if (newType === 'business') {
+    const userPhone = user.user_metadata?.phone || user.phone;
+    if (!userPhone || !userPhone.trim()) {
+      return { 
+        error: 'A phone number is required before switching to a Business account.',
+        requiresPhone: true 
+      };
+    }
+    const phoneVal = validatePhoneNumber(userPhone);
+    if (!phoneVal.isValid) {
+      return {
+        error: 'A valid phone number format is required before switching to a Business account.',
+        requiresPhone: true
+      };
+    }
   }
 
   const { error } = await supabase
@@ -24,6 +42,52 @@ export async function updateAccountType(newType: 'personal' | 'business') {
 
   // Revalidate the profile page so it shows the new data
   revalidatePath('/my-listme');
+  return { success: true };
+}
+
+export async function upgradeToBusinessWithPhone(phone: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  const phoneValidation = validatePhoneNumber(phone);
+  if (!phoneValidation.isValid) {
+    return { error: phoneValidation.error || 'Please enter a valid phone number format.' };
+  }
+
+  const normalizedPhone = phoneValidation.e164 || phone.trim();
+
+  // 1. Update user_metadata with the phone number
+  const { error: authError } = await supabase.auth.updateUser({
+    data: {
+      phone: normalizedPhone,
+    }
+  });
+
+  if (authError) {
+    return { error: authError.message };
+  }
+
+  // 2. Upgrade account_type to 'business'
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ 
+      account_type: 'business',
+      updated_at: new Date().toISOString() 
+    })
+    .eq('id', user.id);
+
+  if (profileError) {
+    return { error: profileError.message };
+  }
+
+  revalidatePath('/my-listme');
+  revalidatePath('/my-listme', 'layout');
+  revalidatePath('/', 'layout');
+
   return { success: true };
 }
 
@@ -51,6 +115,35 @@ export async function updateProfileSettings(data: ProfileData) {
   const trimmedLocation = data.location?.trim();
   const avatarUrl = data.avatarUrl?.trim() || '';
 
+  // Validate phone format if provided
+  let normalizedPhoneToSave = trimmedPhone;
+  if (trimmedPhone) {
+    const phoneValidation = validatePhoneNumber(trimmedPhone);
+    if (!phoneValidation.isValid) {
+      return { error: phoneValidation.error || 'Please enter a valid phone number format.' };
+    }
+    normalizedPhoneToSave = phoneValidation.e164 || trimmedPhone;
+  }
+
+  // Check if current user is a business account
+  const { data: currentProfile } = await supabase
+    .from('profiles')
+    .select('id, account_type')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (currentProfile?.account_type === 'business') {
+    const existingPhone = user.user_metadata?.phone || user.phone;
+    const finalPhone = normalizedPhoneToSave !== undefined ? normalizedPhoneToSave : existingPhone;
+    if (!finalPhone) {
+      return { error: 'A valid phone number is required for business accounts and cannot be removed.' };
+    }
+    const phoneValidation = validatePhoneNumber(finalPhone);
+    if (!phoneValidation.isValid) {
+      return { error: 'A valid phone number format is required for business accounts.' };
+    }
+  }
+
   // 1. If username is being changed, verify it is unique
   if (trimmedUsername) {
     const { data: existingProfile } = await supabase
@@ -72,7 +165,7 @@ export async function updateProfileSettings(data: ProfileData) {
       full_name: trimmedFullName || undefined,
       bio: trimmedBio !== undefined ? trimmedBio : undefined,
       avatar_url: avatarUrl || undefined,
-      phone: trimmedPhone !== undefined ? trimmedPhone : undefined,
+      phone: normalizedPhoneToSave !== undefined ? normalizedPhoneToSave : undefined,
       location: trimmedLocation !== undefined ? trimmedLocation : undefined,
     }
   });

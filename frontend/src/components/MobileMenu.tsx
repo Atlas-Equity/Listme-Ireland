@@ -10,8 +10,6 @@ import {
   Heart,
   LayoutGrid,
   ShoppingBag,
-  Home,
-  Car,
   Briefcase,
   Wrench,
   Users,
@@ -277,22 +275,6 @@ export function MobileMenu({ user, isBusiness }: MobileMenuProps) {
                   >
                     <ShoppingBag className="w-4 h-4 text-gray-400" />
                     Marketplace
-                  </Link>
-                  <Link
-                    href="/category/property"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <Home className="w-4 h-4 text-gray-400" />
-                    Property
-                  </Link>
-                  <Link
-                    href="/category/motors"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <Car className="w-4 h-4 text-gray-400" />
-                    Motors
                   </Link>
                   <Link
                     href="/category/jobs"

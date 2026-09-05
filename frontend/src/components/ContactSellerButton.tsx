@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, Send, X, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, Send, X, CheckCircle2, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface ContactSellerButtonProps {
@@ -109,7 +109,7 @@ export default function ContactSellerButton({
           <span className="text-gray-700 dark:text-gray-300 font-medium group-hover:text-primary transition-colors">
             Ask the seller a question
           </span>
-          <div className="bg-primary/20 text-primary group-hover:bg-primary group-hover:text-white w-7 h-7 rounded-md flex items-center justify-center transition-all">
+          <div className="bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 group-hover:bg-primary group-hover:text-white w-7 h-7 rounded-md flex items-center justify-center transition-all">
             <MessageSquare className="w-4 h-4" />
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function ContactSellerButton({
                   {/* Quick Prompts */}
                   <div>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-primary" /> Suggested questions:
+                      Suggested questions:
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {quickPrompts.map((prompt) => (

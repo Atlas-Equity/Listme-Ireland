@@ -859,7 +859,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       {messageToast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm w-full animate-in slide-in-from-top-4 fade-in duration-300">
           <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 flex items-start gap-3 backdrop-blur-md">
-            <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 flex items-center justify-center shrink-0 font-bold text-sm border border-gray-200 dark:border-zinc-700">
               <MessageSquare className="w-5 h-5" />
             </div>
 
@@ -968,7 +968,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-3xl p-5 shadow-2xl w-80 sm:w-88 flex flex-col items-center backdrop-blur-xl">
             {/* Header info */}
             <div className="w-full flex items-center justify-between mb-4">
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 uppercase tracking-wider">
                 Voice Call
               </span>
               <span className="text-xs font-mono font-bold text-gray-600 dark:text-gray-300">

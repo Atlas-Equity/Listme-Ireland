@@ -9,6 +9,7 @@ import WalletLoginButton from '@/components/WalletLoginButton';
 import WalletSetupButton from '@/components/WalletSetupButton';
 import { ListingCard } from '@/components/ListingCard';
 import ProfileSettingsForm from './ProfileSettingsForm';
+import AccountTypeSwitch from './AccountTypeSwitch';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -111,7 +112,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             </p>
           </div>
           <div className="hidden sm:block">
-            <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200">
               {accountType === 'business' ? 'Business Account' : 'Personal Account'}
             </span>
           </div>
@@ -128,7 +129,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   href="/my-listme?tab=account"
                   className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
                     currentTab === 'account'
-                      ? 'bg-green-50 dark:bg-green-900/15 text-primary border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
@@ -141,7 +142,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   href="/my-listme?tab=watchlist"
                   className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
                     currentTab === 'watchlist'
-                      ? 'bg-green-50 dark:bg-green-900/15 text-primary border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
@@ -154,7 +155,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   href="/my-listme?tab=listings"
                   className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
                     currentTab === 'listings'
-                      ? 'bg-green-50 dark:bg-green-900/15 text-primary border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
@@ -167,7 +168,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   href="/my-listme?tab=settings"
                   className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
                     currentTab === 'settings'
-                      ? 'bg-green-50 dark:bg-green-900/15 text-primary border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
@@ -296,32 +297,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     You can switch between a Personal and Business account at any time. Business accounts get access to advanced selling tools.
                   </p>
 
-                  <form action={async () => {
-                    'use server';
-                    const newType = accountType === 'personal' ? 'business' : 'personal';
-                    await updateAccountType(newType);
-                  }}>
-                    <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-lg bg-gray-50 dark:bg-zinc-900/50">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
-                          Current status: <span className="capitalize text-primary">{accountType}</span>
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {accountType === 'personal' 
-                            ? 'Upgrade to a business account to unlock bulk listing tools and lower success fees on large volume sales.'
-                            : 'Switch back to a personal account if you are no longer selling as a registered business.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-end sm:justify-start">
-                        <button
-                          type="submit"
-                          className="px-6 py-2 bg-primary hover:bg-green-700 text-white font-medium rounded-md transition-colors shadow-sm whitespace-nowrap"
-                        >
-                          Switch to {accountType === 'personal' ? 'Business' : 'Personal'}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
+                  <AccountTypeSwitch currentType={accountType} userPhone={phone} />
                 </div>
 
                 {/* Wallet & Payment Methods Settings Card */}
@@ -395,7 +371,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                       My Watchlist
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-gray-300">
                         {wishlistedListings.length} {wishlistedListings.length === 1 ? 'item' : 'items'}
                       </span>
                     </h2>
@@ -413,7 +389,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                 {wishlistedListings.length === 0 ? (
                   <div className="text-center py-16 px-4 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-50 dark:bg-green-900/20 text-primary flex items-center justify-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 flex items-center justify-center">
                       <Heart className="w-8 h-8" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
@@ -522,7 +498,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </p>
                 </div>
 
-                <ProfileSettingsForm initialData={settingsInitialData} />
+                <ProfileSettingsForm initialData={settingsInitialData} accountType={accountType} />
               </div>
             )}
 

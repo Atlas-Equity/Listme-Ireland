@@ -280,7 +280,7 @@ export default function SellPage() {
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Add Photos</h3>
                 <p className="text-sm text-gray-500 mb-6">Listings with 3+ clear photos sell 40% faster.</p>
                 
-                <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-green-50 dark:bg-green-900/20 text-primary border border-primary/30 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-md transition-colors font-medium">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors font-medium">
                   <UploadCloud className="w-5 h-5" />
                   Select Images
                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
@@ -321,7 +321,7 @@ export default function SellPage() {
                     onClick={() => setPriceType('Fixed Price')}
                     className={`p-4 rounded-xl border-2 text-center transition-colors ${
                       priceType === 'Fixed Price'
-                        ? 'border-primary bg-green-50 dark:bg-green-900/10 text-primary'
+                        ? 'border-primary bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-bold'
                         : 'border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-400 hover:border-primary/50'
                     }`}
                   >
@@ -332,7 +332,7 @@ export default function SellPage() {
                     onClick={() => setPriceType('Auction')}
                     className={`p-4 rounded-xl border-2 text-center transition-colors ${
                       priceType === 'Auction'
-                        ? 'border-primary bg-green-50 dark:bg-green-900/10 text-primary'
+                        ? 'border-primary bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white font-bold'
                         : 'border-gray-200 dark:border-zinc-700 text-gray-600 dark:text-gray-400 hover:border-primary/50'
                     }`}
                   >

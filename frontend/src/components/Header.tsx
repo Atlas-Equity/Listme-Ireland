@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Home, Car, Briefcase, Wrench, Users, LogOut, MessageSquare } from 'lucide-react';
+import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Briefcase, Wrench, Users, LogOut, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { MobileMenu } from './MobileMenu';
 import { createClient } from '@/utils/supabase/server';
@@ -115,12 +115,6 @@ export default async function Header() {
           <nav className="flex items-center space-x-8 h-11 text-sm font-medium">
             <Link href="/category/marketplace" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
               <ShoppingBag className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Marketplace
-            </Link>
-            <Link href="/category/property" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
-              <Home className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Property
-            </Link>
-            <Link href="/category/motors" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
-              <Car className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Motors
             </Link>
             <Link href="/category/jobs" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
               <Briefcase className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Jobs
