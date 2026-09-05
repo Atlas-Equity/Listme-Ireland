@@ -64,7 +64,12 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.services.mozilla.com' },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 export function CallProvider({ children }: { children: React.ReactNode }) {
@@ -90,6 +95,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const outgoingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
+  // Dedicated signaling channel refs to guarantee 0 dropped signals & reliable ICE candidate delivery
+  const targetChannelRef = useRef<any>(null);
+  const targetQueueRef = useRef<any[]>([]);
+  const isTargetChannelReadyRef = useRef<boolean>(false);
+
   // Call session tracking & deduplication refs
   const isCallerRef = useRef<boolean>(false);
   const hasLoggedCallRef = useRef<boolean>(false);
@@ -106,6 +116,66 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     participantRef.current = participant;
     setCurrentParticipant(participant);
   };
+
+  // Close and cleanup target signaling channel
+  const closeTargetChannel = useCallback(() => {
+    if (targetChannelRef.current) {
+      try {
+        supabase.removeChannel(targetChannelRef.current);
+      } catch (e) {}
+      targetChannelRef.current = null;
+    }
+    targetQueueRef.current = [];
+    isTargetChannelReadyRef.current = false;
+  }, [supabase]);
+
+  // Robust signal sender: subscribes target channel and flushes queued candidates automatically
+  const sendSignal = useCallback(
+    (targetUserId: string, payload: any) => {
+      if (!currentUserId || !targetUserId) return;
+
+      const channelName = `user_call_signals_${targetUserId}`;
+
+      if (!targetChannelRef.current || targetChannelRef.current.topic !== `realtime:${channelName}`) {
+        closeTargetChannel();
+
+        const channel = supabase.channel(channelName);
+        targetChannelRef.current = channel;
+
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            isTargetChannelReadyRef.current = true;
+            while (targetQueueRef.current.length > 0) {
+              const item = targetQueueRef.current.shift();
+              channel
+                .send({
+                  type: 'broadcast',
+                  event: 'call_signal',
+                  payload: item,
+                })
+                .catch((err) => console.warn('[WebRTC] Error sending queued signal:', err));
+            }
+          }
+        });
+      }
+
+      if (isTargetChannelReadyRef.current && targetChannelRef.current) {
+        targetChannelRef.current
+          .send({
+            type: 'broadcast',
+            event: 'call_signal',
+            payload,
+          })
+          .catch((err: any) => {
+            console.warn('[WebRTC] Signal send error, re-queueing:', err);
+            targetQueueRef.current.push(payload);
+          });
+      } else {
+        targetQueueRef.current.push(payload);
+      }
+    },
+    [currentUserId, closeTargetChannel, supabase]
+  );
 
   // 1. Load authenticated user
   useEffect(() => {
@@ -161,13 +231,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = null;
+      remoteAudioRef.current.muted = false;
     }
 
+    closeTargetChannel();
     pendingCandidatesRef.current = [];
     setCallDuration(0);
     callDurationRef.current = 0;
     setIsMuted(false);
-  }, []);
+    setIsSpeakerMuted(false);
+  }, [closeTargetChannel]);
 
   // Post call log event to conversation chat feed (Snapchat/WhatsApp style)
   const logCallToChat = useCallback(
@@ -210,15 +283,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const endCall = useCallback(() => {
     const participant = participantRef.current || currentParticipant;
     if (participant && currentUserId) {
-      // Send hangup event to other user
-      const targetChannel = supabase.channel(`user_call_signals_${participant.id}`);
-      targetChannel.send({
-        type: 'broadcast',
-        event: 'call_signal',
-        payload: {
-          type: 'hangup',
-          senderId: currentUserId,
-        },
+      sendSignal(participant.id, {
+        type: 'hangup',
+        senderId: currentUserId,
       });
     }
 
@@ -235,7 +302,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       updateCallStatus('idle');
       updateParticipant(null);
     }, 1200);
-  }, [currentParticipant, currentUserId, cleanupMedia, logCallToChat, supabase]);
+  }, [currentParticipant, currentUserId, cleanupMedia, logCallToChat, sendSignal]);
 
   // Handle incoming call signal
   const handleSignal = useCallback(
@@ -249,12 +316,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         case 'offer': {
           // If already in a call, send busy signal
           if (callStatusRef.current !== 'idle') {
-            const replyChannel = supabase.channel(`user_call_signals_${payload.callerId}`);
-            replyChannel.send({
-              type: 'broadcast',
-              event: 'call_signal',
-              payload: { type: 'busy', senderId: currentUserId },
-            });
+            sendSignal(payload.callerId, { type: 'busy', senderId: currentUserId });
             return;
           }
 
@@ -297,11 +359,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
             await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             
-            // Process any queued candidates
+            // Process any queued candidates received prior to setting remote description
             while (pendingCandidatesRef.current.length > 0) {
               const candidate = pendingCandidatesRef.current.shift();
               if (candidate) {
-                await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+                try {
+                  await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (err) {
+                  console.warn('[WebRTC] Error adding buffered ICE candidate on caller:', err);
+                }
               }
             }
 
@@ -326,7 +392,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               try {
                 await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
               } catch (err) {
-                console.warn('Error adding ICE candidate:', err);
+                console.warn('[WebRTC] Error adding ICE candidate:', err);
               }
             } else {
               pendingCandidatesRef.current.push(payload.candidate);
@@ -376,7 +442,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         }
       }
     },
-    [currentUserId, cleanupMedia, logCallToChat, supabase]
+    [currentUserId, cleanupMedia, logCallToChat, sendSignal]
   );
 
   // Accept incoming call
@@ -392,8 +458,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 1. Get microphone audio stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 1. Get microphone audio stream with VoIP acoustic filters
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
       localStreamRef.current = stream;
 
       // 2. Initialize RTCPeerConnection
@@ -401,49 +474,69 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       peerConnectionRef.current = pc;
 
       // Add tracks
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      stream.getTracks().forEach((track) => {
+        track.enabled = true;
+        pc.addTrack(track, stream);
+      });
 
       // Handle remote audio stream
       pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-          remoteAudioRef.current.play().catch(() => {});
+        console.log('[WebRTC] Receiver ontrack received:', event.streams);
+        const [remoteStream] = event.streams;
+        if (remoteAudioRef.current && remoteStream) {
+          remoteAudioRef.current.srcObject = remoteStream;
+          remoteAudioRef.current.muted = false;
+          remoteAudioRef.current.volume = 1.0;
+          remoteAudioRef.current.play().catch((err) => {
+            console.warn('[WebRTC] Receiver remoteAudio play error:', err);
+          });
         }
       };
 
       // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate && participantRef.current) {
-          const targetChannel = supabase.channel(`user_call_signals_${participantRef.current.id}`);
-          targetChannel.send({
-            type: 'broadcast',
-            event: 'call_signal',
-            payload: {
-              type: 'candidate',
-              candidate: event.candidate,
-              senderId: currentUserId,
-            },
+          sendSignal(participantRef.current.id, {
+            type: 'candidate',
+            candidate: event.candidate,
+            senderId: currentUserId,
           });
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        console.log('[WebRTC] Receiver ICE state:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          pc.restartIce();
         }
       };
 
       // 3. Set remote description from caller's offer
       await pc.setRemoteDescription(new RTCSessionDescription(sdpOffer));
 
-      // 4. Create and set local answer
-      const answer = await pc.createAnswer();
+      // 4. Drain any buffered candidates received while ringing!
+      while (pendingCandidatesRef.current.length > 0) {
+        const candidate = pendingCandidatesRef.current.shift();
+        if (candidate) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (err) {
+            console.warn('[WebRTC] Error adding buffered candidate in acceptCall:', err);
+          }
+        }
+      }
+
+      // 5. Create and set local answer
+      const answer = await pc.createAnswer({
+        offerToReceiveAudio: true,
+      });
       await pc.setLocalDescription(answer);
 
-      // 5. Send answer to caller
-      const targetChannel = supabase.channel(`user_call_signals_${participant.id}`);
-      targetChannel.send({
-        type: 'broadcast',
-        event: 'call_signal',
-        payload: {
-          type: 'answer',
-          sdp: answer,
-          senderId: currentUserId,
-        },
+      // 6. Send answer to caller
+      sendSignal(participant.id, {
+        type: 'answer',
+        sdp: answer,
+        senderId: currentUserId,
       });
 
       playCallConnectedTone();
@@ -469,14 +562,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     stopRingtone();
     const participant = participantRef.current || currentParticipant;
     if (participant && currentUserId) {
-      const targetChannel = supabase.channel(`user_call_signals_${participant.id}`);
-      targetChannel.send({
-        type: 'broadcast',
-        event: 'call_signal',
-        payload: {
-          type: 'decline',
-          senderId: currentUserId,
-        },
+      sendSignal(participant.id, {
+        type: 'decline',
+        senderId: currentUserId,
       });
     }
 
@@ -518,8 +606,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       updateParticipant(targetParticipant);
       updateCallStatus('calling');
 
-      // 1. Get microphone audio stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 1. Get microphone audio stream with VoIP acoustic filters
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
       localStreamRef.current = stream;
 
       // 2. Initialize RTCPeerConnection
@@ -527,50 +622,58 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       peerConnectionRef.current = pc;
 
       // Add local audio track
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      stream.getTracks().forEach((track) => {
+        track.enabled = true;
+        pc.addTrack(track, stream);
+      });
 
       // Handle remote audio stream
       pc.ontrack = (event) => {
-        if (remoteAudioRef.current && event.streams[0]) {
-          remoteAudioRef.current.srcObject = event.streams[0];
-          remoteAudioRef.current.play().catch(() => {});
+        console.log('[WebRTC] Caller ontrack received:', event.streams);
+        const [remoteStream] = event.streams;
+        if (remoteAudioRef.current && remoteStream) {
+          remoteAudioRef.current.srcObject = remoteStream;
+          remoteAudioRef.current.muted = false;
+          remoteAudioRef.current.volume = 1.0;
+          remoteAudioRef.current.play().catch((err) => {
+            console.warn('[WebRTC] Caller remoteAudio play error:', err);
+          });
         }
       };
 
       // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          const targetChannel = supabase.channel(`user_call_signals_${targetUserId}`);
-          targetChannel.send({
-            type: 'broadcast',
-            event: 'call_signal',
-            payload: {
-              type: 'candidate',
-              candidate: event.candidate,
-              senderId: currentUserId,
-            },
+          sendSignal(targetUserId, {
+            type: 'candidate',
+            candidate: event.candidate,
+            senderId: currentUserId,
           });
         }
       };
 
+      pc.oniceconnectionstatechange = () => {
+        console.log('[WebRTC] Caller ICE state:', pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          pc.restartIce();
+        }
+      };
+
       // 3. Create SDP Offer
-      const offer = await pc.createOffer();
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+      });
       await pc.setLocalDescription(offer);
 
       // 4. Send offer to recipient
-      const targetChannel = supabase.channel(`user_call_signals_${targetUserId}`);
-      await targetChannel.send({
-        type: 'broadcast',
-        event: 'call_signal',
-        payload: {
-          type: 'offer',
-          callerId: currentUserId,
-          callerName: currentUserName,
-          callerAvatar: currentUserAvatar,
-          sdp: offer,
-          conversationId,
-          senderId: currentUserId,
-        },
+      sendSignal(targetUserId, {
+        type: 'offer',
+        callerId: currentUserId,
+        callerName: currentUserName,
+        callerAvatar: currentUserAvatar,
+        sdp: offer,
+        conversationId,
+        senderId: currentUserId,
       });
 
       // Ringing timeout (30 seconds no answer)
@@ -743,8 +846,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
 
-      {/* Hidden audio element for receiving remote peer audio */}
-      <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
+      {/* Offscreen audio element for receiving remote peer audio */}
+      <audio
+        ref={remoteAudioRef}
+        autoPlay
+        playsInline
+        aria-hidden="true"
+        className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none"
+      />
 
       {/* ================= IN-APP MESSAGE NOTIFICATION TOAST ================= */}
       {messageToast && (
