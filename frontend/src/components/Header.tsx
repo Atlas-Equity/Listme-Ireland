@@ -40,10 +40,6 @@ export default async function Header() {
 
             {/* Right Navigation */}
             <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium text-gray-600 dark:text-gray-300">
-              <Link href="/browse" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                <LayoutGrid className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
-                <span>Categories</span>
-              </Link>
               <Link href="/my-listme?tab=watchlist" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
                 <Heart className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                 <span>Watchlist</span>

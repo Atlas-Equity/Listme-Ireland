@@ -218,14 +218,6 @@ export function MobileMenu({ user, isBusiness }: MobileMenuProps) {
                 </p>
                 <nav className="space-y-1">
                   <Link
-                    href="/browse"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <LayoutGrid className="w-4 h-4 text-primary" />
-                    Browse All Categories
-                  </Link>
-                  <Link
                     href="/my-listme?tab=watchlist"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"

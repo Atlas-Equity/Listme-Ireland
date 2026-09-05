@@ -1,8 +1,7 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import { Clock, MapPin, ShieldCheck, Heart, Share2, AlertCircle, Info, ChevronRight, MessageSquare, Banknote } from 'lucide-react';
+import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import Link from 'next/link';
 import CheckoutButton from '@/components/CheckoutButton';
@@ -10,7 +9,6 @@ import ListingCarousel from '@/components/ListingCarousel';
 import WatchlistButton from '@/components/WatchlistButton';
 import BiddingForm from '@/components/BiddingForm';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
-import ContactSellerButton from '@/components/ContactSellerButton';
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -33,6 +31,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   }
 
   const isAuction = listing.price_type?.toLowerCase() === 'auction';
+  const isOwnListing = Boolean(user && user.id === listing.seller_id);
 
   // Parallel Phase 2: Fetch seller, reviews, bids, watchlist, and favourite status concurrently
   const [
@@ -42,7 +41,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     watchlistResult,
     favouriteResult
   ] = await Promise.all([
-    supabase.from('profiles').select('username, account_type, created_at').eq('id', listing.seller_id).maybeSingle(),
+    supabase.from('profiles').select('id, username, account_type, updated_at').eq('id', listing.seller_id).maybeSingle(),
     supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id),
     isAuction 
       ? supabase.from('bids').select('amount', { count: 'exact' }).eq('listing_id', id).order('amount', { ascending: false }).limit(1)
@@ -50,7 +49,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     user 
       ? supabase.from('wishlists').select('id').eq('user_id', user.id).eq('listing_id', id).maybeSingle()
       : Promise.resolve({ data: null }),
-    user 
+    user && !isOwnListing
       ? supabase.from('favourite_sellers').select('id').eq('user_id', user.id).eq('seller_id', listing.seller_id).maybeSingle()
       : Promise.resolve({ data: null })
   ]);
@@ -60,8 +59,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isWatchlisted = !!watchlistResult.data;
   const isSellerFavourited = !!favouriteResult.data;
 
+  const sellerDisplayName = seller?.username || (isOwnListing ? (user?.user_metadata?.username || user?.email?.split('@')[0] || 'You') : 'Seller');
+  const sellerInitial = sellerDisplayName.charAt(0).toUpperCase();
+  const memberSinceDate = seller?.updated_at ? new Date(seller.updated_at) : (listing.created_at ? new Date(listing.created_at) : new Date());
+  const memberSinceText = format(memberSinceDate, 'MMMM yyyy');
+
+  // Auction Buy Now Price: check buy_now_price column or parse tag from description
+  const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
+  const buyNowPrice: number | null = listing.buy_now_price || (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
+  const cleanDescription = listing.description ? listing.description.replace(/\[Buy It Now:\s*€?[0-9.]+\]/gi, '').trim() : '';
+
   let highestBidAmount = null;
-  let totalBids = bidsResult.count || 0;
+  const totalBids = bidsResult.count || 0;
   if (isAuction && bidsResult.data && bidsResult.data.length > 0) {
     highestBidAmount = bidsResult.data[0].amount;
   }
@@ -71,14 +80,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
   // Calculate feedback metrics
   const totalReviews = reviews?.length || 0;
-  // We'll consider a rating >= 4 as "positive" for percentage
   const positiveReviews = reviews?.filter(r => r.rating >= 4).length || 0;
   const feedbackPercentage = totalReviews > 0 
     ? Math.round((positiveReviews / totalReviews) * 100) 
     : 0;
-
-  const mainImage = listing.images && listing.images.length > 0 ? listing.images[0] : null;
-  const timeAgo = formatDistanceToNow(new Date(listing.created_at), { addSuffix: true });
 
   // Calculate closing time. Fallback to 7 days from creation if expires_at is null (for old test data)
   const expirationDate = listing.expires_at 
@@ -121,13 +126,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <div className="font-semibold text-gray-900 dark:text-white">Details</div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400 mr-2">Condition:</span> 
-                <span className="text-gray-700 dark:text-gray-300">{listing.condition}</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{listing.condition}</span>
               </div>
 
               {/* Description */}
               <div className="font-semibold text-gray-900 dark:text-white">Description</div>
               <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {listing.description}
+                {cleanDescription || listing.description}
               </div>
 
               {/* Shipping */}
@@ -152,52 +157,39 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
               {/* Payment */}
               <div className="font-semibold text-gray-900 dark:text-white">Payment Options</div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {paymentOptions.includes('stripe') && (
-                  <div>
-                    <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-2">
+                  <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
+                    <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-1.5">
                       <img 
                         src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
                         alt="Stripe" 
-                        className="h-6 w-auto object-contain" 
+                        className="h-5 w-auto object-contain" 
                       />
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Pay instantly and securely by credit or debit card.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely by debit or credit card via Stripe.</p>
                   </div>
                 )}
-                
-                <div>
-                  <div className="font-semibold text-gray-900 dark:text-white mb-2">Other options</div>
-                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 capitalize">
-                    {paymentOptions.map((opt) => {
-                      if (opt === 'stripe') return null;
-                      if (opt === 'cash') return (
-                        <li key={opt} className="flex items-center gap-2">
-                          <Banknote className="w-4 h-4 text-green-600 shrink-0" />
-                          <span>Cash On Pick-Up</span>
-                        </li>
-                      );
-                      return <li key={opt}>{opt}</li>;
-                    })}
-                  </ul>
-                </div>
-              </div>
 
-              {/* Q&A */}
-              <div className="font-semibold text-gray-900 dark:text-white">
-                Questions & Answers (0)
-              </div>
-              <div>
-                <ContactSellerButton
-                  listingId={listing.id}
-                  sellerId={listing.seller_id}
-                  sellerUsername={seller?.username || 'Seller'}
-                  listingTitle={listing.title}
-                  listingPrice={currentPrice}
-                  listingImage={mainImage}
-                  currentUserId={user?.id || null}
-                  variant="qa"
-                />
+                {(paymentOptions.includes('revolut') || paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
+                  <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40 space-y-2">
+                    <div className="font-semibold text-xs text-gray-900 dark:text-white uppercase tracking-wider">Other Accepted Options</div>
+                    <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-2">
+                      {paymentOptions.includes('revolut') && (
+                        <li className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full bg-[#0075eb] text-white flex items-center justify-center text-[9px] font-black shrink-0">R</span>
+                          <span className="font-medium">Revolut Pay</span>
+                        </li>
+                      )}
+                      {(paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
+                        <li className="flex items-center gap-2">
+                          <Banknote className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="font-medium">Euro in Hand (Cash on Collection)</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -227,7 +219,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               )}
             </div>
 
-            <WatchlistButton listingId={listing.id} initialIsWatchlisted={isWatchlisted} />
+            {!isOwnListing && (
+              <WatchlistButton listingId={listing.id} initialIsWatchlisted={isWatchlisted} />
+            )}
 
             {/* Price Box */}
             <div className="bg-white dark:bg-transparent border border-gray-200 dark:border-[#333] rounded-sm">
@@ -235,13 +229,37 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                   {isAuction ? (highestBidAmount !== null ? 'Current bid' : 'Starting price') : 'Buy Now'}
                 </div>
-                <div className="text-[40px] font-bold text-gray-900 dark:text-white leading-none mb-6">
+                <div className="text-[40px] font-bold text-gray-900 dark:text-white leading-none mb-4">
                   €{currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </div>
+
+                {isAuction && buyNowPrice && (
+                  <div className="text-xs text-gray-400 mb-5">
+                    Buy It Now Price: <span className="font-semibold text-white">€{buyNowPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
                 
                 {!isClosed ? (
-                  isAuction ? (
-                    <BiddingForm listingId={listing.id} minBid={minNextBid} />
+                  isOwnListing ? (
+                    <div className="w-full py-3.5 px-4 bg-primary/10 border border-primary/20 text-primary font-semibold rounded text-sm flex items-center justify-center">
+                      You are the seller of this listing
+                    </div>
+                  ) : isAuction ? (
+                    <div className="space-y-4">
+                      <BiddingForm listingId={listing.id} minBid={minNextBid} />
+                      {buyNowPrice && (
+                        <div className="pt-3 border-t border-gray-200 dark:border-[#333]">
+                          <div className="text-xs text-gray-400 mb-2">
+                            Skip bidding & buy instantly:
+                          </div>
+                          <CheckoutButton 
+                            listingId={listing.id} 
+                            isAuction={false} 
+                            stripeEnabled={paymentOptions.includes('stripe')} 
+                          />
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <CheckoutButton 
                       listingId={listing.id} 
@@ -267,18 +285,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Contact Seller Action */}
-            <ContactSellerButton
-              listingId={listing.id}
-              sellerId={listing.seller_id}
-              sellerUsername={seller?.username || 'Seller'}
-              listingTitle={listing.title}
-              listingPrice={currentPrice}
-              listingImage={mainImage}
-              currentUserId={user?.id || null}
-              variant="primary"
-            />
-
             {/* Buyer Protection */}
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] flex gap-4">
               <ShieldCheck className="w-8 h-8 text-[#0073e6] flex-shrink-0" />
@@ -294,11 +300,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             {/* Seller Mini Profile */}
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-[#4a3b3b] rounded-full flex items-center justify-center text-xl font-bold text-gray-900 dark:text-white mr-4">
-                  {seller?.username ? seller.username.charAt(0).toUpperCase() : 'U'}
+                <div className="w-12 h-12 bg-primary/20 border border-primary/30 rounded-full flex items-center justify-center text-xl font-bold text-primary mr-4">
+                  {sellerInitial}
                 </div>
                 <div>
-                  <div className="font-bold text-[#0073e6] hover:underline cursor-pointer">{seller?.username || 'Unknown'}</div>
+                  <div className="font-bold text-gray-900 dark:text-white">{sellerDisplayName}</div>
                   <div className="text-xs text-gray-700 dark:text-gray-300">
                     {totalReviews > 0 ? `${feedbackPercentage}% positive feedback` : 'No feedback yet'}
                   </div>
@@ -307,16 +313,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   </div>
                 </div>
               </div>
-              <ContactSellerButton
-                listingId={listing.id}
-                sellerId={listing.seller_id}
-                sellerUsername={seller?.username || 'Seller'}
-                listingTitle={listing.title}
-                listingPrice={currentPrice}
-                listingImage={mainImage}
-                currentUserId={user?.id || null}
-                variant="secondary"
-              />
             </div>
 
           </div>
@@ -329,10 +325,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           
           <div className="w-full max-w-[600px]">
             <div className="flex flex-col items-center mb-6">
-              <div className="w-16 h-16 bg-[#4a3b3b] rounded-full flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                {seller?.username ? seller.username.charAt(0).toUpperCase() : 'U'}
+              <div className="w-16 h-16 bg-primary/20 border border-primary/30 rounded-full flex items-center justify-center text-2xl font-bold text-primary mb-3">
+                {sellerInitial}
               </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">{seller?.username || 'Unknown'}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">{sellerDisplayName}</div>
               <div className="text-sm text-gray-700 dark:text-gray-300">
                 {totalReviews > 0 ? (
                   <>{feedbackPercentage}% positive feedback <span className="text-[#e35205]">({totalReviews}⭐)</span></>
@@ -349,7 +345,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 dark:text-gray-400">Member since</span>
-                <span className="text-gray-700 dark:text-gray-300">{seller?.created_at ? format(new Date(seller.created_at), 'EEEE, d MMMM yyyy') : 'Unknown'}</span>
+                <span className="text-gray-700 dark:text-gray-300">{memberSinceText}</span>
               </div>
             </div>
 
@@ -358,7 +354,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <ChevronRight className="w-5 h-5" />
             </Link>
 
-            <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
+            {!isOwnListing && (
+              <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
+            )}
             
             <div className="text-center mt-4">
               <a href="#" className="text-[#0073e6] text-sm hover:underline">Read our safe buying advice</a>

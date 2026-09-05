@@ -74,7 +74,6 @@ export default function Footer() {
             <Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Advertise</Link>
             <Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy policy</Link>
             <Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms & conditions</Link>
-            <Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Contact Us</Link>
           </div>
         </div>
         

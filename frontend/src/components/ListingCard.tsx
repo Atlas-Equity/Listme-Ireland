@@ -42,12 +42,6 @@ export function ListingCard({ id, title, price, priceType, condition, images, cr
             <span className="text-xs font-medium">No Image</span>
           </div>
         )}
-        
-        {priceType === 'Auction' && (
-          <div className="absolute top-2 left-2 bg-orange-500 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 rounded-md shadow-sm tracking-wide">
-            AUCTION
-          </div>
-        )}
       </div>
 
       <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">

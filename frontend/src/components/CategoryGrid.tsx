@@ -1,14 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import { Sofa, Laptop, Briefcase, Wrench, Baby, Car, Home, Smartphone, Music, Shirt } from 'lucide-react';
+import { Sofa, Laptop, Briefcase, Wrench, Baby, Smartphone, Music, Shirt } from 'lucide-react';
 
 const categories = [
   { name: 'Marketplace', icon: Laptop, slug: 'marketplace' },
-  { name: 'Motors', icon: Car, isNew: true, slug: 'motors' },
-  { name: 'Property', icon: Home, isNew: true, slug: 'property' },
-  { name: 'Jobs', icon: Briefcase, highlight: true, slug: 'jobs' },
+  { name: 'Jobs', icon: Briefcase, slug: 'jobs' },
   { name: 'Services', icon: Wrench, slug: 'services' },
-  { name: 'Home & Garden', icon: Sofa, slug: 'property' },
+  { name: 'Home & Garden', icon: Sofa, slug: 'marketplace' },
   { name: 'Baby & Kids', icon: Baby, slug: 'marketplace' },
   { name: 'Mobiles', icon: Smartphone, slug: 'marketplace' },
   { name: 'Music', icon: Music, slug: 'marketplace' },
@@ -37,7 +35,7 @@ export default function CategoryGrid() {
           </Link>
         </div>
         
-        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
           {categories.map((category, idx) => (
             <Link 
               key={idx} 
@@ -45,18 +43,8 @@ export default function CategoryGrid() {
               prefetch={true}
               className="flex flex-col items-center group cursor-pointer p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-900/60 transition-colors"
             >
-              <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gray-50 dark:bg-zinc-900 rounded-2xl mb-2 sm:mb-3 group-hover:bg-primary group-hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-zinc-800">
-                <category.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-primary group-hover:text-white transition-colors" />
-                {category.isNew && (
-                  <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase border-2 border-white dark:border-zinc-950 shadow-xs">
-                    New
-                  </span>
-                )}
-                {category.highlight && (
-                  <span className="absolute -bottom-1 bg-red-500 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase border-2 border-white dark:border-zinc-950 shadow-xs">
-                    Hot
-                  </span>
-                )}
+              <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gray-100 dark:bg-zinc-900/80 rounded-2xl mb-2 sm:mb-3 group-hover:bg-primary/20 group-hover:border-primary/40 transition-all duration-300 border border-gray-200 dark:border-zinc-800">
+                <category.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors" />
               </div>
               <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 text-center group-hover:text-primary transition-colors line-clamp-1">
                 {category.name}
@@ -68,3 +56,4 @@ export default function CategoryGrid() {
     </section>
   );
 }
+

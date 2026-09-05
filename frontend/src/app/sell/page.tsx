@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Package, Camera, CheckCircle2, ChevronRight, ChevronLeft, UploadCloud, X, Loader2, AlertCircle, Banknote } from 'lucide-react';
 import { uploadListingImage } from '@/utils/supabase/storage';
 import { createListing } from './actions';
+import { IRELAND_LOCATIONS, COUNTIES } from '@/utils/irelandLocations';
 import Image from 'next/image';
 
-const CATEGORIES = ['Marketplace', 'Property', 'Motors', 'Jobs', 'Services'];
-const CONDITIONS = ['Brand New', 'Like New', 'Used - Excellent', 'Used - Good', 'Used - Fair'];
+const CATEGORIES = ['Marketplace', 'Jobs', 'Services'];
+const CONDITIONS = ['New', 'Fairly New', 'Used', 'Partially Used', 'Very Used'];
 
 export default function SellPage() {
   const router = useRouter();
@@ -26,12 +27,15 @@ export default function SellPage() {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [condition, setCondition] = useState(CONDITIONS[0]);
-  const [location, setLocation] = useState('');
+  const [county, setCounty] = useState('Dublin');
+  const [area, setArea] = useState(IRELAND_LOCATIONS['Dublin'][0] || '');
+  const [customArea, setCustomArea] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('7');
   const [priceType, setPriceType] = useState('Fixed Price');
   const [price, setPrice] = useState('');
-  const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash']);
+  const [buyNowPrice, setBuyNowPrice] = useState('');
+  const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash', 'stripe', 'revolut']);
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -130,14 +134,17 @@ export default function SellPage() {
       setUploadingImages(false);
 
       // 2. Save Listing
+      const fullLocation = customArea.trim() ? `${county}, ${customArea.trim()}` : `${county}, ${area}`;
+
       const result = await createListing({
         title,
         description,
-        location,
+        location: fullLocation,
         category,
         condition,
         priceType,
         price: parseFloat(price),
+        buyNowPrice: priceType === 'Auction' && buyNowPrice ? parseFloat(buyNowPrice) : undefined,
         durationDays: parseInt(duration),
         paymentOptions,
         images: uploadedUrls
@@ -249,14 +256,48 @@ export default function SellPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Location</label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., Dublin, Cork, Galway, etc."
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
-                />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Item Location (Ireland)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block font-medium">County / Major Area</span>
+                    <select
+                      value={county}
+                      onChange={(e) => {
+                        const newCounty = e.target.value;
+                        setCounty(newCounty);
+                        setArea(IRELAND_LOCATIONS[newCounty]?.[0] || '');
+                      }}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                    >
+                      {COUNTIES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block font-medium">Specific Town / Area</span>
+                    <select
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                    >
+                      {(IRELAND_LOCATIONS[county] || []).map(a => (
+                        <option key={a} value={a}>{a}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={customArea}
+                    onChange={(e) => setCustomArea(e.target.value)}
+                    placeholder="Optional: Enter a specific neighborhood or landmark..."
+                    className="w-full px-4 py-2 text-xs border border-gray-200 dark:border-zinc-800 rounded-md bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-1 focus:ring-primary"
+                  />
+                </div>
               </div>
 
               <div>
@@ -278,13 +319,20 @@ export default function SellPage() {
               <div className="text-center">
                 <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Add Photos</h3>
-                <p className="text-sm text-gray-500 mb-6">Listings with 3+ clear photos sell 40% faster.</p>
-                
-                <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors font-medium">
-                  <UploadCloud className="w-5 h-5" />
-                  Select Images
-                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
-                </label>
+                <p className="text-sm text-gray-500 mb-2">A MINIMUM of 1 photo is required to publish a listing.</p>
+                {images.length === 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs font-semibold mb-4 border border-amber-200 dark:border-amber-800/40">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Please select at least 1 photo to proceed
+                  </div>
+                )}
+                <div className="block mt-2">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-300 dark:border-zinc-700 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-lg transition-colors font-medium">
+                    <UploadCloud className="w-5 h-5" />
+                    Select Images
+                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
+                  </label>
+                </div>
               </div>
 
               {images.length > 0 && (
@@ -362,6 +410,32 @@ export default function SellPage() {
                 </div>
               </div>
 
+              {/* Optional Buy It Now Price for Auctions */}
+              {priceType === 'Auction' && (
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2">
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white">
+                    Buy It Now Price (€) <span className="text-xs font-normal text-gray-500">(Optional)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Want to allow buyers to bypass the auction and buy immediately at a fixed price? Set an optional Buy It Now price below.
+                  </p>
+                  <div className="relative max-w-xs">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="h-5 w-5 text-gray-400 text-lg font-semibold">€</span>
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={buyNowPrice}
+                      onChange={(e) => setBuyNowPrice(e.target.value)}
+                      placeholder="Optional Buy Now Price"
+                      className="block w-full pl-11 pr-4 py-2.5 text-base font-medium border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Listing Duration</label>
                 <select
@@ -378,10 +452,15 @@ export default function SellPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Accepted Payment Methods</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Accepted Payment Methods</label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Select all the payment methods you accept from buyers.</p>
                 <div className="space-y-3">
-                  {['cash', 'stripe'].map((method) => (
-                    <label key={method} className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 dark:border-zinc-700 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+                  {[
+                    { id: 'cash', name: 'Euro in Hand / Cash on Collection' },
+                    { id: 'revolut', name: 'Revolut' },
+                    { id: 'stripe', name: 'Stripe (Credit / Debit Card)' },
+                  ].map(({ id: method, name }) => (
+                    <label key={method} className="flex items-center gap-3 cursor-pointer p-3.5 border border-gray-200 dark:border-zinc-700 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800/80 transition-colors">
                       <input
                         type="checkbox"
                         checked={paymentOptions.includes(method)}
@@ -399,17 +478,29 @@ export default function SellPage() {
                       />
                       <span className="font-medium flex items-center text-gray-900 dark:text-white">
                         {method === 'cash' && (
-                          <span className="font-semibold text-green-600 flex items-center gap-1.5 mr-2">
-                            <Banknote className="w-5 h-5 text-green-600" />
-                            <span>Cash On Pick-Up</span>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                            <Banknote className="w-5 h-5" />
+                            <span>{name}</span>
+                          </span>
+                        )}
+                        {method === 'revolut' && (
+                          <span className="flex items-center gap-2">
+                            <span className="font-black text-black dark:text-white bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 px-2 py-0.5 rounded text-xs tracking-wider">
+                              R
+                            </span>
+                            <span className="font-bold text-gray-900 dark:text-white">Revolut</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(In-App Transfer / Tag)</span>
                           </span>
                         )}
                         {method === 'stripe' && (
-                          <img 
-                            src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
-                            alt="Stripe" 
-                            className="h-6 w-auto object-contain mr-2" 
-                          />
+                          <span className="flex items-center gap-2">
+                            <img 
+                              src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
+                              alt="Stripe" 
+                              className="h-5 w-auto object-contain mr-1" 
+                            />
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(Card Payments)</span>
+                          </span>
                         )}
                       </span>
                     </label>
@@ -435,6 +526,12 @@ export default function SellPage() {
                     <span className="font-medium text-gray-900 dark:text-white">{condition}</span>
                   </div>
                   <div>
+                    <span className="text-gray-500 block">Location</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {customArea.trim() ? `${county}, ${customArea.trim()}` : `${county}, ${area}`}
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-gray-500 block">Listing Type</span>
                     <span className="font-medium text-gray-900 dark:text-white">{priceType}</span>
                   </div>
@@ -444,19 +541,24 @@ export default function SellPage() {
                   </div>
                   <div>
                     <span className="text-gray-500 block">Price</span>
-                    <span className="font-medium text-gray-900 dark:text-white">€{price || '0.00'}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      €{price || '0.00'}
+                      {priceType === 'Auction' && buyNowPrice && (
+                        <span className="text-xs text-gray-500 ml-1.5">(Buy Now: €{buyNowPrice})</span>
+                      )}
+                    </span>
                   </div>
                   <div className="col-span-2 mt-2">
                     <span className="text-gray-500 block">Payment Methods</span>
                     <span className="font-medium text-gray-900 dark:text-white capitalize">
-                      {paymentOptions.join(', ')}
+                      {paymentOptions.map(p => p === 'cash' ? 'Euro in Hand' : p).join(', ')}
                     </span>
                   </div>
                 </div>
 
                 <div>
                   <span className="text-gray-500 block text-sm mb-1">Images Attached</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{images.length} photos ready to upload</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{images.length} photo{images.length === 1 ? '' : 's'} ready to upload</span>
                 </div>
               </div>
               
@@ -482,7 +584,11 @@ export default function SellPage() {
             {step < 4 ? (
               <button
                 onClick={nextStep}
-                disabled={(step === 1 && (!title || !location))} // Require title and location on step 1
+                disabled={
+                  (step === 1 && !title.trim()) ||
+                  (step === 2 && images.length === 0) ||
+                  (step === 3 && (!price || parseFloat(price) <= 0))
+                }
                 className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-green-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors disabled:opacity-50"
               >
                 Next <ChevronRight className="w-4 h-4" />
@@ -490,7 +596,7 @@ export default function SellPage() {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || images.length === 0}
                 className="flex items-center gap-2 px-8 py-2 bg-primary hover:bg-green-700 text-white font-bold rounded-md shadow-sm transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? (
