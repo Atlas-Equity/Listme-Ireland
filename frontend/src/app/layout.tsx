@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import CookieConsent from "@/components/CookieConsent";
 
+import { CallProvider } from "@/components/CallProvider";
+
 export const metadata: Metadata = {
   title: "ListMe | The Ultimate Marketplace",
   description: "Buy, sell, offer services, and post jobs all in one place.",
@@ -24,12 +26,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-          <CookieConsent />
+          <CallProvider>
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+            <CookieConsent />
+          </CallProvider>
         </ThemeProvider>
       </body>
     </html>

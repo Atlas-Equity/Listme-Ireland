@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Home, Car, Briefcase, Wrench, Users, LogOut, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { MobileMenu } from './MobileMenu';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function Header() {
@@ -26,12 +27,10 @@ export default async function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-[72px]">
             
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <button className="lg:hidden p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white rounded-md">
-                <Menu className="w-6 h-6" />
-              </button>
-              <Link href="/" className="relative flex items-center ml-2 lg:ml-0 gap-2">
+            {/* Logo & Mobile Navigation */}
+            <div className="flex-shrink-0 flex items-center gap-1">
+              <MobileMenu user={user} isBusiness={isBusiness} />
+              <Link href="/" className="relative flex items-center ml-1 lg:ml-0 gap-2">
                 <span className="font-extrabold text-4xl tracking-tight text-primary">
                   List<span className="text-black dark:text-white transition-colors">me</span>
                 </span>
@@ -45,8 +44,8 @@ export default async function Header() {
                 <LayoutGrid className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                 <span>Categories</span>
               </Link>
-              <Link href="/watchlist" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                <Search className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+              <Link href="/my-listme?tab=watchlist" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
+                <Heart className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                 <span>Watchlist</span>
               </Link>
               <Link href="/favourite-sellers" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
@@ -67,7 +66,20 @@ export default async function Header() {
                     </Link>
                   )}
                   <Link href="/my-listme" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                    <User className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                    {user.user_metadata?.avatar_url ? (
+                      <div className="w-5 h-5 mb-1 rounded-full overflow-hidden relative border border-primary/40 shrink-0">
+                        <Image
+                          src={user.user_metadata.avatar_url}
+                          alt="Avatar"
+                          fill
+                          sizes="20px"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    ) : (
+                      <User className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                    )}
                     <span className="max-w-[80px] truncate">Hi, {user.user_metadata?.username || user.email?.split('@')[0]}</span>
                   </Link>
                   <form action="/auth/signout" method="POST" className="flex flex-col items-center">

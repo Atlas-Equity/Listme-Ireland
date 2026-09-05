@@ -1,0 +1,388 @@
+'use client';
+
+import React, { useState, useRef } from 'react';
+import Image from 'next/image';
+import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Phone, Mail, Sparkles } from 'lucide-react';
+import { updateProfileSettings, uploadAvatarAction, ProfileData } from './actions';
+import { useRouter } from 'next/navigation';
+
+interface ProfileSettingsFormProps {
+  initialData: {
+    username: string;
+    fullName: string;
+    bio: string;
+    avatarUrl: string;
+    phone: string;
+    location: string;
+    email: string;
+  };
+}
+
+export default function ProfileSettingsForm({ initialData }: ProfileSettingsFormProps) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [username, setUsername] = useState(initialData.username);
+  const [fullName, setFullName] = useState(initialData.fullName);
+  const [bio, setBio] = useState(initialData.bio);
+  const [location, setLocation] = useState(initialData.location);
+  const [phone, setPhone] = useState(initialData.phone);
+  
+  // Avatar state
+  const [avatarUrl, setAvatarUrl] = useState(initialData.avatarUrl);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialData.avatarUrl || null);
+  const [isAvatarRemoved, setIsAvatarRemoved] = useState(false);
+
+  // Status state
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('Image size exceeds 5MB limit.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setIsAvatarRemoved(false);
+    setErrorMessage(null);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleRemoveAvatar = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setAvatarUrl('');
+    setIsAvatarRemoved(true);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      let finalAvatarUrl = avatarUrl;
+
+      // 1. If user selected a new file, upload it first
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('avatar', selectedFile);
+        const uploadRes = await uploadAvatarAction(formData);
+
+        if (uploadRes.error || !uploadRes.publicUrl) {
+          setErrorMessage(uploadRes.error || 'Failed to upload image. Please try again.');
+          setIsSaving(false);
+          return;
+        }
+
+        finalAvatarUrl = uploadRes.publicUrl;
+        setAvatarUrl(finalAvatarUrl);
+      } else if (isAvatarRemoved) {
+        finalAvatarUrl = '';
+      }
+
+      // 2. Save profile settings
+      const payload: ProfileData = {
+        username,
+        fullName,
+        bio,
+        avatarUrl: finalAvatarUrl,
+        phone,
+        location,
+      };
+
+      const res = await updateProfileSettings(payload);
+
+      if (res.error) {
+        setErrorMessage(res.error);
+      } else {
+        setSuccessMessage('Your profile has been updated successfully!');
+        setSelectedFile(null);
+        setIsAvatarRemoved(false);
+        router.refresh();
+        setTimeout(() => setSuccessMessage(null), 5000);
+      }
+    } catch (err: any) {
+      console.error('Error saving profile:', err);
+      setErrorMessage(err?.message || 'An unexpected error occurred.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const displayName = fullName || username || initialData.email.split('@')[0] || 'User';
+  const initials = displayName
+    .split(' ')
+    .map(p => p[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      
+      {/* Feedback Messages */}
+      {successMessage && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 transition-all animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-green-600 dark:text-green-400" />
+          <p className="text-sm font-medium">{successMessage}</p>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 transition-all animate-in fade-in">
+          <AlertCircle className="w-5 h-5 shrink-0 text-red-600 dark:text-red-400" />
+          <p className="text-sm font-medium">{errorMessage}</p>
+        </div>
+      )}
+
+      {/* Avatar Card */}
+      <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Picture</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          This image appears on your listings, messages, and public profile across ListMe.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-6">
+          {/* Avatar circle */}
+          <div className="relative group">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shadow-inner relative">
+              {previewUrl ? (
+                <Image
+                  src={previewUrl}
+                  alt="Profile Avatar"
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <span className="text-3xl sm:text-4xl font-bold text-primary dark:text-green-400">
+                  {initials}
+                </span>
+              )}
+            </div>
+
+            {/* Camera Overlay Icon */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 rounded-full bg-black/40 text-white opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity cursor-pointer"
+              title="Change profile picture"
+            >
+              <Camera className="w-6 h-6" />
+              <span className="text-xs font-medium">Change</span>
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          {/* Action buttons & info */}
+          <div className="flex flex-col gap-2 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-primary hover:bg-green-700 text-white transition-colors shadow-sm flex items-center gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                Upload New Photo
+              </button>
+
+              {(previewUrl || selectedFile) && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-zinc-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Supported formats: JPG, PNG, WEBP. Max file size: 5MB. Square aspect ratio recommended.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Basic Info Card */}
+      <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Personal Information</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Update your public profile details and contact information.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Full Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Full Name / Display Name
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <User className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. John Murphy"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Username
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 font-semibold text-sm">
+                @
+              </div>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                placeholder="username"
+                className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Only letters, numbers, hyphens, and underscores allowed.
+            </p>
+          </div>
+        </div>
+
+        {/* Bio */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Bio / About Me
+            </label>
+            <span className={`text-xs ${bio.length > 450 ? 'text-amber-500 font-medium' : 'text-gray-400'}`}>
+              {bio.length} / 500
+            </span>
+          </div>
+          <textarea
+            rows={4}
+            maxLength={500}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Tell buyers and sellers a bit about yourself, what you collect, or your experience selling..."
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Location / County
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Dublin, Ireland"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Contact Phone (Optional)
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <Phone className="w-4 h-4" />
+              </div>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. +353 87 123 4567"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Email Address (Read-only) */}
+        <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Registered Email
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <Mail className="w-4 h-4" />
+            </div>
+            <input
+              type="email"
+              readOnly
+              disabled
+              value={initialData.email}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm"
+            />
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            Email is associated with your Supabase login account and cannot be modified here.
+          </p>
+        </div>
+      </div>
+
+      {/* Save Button Bar */}
+      <div className="flex items-center justify-end gap-4">
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="px-6 py-3 bg-primary hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving Profile...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              Save Changes
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}

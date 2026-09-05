@@ -16,9 +16,12 @@ import {
   Inbox,
   ShoppingBag,
   Tag,
+  Phone,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { createClient as createBrowserSupabase } from '@/utils/supabase/client';
+import { useCall } from '@/components/CallProvider';
+import { playMessageChime } from '@/utils/callSounds';
 
 interface Conversation {
   id: string;
@@ -67,6 +70,8 @@ export default function MessagesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'buying' | 'selling'>('all');
   const [tableReady, setTableReady] = useState(true);
+
+  const { startCall, callStatus } = useCall();
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -175,6 +180,9 @@ export default function MessagesPage() {
         },
         (payload) => {
           const newMsg = payload.new as Message;
+          if (newMsg.sender_id !== currentUserId) {
+            playMessageChime();
+          }
           setMessages((prev) => {
             // If already present by id, skip
             if (prev.some((m) => m.id === newMsg.id)) return prev;
@@ -539,17 +547,41 @@ export default function MessagesPage() {
                     </div>
                   </div>
 
-                  {/* Listing Quick Link */}
-                  {activeConversation?.listing && (
-                    <Link
-                      href={`/listing/${activeConversation.listing.id}`}
-                      target="_blank"
-                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline bg-primary/5 dark:bg-primary/10 px-2.5 py-1.5 rounded-lg shrink-0"
+                  {/* Header Actions */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {/* Call Option Button */}
+                    <button
+                      type="button"
+                      disabled={callStatus !== 'idle'}
+                      onClick={() => {
+                        if (activeConversation) {
+                          startCall(
+                            activeConversation.otherUser.id,
+                            activeConversation.otherUser.username,
+                            undefined,
+                            activeConversation.id
+                          );
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-semibold shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      title={`Call ${activeConversation?.otherUser?.username || 'User'}`}
                     >
-                      <span>View item</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </Link>
-                  )}
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call</span>
+                    </button>
+
+                    {/* Listing Quick Link */}
+                    {activeConversation?.listing && (
+                      <Link
+                        href={`/listing/${activeConversation.listing.id}`}
+                        target="_blank"
+                        className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline bg-primary/5 dark:bg-primary/10 px-2.5 py-1.5 rounded-lg shrink-0"
+                      >
+                        <span>View item</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
+                  </div>
                 </div>
 
                 {/* Attached Listing Banner */}

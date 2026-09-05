@@ -5,28 +5,31 @@ import SectionHeader from "@/components/SectionHeader";
 import { ListingCard } from "@/components/ListingCard";
 import { createClient } from "@/utils/supabase/server";
 
+// ISR: revalidate homepage in the background every 30 seconds for blazing fast instant loads
+export const revalidate = 30;
+
 export default async function Home() {
   const supabase = await createClient();
 
-  // Fetch recent fixed price listings and auctions concurrently
+  // Fetch only necessary card columns concurrently
   const [latestResult, auctionResult] = await Promise.all([
     supabase
       .from('listings')
-      .select('*')
+      .select('id, title, price, price_type, condition, images, created_at')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(4),
     supabase
       .from('listings')
-      .select('*')
+      .select('id, title, price, price_type, condition, images, created_at')
       .eq('status', 'active')
       .ilike('price_type', 'Auction')
       .order('created_at', { ascending: false })
       .limit(4)
   ]);
 
-  const latestListings = latestResult.data;
-  const auctionListings = auctionResult.data;
+  const latestListings = latestResult.data || [];
+  const auctionListings = auctionResult.data || [];
 
   return (
     <div className="w-full bg-white dark:bg-black min-h-screen">
@@ -36,10 +39,10 @@ export default async function Home() {
         <PromoBanners />
 
         {/* Cool Auctions Section */}
-        {auctionListings && auctionListings.length > 0 && (
+        {auctionListings.length > 0 && (
           <>
             <SectionHeader title="Cool auctions" viewAllLink="/category/marketplace" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
               {auctionListings.map((listing) => (
                 <ListingCard 
                   key={listing.id} 
@@ -59,10 +62,10 @@ export default async function Home() {
         <TrendingCategories />
 
         {/* Latest Listings Section */}
-        {latestListings && latestListings.length > 0 && (
+        {latestListings.length > 0 && (
           <>
             <SectionHeader title="Latest listings" viewAllLink="/category/marketplace" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
               {latestListings.map((listing) => (
                 <ListingCard 
                   key={listing.id} 
@@ -80,8 +83,8 @@ export default async function Home() {
         )}
       </div>
       
-      {/* Bottom padding spacer */}
-      <div className="h-24 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-zinc-800 flex items-center justify-center text-sm text-gray-400">
+      {/* Bottom spacer */}
+      <div className="h-16 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-zinc-800">
       </div>
     </div>
   );
