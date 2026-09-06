@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { purgeInactiveChats } from '@/utils/chatCleanup';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Auto-delete chats inactive for 3+ days
+    await purgeInactiveChats().catch((err) => console.error('Auto-cleanup error:', err));
 
     // Fetch conversations where user is buyer OR seller
     const { data: conversations, error: convError } = await supabase

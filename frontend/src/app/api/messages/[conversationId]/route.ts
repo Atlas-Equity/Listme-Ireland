@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { purgeInactiveChats } from '@/utils/chatCleanup';
 
 export async function GET(
   req: NextRequest,
@@ -23,6 +24,13 @@ export async function GET(
 
     if (convError || !conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // Check if conversation has exceeded 3 days of inactivity
+    const lastActive = conversation.last_message_at || conversation.updated_at || conversation.created_at;
+    if (new Date(lastActive).getTime() < Date.now() - 3 * 24 * 60 * 60 * 1000) {
+      purgeInactiveChats().catch((err) => console.error('Purge error:', err));
+      return NextResponse.json({ error: 'This conversation has expired due to 3 days of inactivity.' }, { status: 404 });
     }
 
     if (conversation.buyer_id !== user.id && conversation.seller_id !== user.id) {
