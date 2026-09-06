@@ -485,8 +485,12 @@ export default function SellPage() {
                         )}
                         {method === 'revolut' && (
                           <span className="flex items-center gap-2">
-                            <span className="font-black text-black dark:text-white bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 px-2 py-0.5 rounded text-xs tracking-wider">
-                              R
+                            <span className="w-6 h-6 rounded-md bg-white flex items-center justify-center p-0.5 shrink-0 shadow-xs border border-gray-200 dark:border-zinc-700">
+                              <img 
+                                src="/revolut-logo.png" 
+                                alt="Revolut" 
+                                className="w-full h-full object-contain" 
+                              />
                             </span>
                             <span className="font-bold text-gray-900 dark:text-white">Revolut</span>
                             <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(In-App Transfer / Tag)</span>
@@ -549,10 +553,29 @@ export default function SellPage() {
                     </span>
                   </div>
                   <div className="col-span-2 mt-2">
-                    <span className="text-gray-500 block">Payment Methods</span>
-                    <span className="font-medium text-gray-900 dark:text-white capitalize">
-                      {paymentOptions.map(p => p === 'cash' ? 'Euro in Hand' : p).join(', ')}
-                    </span>
+                    <span className="text-gray-500 block text-xs mb-1.5">Payment Methods</span>
+                    <div className="flex flex-wrap gap-2">
+                      {paymentOptions.includes('cash') && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <Banknote className="w-3.5 h-3.5" />
+                          Euro in Hand
+                        </span>
+                      )}
+                      {paymentOptions.includes('revolut') && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-white dark:bg-zinc-800 text-gray-900 dark:text-white border border-gray-200 dark:border-zinc-700">
+                          <span className="w-3.5 h-3.5 rounded bg-white flex items-center justify-center shrink-0">
+                            <img src="/revolut-logo.png" alt="Revolut" className="w-full h-full object-contain" />
+                          </span>
+                          Revolut
+                        </span>
+                      )}
+                      {paymentOptions.includes('stripe') && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" className="h-3 w-auto object-contain" />
+                          Stripe (Cards)
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
