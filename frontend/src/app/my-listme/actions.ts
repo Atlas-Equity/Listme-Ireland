@@ -175,15 +175,32 @@ export async function updateProfileSettings(data: ProfileData) {
     return { error: authError.message };
   }
 
-  // 3. Synchronize username with public.profiles
+  // 3. Synchronize username and avatar_url with public.profiles
+  const profileUpdates: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+  };
   if (trimmedUsername) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ username: trimmedUsername, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
+    profileUpdates.username = trimmedUsername;
+  }
+  // Persist avatar_url directly in database table so it appears across all devices
+  profileUpdates.avatar_url = avatarUrl || null;
 
-    if (profileError) {
-      console.error('Error updating profiles table username:', profileError);
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update(profileUpdates)
+    .eq('id', user.id);
+
+  if (profileError) {
+    console.error('Error updating profiles table:', profileError);
+    // If avatar_url column does not exist yet in Supabase schema, fall back gracefully
+    if (profileError.message?.includes('avatar_url') || profileError.message?.includes('schema cache')) {
+      delete profileUpdates.avatar_url;
+      if (Object.keys(profileUpdates).length > 0) {
+        await supabase
+          .from('profiles')
+          .update(profileUpdates)
+          .eq('id', user.id);
+      }
     }
   }
 
@@ -207,16 +224,18 @@ export async function uploadAvatarAction(formData: FormData) {
     return { error: 'No file provided' };
   }
 
-  if (!file.type.startsWith('image/')) {
+  const isImageMime = file.type?.startsWith('image/');
+  const isImageExt = file.name?.match(/\.(jpg|jpeg|png|webp|gif|heic|heif|jfif|bmp)$/i);
+  if (!isImageMime && !isImageExt) {
     return { error: 'Uploaded file must be an image' };
   }
 
-  // Max 5MB
-  if (file.size > 5 * 1024 * 1024) {
-    return { error: 'Image file size must be under 5MB' };
+  // Max 10MB
+  if (file.size > 10 * 1024 * 1024) {
+    return { error: 'Image file size must be under 10MB' };
   }
 
-  const ext = file.name.split('.').pop() || 'jpg';
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
   const filePath = `avatars/${user.id}-${Date.now()}.${ext}`;
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -229,7 +248,7 @@ export async function uploadAvatarAction(formData: FormData) {
   const { error: uploadError } = await adminClient.storage
     .from('listing-images')
     .upload(filePath, buffer, {
-      contentType: file.type,
+      contentType: file.type || 'image/jpeg',
       upsert: true,
     });
 

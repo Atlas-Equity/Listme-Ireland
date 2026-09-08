@@ -49,7 +49,7 @@ export async function GET(
         .limit(100),
       supabase
         .from('profiles')
-        .select('id, username')
+        .select('id, username, avatar_url')
         .eq('id', otherUserId)
         .maybeSingle(),
       conversation.listing_id
@@ -80,6 +80,7 @@ export async function GET(
       otherUser: {
         id: otherUserId,
         username: profileResult.data?.username || 'User',
+        avatarUrl: (profileResult.data as any)?.avatar_url || null,
       },
       listing: listingResult.data,
       currentUserId: user.id,

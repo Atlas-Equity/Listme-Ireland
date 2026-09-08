@@ -179,19 +179,21 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   // 1. Load authenticated user
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
         setCurrentUserName(user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
-        setCurrentUserAvatar(user.user_metadata?.avatar_url || '');
+        const { data: prof } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle();
+        setCurrentUserAvatar(prof?.avatar_url || user.user_metadata?.avatar_url || '');
       }
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_, session) => {
       if (session?.user) {
         setCurrentUserId(session.user.id);
         setCurrentUserName(session.user.user_metadata?.username || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User');
-        setCurrentUserAvatar(session.user.user_metadata?.avatar_url || '');
+        const { data: prof } = await supabase.from('profiles').select('avatar_url').eq('id', session.user.id).maybeSingle();
+        setCurrentUserAvatar(prof?.avatar_url || session.user.user_metadata?.avatar_url || '');
       } else {
         setCurrentUserId(null);
       }
@@ -751,14 +753,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             // Only notify if current user is the buyer or seller
             if (conv.buyer_id !== currentUserId && conv.seller_id !== currentUserId) return;
 
-            // Fetch sender username
+            // Fetch sender username & avatar
             const { data: senderProfile } = await supabase
               .from('profiles')
-              .select('username')
+              .select('username, avatar_url')
               .eq('id', msg.sender_id)
-              .single();
+              .maybeSingle();
 
             const senderName = senderProfile?.username || 'A ListMe user';
+            const senderAvatar = senderProfile?.avatar_url || undefined;
 
             const rawContent = msg.content || '';
             let displayContent = rawContent;
@@ -787,6 +790,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             setMessageToast({
               id: msg.id,
               senderName,
+              senderAvatar,
               content: displayContent,
               conversationId: msg.conversation_id,
             });

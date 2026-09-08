@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import Link from 'next/link';
+import Image from 'next/image';
 import CheckoutButton from '@/components/CheckoutButton';
 import ListingCarousel from '@/components/ListingCarousel';
 import WatchlistButton from '@/components/WatchlistButton';
@@ -41,7 +42,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     watchlistResult,
     favouriteResult
   ] = await Promise.all([
-    supabase.from('profiles').select('id, username, account_type, updated_at').eq('id', listing.seller_id).maybeSingle(),
+    supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url').eq('id', listing.seller_id).maybeSingle(),
     supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id),
     isAuction 
       ? supabase.from('bids').select('amount', { count: 'exact' }).eq('listing_id', id).order('amount', { ascending: false }).limit(1)
@@ -60,6 +61,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isSellerFavourited = !!favouriteResult.data;
 
   const sellerDisplayName = seller?.username || (isOwnListing ? (user?.user_metadata?.username || user?.email?.split('@')[0] || 'You') : 'Seller');
+  const sellerAvatarUrl = seller?.avatar_url || (isOwnListing ? user?.user_metadata?.avatar_url : undefined);
   const sellerInitial = sellerDisplayName.charAt(0).toUpperCase();
   const memberSinceDate = seller?.updated_at ? new Date(seller.updated_at) : (listing.created_at ? new Date(listing.created_at) : new Date());
   const memberSinceText = format(memberSinceDate, 'MMMM yyyy');
@@ -306,8 +308,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             {/* Seller Mini Profile */}
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-primary/20 border border-primary/30 rounded-full flex items-center justify-center text-xl font-bold text-primary mr-4">
-                  {sellerInitial}
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mr-4">
+                  {sellerAvatarUrl ? (
+                    <Image
+                      src={sellerAvatarUrl}
+                      alt={sellerDisplayName}
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-xl font-bold text-primary">{sellerInitial}</span>
+                  )}
                 </div>
                 <div>
                   <div className="font-bold text-gray-900 dark:text-white">{sellerDisplayName}</div>
@@ -331,8 +344,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           
           <div className="w-full max-w-[600px]">
             <div className="flex flex-col items-center mb-6">
-              <div className="w-16 h-16 bg-primary/20 border border-primary/30 rounded-full flex items-center justify-center text-2xl font-bold text-primary mb-3">
-                {sellerInitial}
+              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mb-3">
+                {sellerAvatarUrl ? (
+                  <Image
+                    src={sellerAvatarUrl}
+                    alt={sellerDisplayName}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
+                )}
               </div>
               <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">{sellerDisplayName}</div>
               <div className="text-sm text-gray-700 dark:text-gray-300">

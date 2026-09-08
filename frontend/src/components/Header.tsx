@@ -11,13 +11,15 @@ export default async function Header() {
   const { data: { user } } = await supabase.auth.getUser();
 
   let isBusiness = false;
+  let avatarUrl: string | undefined = undefined;
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('account_type')
+      .select('account_type, avatar_url')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     isBusiness = profile?.account_type === 'business';
+    avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
   }
 
   return (
@@ -29,7 +31,7 @@ export default async function Header() {
             
             {/* Logo & Mobile Navigation */}
             <div className="flex-shrink-0 flex items-center gap-1">
-              <MobileMenu user={user} isBusiness={isBusiness} />
+              <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} />
               <Link href="/" className="relative flex items-center ml-1 lg:ml-0 gap-2">
                 <span className="font-extrabold text-4xl tracking-tight text-primary">
                   List<span className="text-black dark:text-white transition-colors">me</span>
@@ -62,10 +64,10 @@ export default async function Header() {
                     </Link>
                   )}
                   <Link href="/my-listme" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                    {user.user_metadata?.avatar_url ? (
+                    {avatarUrl ? (
                       <div className="w-5 h-5 mb-1 rounded-full overflow-hidden relative border border-primary/40 shrink-0">
                         <Image
-                          src={user.user_metadata.avatar_url}
+                          src={avatarUrl}
                           alt="Avatar"
                           fill
                           sizes="20px"

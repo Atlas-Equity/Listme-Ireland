@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     // Fetch profiles of other participants
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username')
+      .select('id, username, avatar_url')
       .in('id', otherUserIds);
 
     const profileMap = new Map((profiles || []).map(p => [p.id, p]));
@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
         otherUser: {
           id: otherUserId,
           username: otherUser?.username || 'User',
+          avatarUrl: (otherUser as any)?.avatar_url || null,
         },
         isSeller: c.seller_id === user.id,
         lastMessage: c.last_message,

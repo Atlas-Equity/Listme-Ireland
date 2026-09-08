@@ -40,7 +40,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const username = profile?.username || userMetadata.username || '';
   const fullName = userMetadata.full_name || '';
   const bio = userMetadata.bio || '';
-  const avatarUrl = userMetadata.avatar_url || '';
+  const avatarUrl = profile?.avatar_url || userMetadata.avatar_url || '';
   const location = userMetadata.location || '';
   const phone = userMetadata.phone || '';
 

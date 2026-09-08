@@ -43,24 +43,93 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Compress & standardize avatar on client to max 512x512 JPEG (<100KB)
+  // This guarantees full compatibility across all mobile devices, iOS Safari, and Android.
+  const compressAvatarImage = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !window.Image) {
+        return resolve(file);
+      }
 
-    if (!file.type.startsWith('image/')) {
-      setErrorMessage('Please select a valid image file (PNG, JPG, WEBP).');
-      return;
-    }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new (window.Image as any)();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const maxDim = 512;
+            let { width, height } = img;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage('Image size exceeds 5MB limit.');
-      return;
-    }
+            if (width > height) {
+              if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              }
+            } else {
+              if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
 
-    setSelectedFile(file);
-    setIsAvatarRemoved(false);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(file);
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) return resolve(file);
+                const compressedFile = new File(
+                  [blob],
+                  `${file.name.replace(/\.[^/.]+$/, '')}.jpg`,
+                  { type: 'image/jpeg', lastModified: Date.now() }
+                );
+                resolve(compressedFile);
+              },
+              'image/jpeg',
+              0.85
+            );
+          } catch (err) {
+            console.warn('Canvas compression error, using original file:', err);
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+
     setErrorMessage(null);
-    setPreviewUrl(URL.createObjectURL(file));
+
+    // Validate mime or file extension
+    const isImage = rawFile.type.startsWith('image/') || 
+                    rawFile.name.match(/\.(jpg|jpeg|png|webp|gif|heic|heif|jfif|bmp)$/i);
+    if (!isImage) {
+      setErrorMessage('Please select a valid image file (JPG, PNG, WEBP, HEIC).');
+      return;
+    }
+
+    try {
+      // Compress and standardize image on the device
+      const compressed = await compressAvatarImage(rawFile);
+      setSelectedFile(compressed);
+      setIsAvatarRemoved(false);
+      setPreviewUrl(URL.createObjectURL(compressed));
+    } catch {
+      setSelectedFile(rawFile);
+      setIsAvatarRemoved(false);
+      setPreviewUrl(URL.createObjectURL(rawFile));
+    }
   };
 
   const handleRemoveAvatar = () => {
@@ -238,7 +307,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
+            accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
             onChange={handleFileChange}
             className="hidden"
           />

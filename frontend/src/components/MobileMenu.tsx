@@ -34,9 +34,10 @@ interface MobileMenuProps {
     };
   } | null;
   isBusiness: boolean;
+  avatarUrl?: string;
 }
 
-export function MobileMenu({ user, isBusiness }: MobileMenuProps) {
+export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -63,7 +64,7 @@ export function MobileMenu({ user, isBusiness }: MobileMenuProps) {
     user?.email?.split('@')[0] ||
     'User';
 
-  const avatarUrl = user?.user_metadata?.avatar_url;
+  const avatarUrl = propAvatarUrl || user?.user_metadata?.avatar_url;
   const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
