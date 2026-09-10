@@ -48,6 +48,7 @@ export default function PageLayout({ title, description, filterGroups, listings 
                 condition={listing.condition || 'Used - Good'}
                 images={[listing.imageUrl]}
                 createdAt={new Date().toISOString()}
+                location={listing.location || 'Dublin'}
               />
             ))}
           </div>

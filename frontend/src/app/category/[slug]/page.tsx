@@ -21,7 +21,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     supabase.auth.getUser(),
     supabase
       .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
       .ilike('category', categoryName)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
@@ -58,6 +58,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 condition={listing.condition}
                 images={listing.images}
                 createdAt={listing.created_at}
+                location={listing.location}
+                closesAt={listing.expires_at || listing.ends_at}
               />
             ))}
           </div>

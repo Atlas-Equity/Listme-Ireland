@@ -13,18 +13,10 @@ export default async function FavouriteSellersPage() {
     redirect('/login');
   }
 
-  // Fetch favourite sellers with joined profile data
-  const { data: favourites, error } = await supabase
+  // Fetch favourite sellers and then their profiles directly
+  const { data: favs, error } = await supabase
     .from('favourite_sellers')
-    .select(`
-      id,
-      seller:profiles (
-        id,
-        username,
-        account_type,
-        created_at
-      )
-    `)
+    .select('id, seller_id, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -32,10 +24,16 @@ export default async function FavouriteSellersPage() {
     console.error('Error fetching favourite sellers:', error);
   }
 
-  // Filter out null profiles
-  const activeSellers = (favourites || [])
-    .filter(item => item.seller !== null)
-    .map(item => item.seller);
+  const sellerIds = (favs || []).map((f: any) => f.seller_id);
+  let activeSellers: any[] = [];
+
+  if (sellerIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url, account_type, created_at')
+      .in('id', sellerIds);
+    activeSellers = profiles || [];
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 w-full min-h-screen">

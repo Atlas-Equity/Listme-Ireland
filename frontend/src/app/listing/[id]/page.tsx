@@ -10,6 +10,9 @@ import ListingCarousel from '@/components/ListingCarousel';
 import WatchlistButton from '@/components/WatchlistButton';
 import BiddingForm from '@/components/BiddingForm';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
+import MakeOfferButton from '@/components/MakeOfferButton';
+import ServiceFeeModal from '@/components/ServiceFeeModal';
+import { getCoreLocation } from '@/utils/irelandLocations';
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -95,7 +98,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isClosed = expirationDate < new Date();
   const timeRemaining = isClosed ? 'Closed' : formatDistanceToNow(expirationDate);
 
-  const itemLocation = listing.location || 'Unknown Location';
+  const itemLocation = getCoreLocation(listing.location);
 
   // Ensure payment options is an array
   const paymentOptions: string[] = listing.payment_options || ['cash'];
@@ -160,18 +163,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               {/* Payment */}
               <div className="font-semibold text-gray-900 dark:text-white">Payment Options</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {paymentOptions.includes('stripe') && (
-                  <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
-                    <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-1.5">
-                      <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
-                        alt="Stripe" 
-                        className="h-5 w-auto object-contain" 
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely by debit or credit card via Stripe.</p>
+                <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
+                  <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-1.5">
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
+                      alt="Stripe" 
+                      className="h-5 w-auto object-contain" 
+                    />
                   </div>
-                )}
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely with Visa, Mastercard, Apple Pay, Google Pay via Stripe.</p>
+                </div>
 
                 {(paymentOptions.includes('revolut') || paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
                   <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40 space-y-2">
@@ -263,17 +264,29 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                           <CheckoutButton 
                             listingId={listing.id} 
                             isAuction={false} 
-                            stripeEnabled={paymentOptions.includes('stripe')} 
+                            stripeEnabled={true} 
+                            listingTitle={listing.title}
+                            price={buyNowPrice}
                           />
                         </div>
                       )}
                     </div>
                   ) : (
-                    <CheckoutButton 
-                      listingId={listing.id} 
-                      isAuction={false} 
-                      stripeEnabled={paymentOptions.includes('stripe')} 
-                    />
+                    <div className="space-y-3">
+                      <CheckoutButton 
+                        listingId={listing.id} 
+                        isAuction={false} 
+                        stripeEnabled={true} 
+                        listingTitle={listing.title}
+                        price={currentPrice}
+                      />
+                      <MakeOfferButton
+                        listingId={listing.id}
+                        sellerId={listing.seller_id}
+                        listingTitle={listing.title}
+                        askingPrice={currentPrice}
+                      />
+                    </div>
                   )
                 ) : (
                   <div className="w-full py-3 px-4 bg-gray-600 text-gray-900 dark:text-white font-bold rounded-sm cursor-not-allowed">
@@ -288,8 +301,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   </div>
                 )}
               </div>
-              <div className="p-3 text-sm text-[#0073e6] flex items-center bg-white dark:bg-[#242424]">
-                <Info className="w-4 h-4 mr-2" /> Service Fee may apply
+              <div className="p-3 text-sm bg-white dark:bg-[#242424] border-t border-gray-100 dark:border-zinc-800">
+                <ServiceFeeModal price={currentPrice} />
               </div>
             </div>
 
@@ -301,14 +314,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-1">
                   When you make a purchase using secure card payments, we are able to protect your trade under our Buyer Protection policy, up to €5,000.
                 </div>
-                <a href="#" className="text-xs text-[#0073e6] hover:underline">Learn more about our Buyer Protection.</a>
+                <Link href="/buyer-protection" className="text-xs text-[#0073e6] hover:underline font-semibold">
+                  Learn more about our Buyer Protection.
+                </Link>
               </div>
             </div>
 
             {/* Seller Mini Profile */}
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
-              <div className="flex items-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden border border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mr-4">
+              <Link 
+                href={`/member/${listing.seller_id}`}
+                className="flex items-center group hover:opacity-90 transition-opacity"
+              >
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
                   {sellerAvatarUrl ? (
                     <Image
                       src={sellerAvatarUrl}
@@ -322,8 +340,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     <span className="text-xl font-bold text-primary">{sellerInitial}</span>
                   )}
                 </div>
-                <div>
-                  <div className="font-bold text-gray-900 dark:text-white">{sellerDisplayName}</div>
+                <div className="min-w-0">
+                  <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1 group-hover:text-primary transition-colors">
+                    <span className="truncate">{sellerDisplayName}</span>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                  </div>
                   <div className="text-xs text-gray-700 dark:text-gray-300">
                     {totalReviews > 0 ? `${feedbackPercentage}% positive feedback` : 'No feedback yet'}
                   </div>
@@ -331,7 +352,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     Seller located in {itemLocation}
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
 
           </div>
@@ -344,24 +365,29 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           
           <div className="w-full max-w-[600px]">
             <div className="flex flex-col items-center mb-6">
-              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mb-3">
-                {sellerAvatarUrl ? (
-                  <Image
-                    src={sellerAvatarUrl}
-                    alt={sellerDisplayName}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
-                )}
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">{sellerDisplayName}</div>
+              <Link href={`/member/${listing.seller_id}`} className="group flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
+                  {sellerAvatarUrl ? (
+                    <Image
+                      src={sellerAvatarUrl}
+                      alt={sellerDisplayName}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
+                  )}
+                </div>
+                <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1">
+                  {sellerDisplayName}
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </Link>
               <div className="text-sm text-gray-700 dark:text-gray-300">
                 {totalReviews > 0 ? (
-                  <>{feedbackPercentage}% positive feedback <span className="text-[#e35205]">({totalReviews}⭐)</span></>
+                  <>{feedbackPercentage}% positive feedback <span className="text-gray-500 dark:text-gray-400">({totalReviews} reviews)</span></>
                 ) : (
                   'No feedback yet'
                 )}
@@ -379,7 +405,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <Link href="#" className="border-t border-gray-200 dark:border-[#333] py-4 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
+            <Link href={`/member/${listing.seller_id}`} className="border-t border-gray-200 dark:border-[#333] py-4 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
               View seller's other listings
               <ChevronRight className="w-5 h-5" />
             </Link>

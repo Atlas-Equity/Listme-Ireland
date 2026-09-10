@@ -15,7 +15,7 @@ export default async function SearchPage({
   // Search with lean card columns
   const { data: listings, error } = await supabase
     .from('listings')
-    .select('id, title, price, price_type, condition, images, created_at')
+    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
     .eq('status', 'active')
     .or(`title.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`)
     .order('created_at', { ascending: false });
@@ -33,8 +33,8 @@ export default async function SearchPage({
         </div>
 
         {error && (
-          <div className="p-4 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl mb-6 text-sm">
-            Error loading results. Please try again.
+          <div className="text-center py-12">
+            <p className="text-red-500">Failed to load listings. Please try again later.</p>
           </div>
         )}
 
@@ -58,6 +58,8 @@ export default async function SearchPage({
                 condition={listing.condition}
                 images={listing.images}
                 createdAt={listing.created_at}
+                location={listing.location}
+                closesAt={listing.expires_at || listing.ends_at}
               />
             ))}
           </div>

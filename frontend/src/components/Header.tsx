@@ -1,9 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Briefcase, Wrench, Users, LogOut, MessageSquare } from 'lucide-react';
+import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Briefcase, Wrench, Users, LogOut, MessageSquare, Bell } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { MobileMenu } from './MobileMenu';
+import CategoriesMegaMenu from './CategoriesMegaMenu';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function Header() {
@@ -29,8 +30,8 @@ export default async function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-[72px]">
             
-            {/* Logo & Mobile Navigation */}
-            <div className="flex-shrink-0 flex items-center gap-1">
+            {/* Logo, Mobile Menu & Categories Mega Menu */}
+            <div className="flex-shrink-0 flex items-center gap-3">
               <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} />
               <Link href="/" className="relative flex items-center ml-1 lg:ml-0 gap-2">
                 <span className="font-extrabold text-4xl tracking-tight text-primary">
@@ -38,10 +39,22 @@ export default async function Header() {
                 </span>
                 <Image src="/clover-logo.png" alt="ListMe Logo" width={40} height={40} className="object-contain" />
               </Link>
+
+              {/* Categories Flyout Mega-Menu */}
+              <div className="hidden md:block ml-2">
+                <CategoriesMegaMenu />
+              </div>
             </div>
 
             {/* Right Navigation */}
             <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium text-gray-600 dark:text-gray-300">
+              <Link href="/my-listme?tab=notifications" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group relative">
+                <div className="relative">
+                  <Bell className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                </div>
+                <span>Notifications</span>
+              </Link>
               <Link href="/my-listme?tab=watchlist" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
                 <Heart className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                 <span>Watchlist</span>

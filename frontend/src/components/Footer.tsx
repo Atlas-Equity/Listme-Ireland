@@ -19,6 +19,7 @@ export default function Footer() {
               <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Latest deals</Link></li>
               <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Stores</Link></li>
               <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Closing soon</Link></li>
+              <li><Link href="/fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link></li>
             </ul>
           </div>
 
@@ -56,8 +57,8 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3">
               <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Help</Link></li>
-              <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Trust & safety</Link></li>
-              <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">3rd Party Licenses</Link></li>
+              <li><Link href="/buyer-protection" className="hover:text-gray-900 dark:hover:text-white transition-colors">Buyer Protection</Link></li>
+              <li><Link href="/fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link></li>
               <li><Link href="#" className="hover:text-gray-900 dark:hover:text-white transition-colors">Seller information</Link></li>
             </ul>
           </div>

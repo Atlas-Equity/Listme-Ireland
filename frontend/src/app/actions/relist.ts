@@ -1,0 +1,116 @@
+'use server';
+
+import { createClient } from '@/utils/supabase/server';
+import { revalidatePath } from 'next/cache';
+
+/**
+ * 1-Click Relist action for closed/unsold listings.
+ * Extends listing for 7 days, sets status back to 'active', resets created_at.
+ */
+export async function relistListingAction(listingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'You must be logged in to relist an item.' };
+  }
+
+  // Fetch listing to verify ownership
+  const { data: listing, error: fetchErr } = await supabase
+    .from('listings')
+    .select('id, seller_id, title')
+    .eq('id', listingId)
+    .maybeSingle();
+
+  if (fetchErr || !listing) {
+    return { error: 'Listing not found.' };
+  }
+
+  if (listing.seller_id !== user.id) {
+    return { error: 'You are not authorized to relist this listing.' };
+  }
+
+  // 7 days extension from right now
+  const newClosesAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date().toISOString();
+
+  const { error: updateErr } = await supabase
+    .from('listings')
+    .update({
+      status: 'active',
+      expires_at: newClosesAt,
+      ends_at: newClosesAt,
+      created_at: now,
+    })
+    .eq('id', listingId);
+
+  if (updateErr) {
+    return { error: updateErr.message };
+  }
+
+  revalidatePath('/my-listme');
+  revalidatePath(`/listing/${listingId}`);
+  revalidatePath('/');
+  return { success: true, message: `"${listing.title}" has been relisted for 7 days!` };
+}
+
+/**
+ * Delete a closed or unwanted listing permanently.
+ */
+export async function deleteListingAction(listingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'You must be logged in to delete this listing.' };
+  }
+
+  const { data: listing, error: fetchErr } = await supabase
+    .from('listings')
+    .select('id, seller_id, title')
+    .eq('id', listingId)
+    .maybeSingle();
+
+  if (fetchErr || !listing) {
+    return { error: 'Listing not found.' };
+  }
+
+  if (listing.seller_id !== user.id) {
+    return { error: 'You are not authorized to delete this listing.' };
+  }
+
+  const { error: deleteErr } = await supabase
+    .from('listings')
+    .delete()
+    .eq('id', listingId);
+
+  if (deleteErr) {
+    return { error: deleteErr.message };
+  }
+
+  revalidatePath('/my-listme');
+  revalidatePath('/');
+  return { success: true, message: `Listing "${listing.title}" deleted.` };
+}
+
+/**
+ * Auto-cleanup: cleans up unsold listings closed more than 3 days ago.
+ */
+export async function autoCleanupExpiredListings() {
+  const supabase = await createClient();
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    // Delete listings where status is 'closed' or expires_at < 3 days ago
+    const { error } = await supabase
+      .from('listings')
+      .delete()
+      .or(`status.eq.closed,expires_at.lt.${threeDaysAgo}`);
+
+    if (error) {
+      console.warn('Auto cleanup warning:', error.message);
+    }
+  } catch (err) {
+    console.error('Auto cleanup error:', err);
+  }
+}

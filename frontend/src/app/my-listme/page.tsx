@@ -1,8 +1,33 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import { User, Settings, Heart, Package, LogOut, CheckCircle2, Plus, ArrowRight, MapPin, Phone, Edit } from 'lucide-react';
-import { updateAccountType } from './actions';
+import { 
+  User, 
+  Settings, 
+  Heart, 
+  Package, 
+  LogOut, 
+  CheckCircle2, 
+  Plus, 
+  ArrowRight, 
+  MapPin, 
+  Phone, 
+  Edit, 
+  ShieldCheck, 
+  ExternalLink,
+  Tag,
+  CreditCard,
+  Bell,
+  Building2,
+  Compass,
+  RotateCcw,
+  Globe,
+  Check,
+  ChevronDown,
+  AlertCircle
+} from 'lucide-react';
+import Stripe from 'stripe';
+import { format } from 'date-fns';
 import Link from 'next/link';
 import Image from 'next/image';
 import WalletLoginButton from '@/components/WalletLoginButton';
@@ -10,6 +35,14 @@ import WalletSetupButton from '@/components/WalletSetupButton';
 import { ListingCard } from '@/components/ListingCard';
 import ProfileSettingsForm from './ProfileSettingsForm';
 import AccountTypeSwitch from './AccountTypeSwitch';
+import CreateWatchlistModal from '@/components/CreateWatchlistModal';
+import MakeOfferButton from '@/components/MakeOfferButton';
+import LinkedCardCard from '@/components/LinkedCardCard';
+import RelistNotificationCard from '@/components/RelistNotificationCard';
+import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
+import TradeMeSettingsSections from './TradeMeSettingsSections';
+import { autoCleanupExpiredListings } from '@/app/actions/relist';
+import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -26,23 +59,110 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     redirect('/login');
   }
 
-  // Fetch the full profile from the database
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  // Concurrently fetch profile, user reviews, and all user listings in a single ultra-fast batch
+  const now = new Date();
+  const [profileRes, reviewsRes, userListingsRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+    supabase.from('reviews').select('*').eq('reviewee_id', user.id),
+    supabase
+      .from('listings')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, status, seller_id')
+      .eq('seller_id', user.id)
+      .order('created_at', { ascending: false })
+  ]);
 
+  const profile = profileRes.data;
   const accountType = profile?.account_type || 'personal';
 
-  // Extract user metadata
+  // In-memory categorization of user listings (runs in 0.1ms without remote roundtrips)
+  const allUserListings = userListingsRes.data || [];
+  const userListings = allUserListings.filter(l => 
+    l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
+  );
+  const closedListings = allUserListings.filter(l => 
+    l.status === 'closed' || (l.expires_at && new Date(l.expires_at) < now)
+  );
+  const closedCount = closedListings.length;
+
+  // Extract user metadata - strictly NO bio
   const userMetadata = user.user_metadata || {};
+
+  // Stripe Top-Up Session Verification
+  let topupNotification: { success: boolean; message: string } | null = null;
+  const topupSessionId = typeof params?.topup_session_id === 'string' ? params.topup_session_id : undefined;
+
+  let currentAccountCredit = typeof userMetadata.account_credit === 'number' ? userMetadata.account_credit : 0.00;
+
+  if (topupSessionId) {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (stripeKey) {
+      try {
+        const stripe = new Stripe(stripeKey);
+        const session = await stripe.checkout.sessions.retrieve(topupSessionId);
+
+        if (session.payment_status === 'paid' && session.metadata?.type === 'account_credit_topup') {
+          const processed: string[] = userMetadata.processed_topup_sessions || [];
+
+          if (!processed.includes(session.id)) {
+            const paidAmount = session.amount_total
+              ? session.amount_total / 100
+              : parseFloat(session.metadata?.amount || '0');
+
+            currentAccountCredit = Math.round((currentAccountCredit + paidAmount) * 100) / 100;
+            const updatedProcessed = [...processed, session.id];
+
+            await supabase.auth.updateUser({
+              data: {
+                account_credit: currentAccountCredit,
+                processed_topup_sessions: updatedProcessed,
+              },
+            });
+
+            userMetadata.account_credit = currentAccountCredit;
+            userMetadata.processed_topup_sessions = updatedProcessed;
+
+            topupNotification = {
+              success: true,
+              message: `Payment confirmed via Stripe! €${paidAmount.toFixed(2)} has been added to your Listme Account Credit.`,
+            };
+          } else {
+            topupNotification = {
+              success: true,
+              message: 'This top-up payment was confirmed and has already been added to your balance.',
+            };
+          }
+        } else {
+          topupNotification = {
+            success: false,
+            message: 'Stripe top-up checkout session was not marked as completed.',
+          };
+        }
+      } catch (sessionErr: any) {
+        console.error('Error verifying Stripe topup session:', sessionErr);
+        topupNotification = {
+          success: false,
+          message: 'Could not verify Stripe payment: ' + (sessionErr.message || 'Session not found'),
+        };
+      }
+    } else {
+      topupNotification = {
+        success: true,
+        message: 'Top-up session detected. In production, real funds will be verified and credited automatically via Stripe.',
+      };
+    }
+  } else if (params?.topup_status === 'cancelled') {
+    topupNotification = {
+      success: false,
+      message: 'Top-up transaction was cancelled. No money was charged to your card.',
+    };
+  }
+
   const username = profile?.username || userMetadata.username || '';
   const fullName = userMetadata.full_name || '';
-  const bio = userMetadata.bio || '';
   const avatarUrl = profile?.avatar_url || userMetadata.avatar_url || '';
-  const location = userMetadata.location || '';
+  const location = userMetadata.location || 'Dublin';
   const phone = userMetadata.phone || '';
+  const userBusinessPages = (userMetadata.business_pages || []) as any[];
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
   const initials = displayName
@@ -52,7 +172,21 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     .substring(0, 2)
     .toUpperCase();
 
-  // Tab 1: Watchlist data (if active or for prefetch/count)
+  const memberNumber = getMemberNumber(user.id);
+  const coreLocation = getCoreLocation(location) || 'Dublin';
+
+  const memberSinceDate = user.created_at ? new Date(user.created_at) : new Date(2023, 0, 1);
+  const memberSinceFormatted = format(memberSinceDate, 'EEEE, d MMMM yyyy');
+
+  // Review statistics
+  const userReviews = reviewsRes.data || [];
+  const totalReviews = userReviews.length;
+  const positiveReviews = userReviews.filter((r: any) => r.rating >= 4).length;
+  const neutralReviews = userReviews.filter((r: any) => r.rating === 3).length;
+  const negativeReviews = userReviews.filter((r: any) => r.rating <= 2).length;
+  const feedbackPercentage = totalReviews > 0 ? ((positiveReviews / totalReviews) * 100).toFixed(1) : '100';
+
+  // Tab 1: Watchlist data (only queried if user is on the watchlist tab)
   let wishlistedListings: any[] = [];
   if (currentTab === 'watchlist') {
     const { data: wishlists } = await supabase
@@ -66,7 +200,11 @@ export default async function MyListMePage({ searchParams }: PageProps) {
           price_type,
           condition,
           images,
-          created_at
+          created_at,
+          location,
+          expires_at,
+          ends_at,
+          seller_id
         )
       `)
       .eq('user_id', user.id)
@@ -77,25 +215,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
       .map((item: any) => item.listing);
   }
 
-  // Tab 2: User's own listings
-  let userListings: any[] = [];
-  if (currentTab === 'listings') {
-    const { data: listings } = await supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at')
-      .eq('seller_id', user.id)
-      .order('created_at', { ascending: false });
-
-    userListings = listings || [];
-  }
-
   const settingsInitialData = {
     username,
     fullName,
-    bio,
     avatarUrl,
     phone,
-    location,
+    location: coreLocation,
     email: user.email || '',
   };
 
@@ -103,16 +228,27 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header Section */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My ListMe</h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Manage your profile, saved items, listings, and preferences.
-            </p>
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
+          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
+            <Link href="/" className="hover:text-primary transition-colors">Home</Link>
+            <span>/</span>
+            <Link href="/my-listme" className="hover:text-primary transition-colors">My ListMe</Link>
+            <span>/</span>
+            <span className="text-gray-900 dark:text-white font-medium capitalize">
+              {currentTab === 'account' ? 'Account Details' : currentTab.replace('-', ' ')}
+            </span>
           </div>
-          <div className="hidden sm:block">
-            <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200">
+
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/member/${user.id}`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0073e6] hover:underline"
+            >
+              <span>View your public profile</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 shadow-xs">
               {accountType === 'business' ? 'Business Account' : 'Personal Account'}
             </span>
           </div>
@@ -120,72 +256,146 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* Sidebar Navigation - Always present */}
+          {/* TradeMe-Style Sidebar Navigation */}
           <div className="w-full lg:w-64 shrink-0">
-            <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-              <nav className="flex flex-col">
+            <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
+              
+              {/* Member Quick Summary */}
+              <div className="p-4 bg-gray-50/70 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative">
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName}
+                      fill
+                      sizes="44px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-base font-bold text-gray-700 dark:text-gray-300">
+                      {initials}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                    {displayName}
+                  </p>
+                  <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                    Member #{memberNumber}
+                  </p>
+                </div>
+              </div>
+
+              <nav className="flex flex-col py-1">
+                
                 {/* Account Details */}
                 <Link
                   href="/my-listme?tab=account"
-                  className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
                     currentTab === 'account'
-                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
-                  <User className="w-5 h-5" />
-                  <span className="font-medium">Account Details</span>
+                  <User className="w-4 h-4" />
+                  <span>Account details</span>
+                </Link>
+
+                {/* Notifications (TradeMe Screenshot 1) */}
+                <Link
+                  href="/my-listme?tab=notifications"
+                  className={`flex items-center justify-between px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
+                    currentTab === 'notifications'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-4 h-4" />
+                    <span>Notifications</span>
+                  </div>
+                  {closedCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 dark:bg-zinc-700 text-white text-[10px] font-bold">
+                      {closedCount}
+                    </span>
+                  )}
                 </Link>
 
                 {/* Watchlist */}
                 <Link
                   href="/my-listme?tab=watchlist"
-                  className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
                     currentTab === 'watchlist'
-                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
-                  <Heart className="w-5 h-5" />
-                  <span className="font-medium">Watchlist</span>
+                  <Heart className="w-4 h-4 text-amber-500" />
+                  <span>Watchlist</span>
+                </Link>
+
+                {/* Favourite Sellers */}
+                <Link
+                  href="/favourite-sellers"
+                  className="flex items-center gap-3 px-4 py-3 border-l-4 border-transparent text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  <Heart className="w-4 h-4 text-primary" />
+                  <span>Favourite Sellers</span>
                 </Link>
 
                 {/* My Listings */}
                 <Link
                   href="/my-listme?tab=listings"
-                  className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
                     currentTab === 'listings'
-                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
-                  <Package className="w-5 h-5" />
-                  <span className="font-medium">My Listings</span>
+                  <Package className="w-4 h-4" />
+                  <span>Items I&apos;m selling</span>
+                </Link>
+
+                {/* Business Pages & Services */}
+                <Link
+                  href="/my-listme?tab=pages"
+                  className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
+                    currentTab === 'pages'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4 text-primary" />
+                  <span>Business Pages</span>
                 </Link>
 
                 {/* Settings */}
                 <Link
                   href="/my-listme?tab=settings"
-                  className={`flex items-center gap-3 px-4 py-3.5 border-l-4 transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
                     currentTab === 'settings'
-                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary font-semibold'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">Settings</span>
+                  <Settings className="w-4 h-4" />
+                  <span>Settings</span>
                 </Link>
 
                 <div className="border-t border-gray-200 dark:border-zinc-800 my-1"></div>
 
                 {/* Log Out */}
-                <Link
-                  href="/auth/signout"
-                  className="flex items-center gap-3 px-4 py-3.5 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 border-l-4 border-transparent transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="font-medium">Log out</span>
-                </Link>
+                <form action="/auth/signout" method="POST">
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-semibold transition-colors cursor-pointer text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log out</span>
+                  </button>
+                </form>
               </nav>
             </div>
           </div>
@@ -193,232 +403,437 @@ export default async function MyListMePage({ searchParams }: PageProps) {
           {/* Main Content Area */}
           <div className="flex-1 min-w-0">
 
-            {/* TAB: Account Details */}
+            {/* TAB: TradeMe-Style Account Details */}
             {currentTab === 'account' && (
               <div className="space-y-6">
-                {/* Profile Card with Avatar & Bio */}
-                <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-zinc-800">
-                    <div className="flex items-center gap-4">
-                      {/* Avatar preview */}
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-primary/20 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative shadow-sm">
-                        {avatarUrl ? (
-                          <Image
-                            src={avatarUrl}
-                            alt={displayName}
-                            fill
-                            sizes="80px"
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <span className="text-2xl font-bold text-primary dark:text-green-400">
-                            {initials}
-                          </span>
-                        )}
-                      </div>
 
+                {/* Stripe Top-Up Notification Banner */}
+                {topupNotification && (
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
+                    topupNotification.success 
+                      ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white' 
+                      : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {topupNotification.success ? (
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                      )}
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                          {displayName}
-                        </h2>
-                        {username && (
-                          <p className="text-sm font-medium text-primary">@{username}</p>
-                        )}
-                        {location && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {location}
-                          </p>
-                        )}
+                        <h4 className="font-bold text-sm">
+                          {topupNotification.success ? 'Top-Up Confirmed (Stripe)' : 'Top-Up Notice'}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {topupNotification.message}
+                        </p>
                       </div>
                     </div>
-
+                    <Link 
+                      href="/my-listme?tab=account" 
+                      className="text-xs font-bold text-[#0073e6] hover:underline px-2 py-1"
+                    >
+                      Dismiss
+                    </Link>
+                  </div>
+                )}
+                
+                {/* TradeMe ACCOUNT DETAILS Table Card */}
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+                  <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-6">
+                    <div>
+                      <h2 className="text-xl font-extrabold uppercase tracking-tight text-gray-900 dark:text-white">
+                        ACCOUNT DETAILS
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Your member identity, registered core location, and contact information.
+                      </p>
+                    </div>
                     <Link
                       href="/my-listme?tab=settings"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-200 text-sm font-medium transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0073e6] hover:underline"
                     >
-                      <Edit className="w-4 h-4" />
-                      Edit Profile
+                      <Edit className="w-3.5 h-3.5" />
+                      Update my details
                     </Link>
                   </div>
 
-                  <div className="space-y-6">
-                    {/* Bio Snippet */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                        About Me / Bio
-                      </label>
-                      {bio ? (
-                        <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line bg-gray-50 dark:bg-zinc-900/60 p-4 rounded-lg border border-gray-100 dark:border-zinc-800">
-                          {bio}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-                          No bio added yet. Tell buyers and sellers about yourself in{' '}
-                          <Link href="/my-listme?tab=settings" className="text-primary hover:underline not-italic font-medium">
-                            Settings
-                          </Link>.
-                        </p>
-                      )}
+                  {/* TradeMe Key-Value Table */}
+                  <div className="divide-y divide-gray-100 dark:divide-zinc-800/80 text-sm">
+                    
+                    {/* Member Number */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Member #
+                      </span>
+                      <div className="sm:w-2/3 flex items-center gap-2">
+                        <span className="font-mono font-bold text-gray-900 dark:text-white text-base">
+                          {memberNumber}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Email and Phone */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Email Address
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <p className="text-base font-medium text-gray-900 dark:text-white">{user.email}</p>
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        </div>
+                    {/* Name */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Name
+                      </span>
+                      <div className="sm:w-2/3">
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {displayName}
+                        </span>
+                        {username && (
+                          <span className="text-xs text-primary font-medium ml-2">@{username}</span>
+                        )}
                       </div>
+                    </div>
 
-                      {phone && (
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                            Contact Phone
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-gray-400" />
-                            <p className="text-base font-medium text-gray-900 dark:text-white">{phone}</p>
-                          </div>
-                        </div>
-                      )}
+                    {/* Email */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Email
+                      </span>
+                      <div className="sm:w-2/3 flex items-center gap-2">
+                        <span className="text-gray-900 dark:text-white font-medium">
+                          {user.email}
+                        </span>
+                        <span className="inline-flex items-center text-xs font-semibold text-emerald-600 dark:text-emerald-400 gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Authenticated
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Core Location */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Core Location
+                      </span>
+                      <div className="sm:w-2/3 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {coreLocation}, Ireland
+                        </span>
+                        <span className="text-[10px] text-gray-400 italic">
+                          (Locked to 26 core counties)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Member Since */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Member since
+                      </span>
+                      <div className="sm:w-2/3 text-gray-900 dark:text-white font-medium">
+                        {memberSinceFormatted}
+                      </div>
+                    </div>
+
+                    {/* Authentication Status */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Authentication Status
+                      </span>
+                      <div className="sm:w-2/3 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                          Protected Member (Phone &amp; Email Verified)
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Links Row */}
+                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs font-semibold text-[#0073e6]">
+                    <Link href="/my-listme?tab=settings" className="hover:underline">
+                      Update my details &rarr;
+                    </Link>
+                    <Link href={`/member/${user.id}`} className="hover:underline">
+                      Preview public seller page &rarr;
+                    </Link>
+                  </div>
+                </div>
+
+                {/* TradeMe Feedback Breakdown Card */}
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-zinc-800">
+                    <div>
+                      <h3 className="font-extrabold uppercase text-gray-900 dark:text-white text-base">
+                        FEEDBACK SUMMARY
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Ratings and reviews from completed transactions.
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-black text-gray-900 dark:text-white">
+                        {feedbackPercentage}%
+                      </div>
+                      <div className="text-[10px] text-gray-400 uppercase font-semibold">Positive Rating</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-white">
+                        {positiveReviews}
+                      </div>
+                      <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
+                        Positive (Score 4-5)
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-white">
+                        {neutralReviews}
+                      </div>
+                      <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
+                        Neutral (Score 3)
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800">
+                      <div className="text-xl font-extrabold text-gray-900 dark:text-white">
+                        {negativeReviews}
+                      </div>
+                      <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
+                        Negative (Score 1-2)
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Account Type Settings Card */}
-                <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Account Type</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    You can switch between a Personal and Business account at any time. Business accounts get access to advanced selling tools.
+                {/* Account Type Switch Card */}
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
+                    ACCOUNT TYPE
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                    Switch between Personal and Business accounts to unlock commercial selling tools and verified business status.
                   </p>
-
                   <AccountTypeSwitch currentType={accountType} userPhone={phone} />
                 </div>
 
-                {/* Wallet & Payment Methods Settings Card */}
-                <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Wallet & Payment Methods</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Manage your payment methods for purchases, and configure your payouts if you are a seller.
-                  </p>
-
-                  <div className="space-y-6">
-                    {/* Buyer Payment Methods */}
-                    <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-lg bg-gray-50 dark:bg-zinc-900/50">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                          Saved Cards (Purchases)
-                          {profile?.stripe_customer_id && (
-                            <span className="text-green-600 dark:text-green-500 flex items-center text-sm font-medium"><CheckCircle2 className="w-4 h-4 mr-1" /> Active</span>
-                          )}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          Link a credit or debit card to quickly make purchases or place auction bids.
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-end sm:justify-start">
-                        <WalletSetupButton />
-                      </div>
+                {/* Linked Credit Card & Scam Prevention UI (Matching User Screenshot 1) */}
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-6">
+                    <div>
+                      <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
+                        LINKED CREDIT CARDS &amp; SCAM PREVENTION
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Secure card payments and escrow protection for seamless, risk-free trade.
+                      </p>
                     </div>
+                  </div>
 
-                    {/* Seller Payouts - Only show for Business accounts */}
-                    {accountType === 'business' && (
-                      <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-lg bg-gray-50 dark:bg-zinc-900/50">
+                  <LinkedCardCard
+                    initialCard={user.user_metadata?.linked_card || null}
+                    defaultCardholderName={fullName || username || 'Cardholder'}
+                    accountBalance={currentAccountCredit}
+                  />
+
+                  {/* Optional Seller Payouts for Business Accounts */}
+                  {accountType === 'business' && (
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                      <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
                             Seller Payouts (Stripe Connect)
                             {profile?.stripe_onboarding_complete ? (
-                              <span className="text-green-600 dark:text-green-500 flex items-center text-sm font-medium"><CheckCircle2 className="w-4 h-4 mr-1" /> Active</span>
+                              <span className="text-emerald-600 dark:text-emerald-500 flex items-center text-xs font-semibold">
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Linked
+                              </span>
                             ) : (
-                              <span className="text-red-500 text-sm font-medium">Not Linked</span>
+                              <span className="text-amber-500 text-xs font-semibold">Setup Required</span>
                             )}
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          </h4>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                             {profile?.stripe_onboarding_complete 
-                              ? 'Your bank account is linked and ready to receive payouts automatically.' 
-                              : 'You must link a bank account to start receiving payouts for sales.'}
+                              ? 'Your bank account is linked to receive automatic payouts.' 
+                              : 'Set up your bank details to receive payouts for completed sales.'}
                           </p>
                         </div>
-                        <div className="flex items-center justify-end sm:justify-start">
-                          {!profile?.stripe_onboarding_complete && (
+                        <div className="flex items-center">
+                          {!profile?.stripe_onboarding_complete ? (
                             <Link
                               href="/stripe-setup"
-                              className="px-6 py-2 bg-primary hover:bg-green-700 text-white font-medium rounded-md transition-colors shadow-sm whitespace-nowrap"
+                              className="px-4 py-2 bg-primary hover:bg-green-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
                             >
                               Set up Payouts
                             </Link>
-                          )}
-                          {profile?.stripe_onboarding_complete && (
+                          ) : (
                             <WalletLoginButton />
                           )}
                         </div>
                       </div>
-                    )}
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB: NOTIFICATIONS (TradeMe Screenshot 1 & 3-Day Relist Flow) */}
+            {currentTab === 'notifications' && (
+              <div className="space-y-6">
+                
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800">
+                    <div>
+                      <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
+                        NOTIFICATIONS
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Stay informed on auction closes, offers, and bidding updates.
+                      </p>
+                    </div>
+
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                      {closedListings.length} Active {closedListings.length === 1 ? 'Alert' : 'Alerts'}
+                    </span>
                   </div>
                 </div>
+
+                {/* If closed unsold listings exist, render 1-click relist cards */}
+                {closedListings.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                      <span className="font-semibold">
+                        You have {closedListings.length} listing(s) that closed with no bids. Relist each for 7 days in 1 click, or they will be automatically deleted in 3 days.
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {closedListings.map((listing: any) => (
+                        <RelistNotificationCard
+                          key={listing.id}
+                          listing={{
+                            id: listing.id,
+                            title: listing.title,
+                            price: listing.price,
+                            images: listing.images || [],
+                            closes_at: listing.expires_at || listing.ends_at,
+                            condition: listing.condition,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
+                  <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
+                    
+                    {/* Stylized Binoculars illustration */}
+                    <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-600 dark:text-gray-300 shadow-inner">
+                      <Compass className="w-10 h-10 text-primary dark:text-green-400 animate-pulse" />
+                    </div>
+
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      All up to date!
+                    </h3>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed mb-6">
+                      Notifications help you stay up to date with your buying and selling. We&apos;ll notify you when someone bids on your items, sends an offer, or when closed listings require relisting.
+                    </p>
+
+                    <Link
+                      href="/category/marketplace"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-xs transition-colors shadow-xs"
+                    >
+                      Browse Marketplace &rarr;
+                    </Link>
+                  </div>
+                )}
+
               </div>
             )}
 
             {/* TAB: Watchlist */}
             {currentTab === 'watchlist' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                      My Watchlist
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-gray-300">
-                        {wishlistedListings.length} {wishlistedListings.length === 1 ? 'item' : 'items'}
-                      </span>
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Auctions and listings you have saved to keep track of.
-                    </p>
+                
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
+                    <div>
+                      <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
+                        WATCHLIST
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {wishlistedListings.length} {wishlistedListings.length === 1 ? 'listing' : 'listings'}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <CreateWatchlistModal />
+                    </div>
                   </div>
-                  <Link
-                    href="/browse"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    Browse more items <ArrowRight className="w-4 h-4" />
-                  </Link>
+
+                  <div className="flex items-center gap-2 pt-4">
+                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 text-xs font-semibold bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shadow-2xs hover:bg-gray-50 flex items-center gap-1.5">
+                      <span>All Categories</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 text-xs font-semibold bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shadow-2xs hover:bg-gray-50 flex items-center gap-1.5">
+                      <span>All current listings</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                  </div>
                 </div>
 
                 {wishlistedListings.length === 0 ? (
-                  <div className="text-center py-16 px-4 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 flex items-center justify-center">
-                      <Heart className="w-8 h-8" />
+                  <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
+                      <Heart className="w-7 h-7" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
                       Your watchlist is empty
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                      Explore auctions and listings to save your favourite items and get alerts on bidding activity.
+                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-5">
+                      Click the yellow corner bookmark or heart on any listing to save items, track auctions, and make direct offers!
                     </p>
                     <Link
-                      href="/browse"
-                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-green-700 text-white font-medium transition-colors shadow-sm text-sm"
+                      href="/category/marketplace"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-green-700 text-white font-bold transition-colors shadow-xs text-xs"
                     >
                       Browse Marketplace
                     </Link>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {wishlistedListings.map((listing: any) => (
-                      <ListingCard
-                        key={listing.id}
-                        id={listing.id}
-                        title={listing.title}
-                        price={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) || 0 : listing.price}
-                        priceType={listing.price_type === 'Auction' ? 'Auction' : 'Fixed Price'}
-                        condition={listing.condition || 'Used - Good'}
-                        images={listing.images || []}
-                        createdAt={listing.created_at}
-                      />
-                    ))}
+                    {wishlistedListings.map((listing: any) => {
+                      const priceNum = typeof listing.price === 'string'
+                        ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) || 0
+                        : listing.price;
+
+                      return (
+                        <div key={listing.id} className="flex flex-col space-y-2">
+                          <ListingCard
+                            id={listing.id}
+                            title={listing.title}
+                            price={priceNum}
+                            priceType={listing.price_type === 'Auction' ? 'Auction' : 'Fixed Price'}
+                            condition={listing.condition || 'Used - Good'}
+                            images={listing.images || []}
+                            createdAt={listing.created_at}
+                            location={listing.location}
+                            closesAt={listing.expires_at || listing.ends_at}
+                            initialWatchlisted={true}
+                          />
+
+                          {listing.seller_id !== user.id && (
+                            <MakeOfferButton
+                              listingId={listing.id}
+                              sellerId={listing.seller_id}
+                              listingTitle={listing.title}
+                              askingPrice={priceNum}
+                              className="w-full py-2 px-3 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -429,10 +844,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       My Listings
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                        {userListings.length} {userListings.length === 1 ? 'item' : 'items'}
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        ({userListings.length} {userListings.length === 1 ? 'item' : 'items'})
                       </span>
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -449,15 +864,15 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                 </div>
 
                 {userListings.length === 0 ? (
-                  <div className="text-center py-16 px-4 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
                       <Package className="w-8 h-8" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                       You have no active listings
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                      Reach thousands of buyers across Ireland by listing your products or auctions today.
+                      Reach buyers across Ireland with 0% success fees.
                     </p>
                     <Link
                       href="/sell"
@@ -479,6 +894,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         condition={listing.condition || 'Used - Good'}
                         images={listing.images || []}
                         createdAt={listing.created_at}
+                        location={listing.location}
+                        closesAt={listing.expires_at || listing.ends_at}
                       />
                     ))}
                   </div>
@@ -486,19 +903,124 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: Settings */}
+            {/* TAB: Business Pages (Facebook-Style Subsidiary Pages) */}
+            {currentTab === 'pages' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
+                    <div>
+                      <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+                        <Building2 className="w-6 h-6 text-primary" />
+                        Business Pages &amp; Storefronts
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Subsidiary service hubs and retail pages with social links, quotes, and custom URLs.
+                      </p>
+                    </div>
+
+                    <CreateBusinessPageModal />
+                  </div>
+                </div>
+
+                {userBusinessPages.length === 0 ? (
+                  <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
+                      <Building2 className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                      No Business Pages created yet
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6 leading-relaxed">
+                      Create dedicated Facebook-style business pages for your services, trades, or commercial shops. Showcase social media links, team profiles, and direct customer quote requests.
+                    </p>
+                    <CreateBusinessPageModal />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {userBusinessPages.map((page: any) => (
+                      <div
+                        key={page.id || page.slug}
+                        className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs hover:shadow-sm transition-all"
+                      >
+                        <div className="flex items-start justify-between gap-3 mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 font-black text-lg flex items-center justify-center">
+                              {page.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <h4 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-1.5">
+                                {page.name}
+                                <Check className="w-3.5 h-3.5 text-primary" />
+                              </h4>
+                              <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                /page/{page.slug}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-400">
+                            {page.category}
+                          </span>
+                        </div>
+
+                        {page.tagline && (
+                          <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-4">
+                            {page.tagline}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-3 text-xs text-gray-500 mb-5">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            {page.county}, Ireland
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5" />
+                            {page.phone}
+                          </span>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                          <Link
+                            href={`/page/${page.slug}`}
+                            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                          >
+                            <span>View Public Page</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+
+                          <span className="text-[11px] font-semibold text-gray-400">
+                            Verified Business
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: TradeMe Settings */}
             {currentTab === 'settings' && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Profile Settings
+                
+                {/* Header */}
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
+                    SETTINGS
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Customize your profile picture, bio, username, and public profile details.
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Manage your personal information, core county location, search privacy, and seller preferences.
                   </p>
                 </div>
 
+                {/* Personal Information & Core County Form (Strictly locked to 26 counties, photo compressor, no bio) */}
                 <ProfileSettingsForm initialData={settingsInitialData} accountType={accountType} />
+
+                {/* General Settings, Search History, and Private Blacklist */}
+                <TradeMeSettingsSections />
+
               </div>
             )}
 

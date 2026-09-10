@@ -18,8 +18,8 @@ const servicesFilters = [
   {
     title: 'Rating',
     options: [
-      { label: '4 Stars & Up', value: '4_plus' },
-      { label: '3 Stars & Up', value: '3_plus' },
+      { label: 'Score 4 & Up', value: '4_plus' },
+      { label: 'Score 3 & Up', value: '3_plus' },
       { label: 'Unrated (New)', value: 'new' },
     ]
   },

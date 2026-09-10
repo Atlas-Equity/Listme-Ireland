@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Settings,
   Package,
+  Bell,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -218,6 +219,17 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: Mobil
                   Navigation
                 </p>
                 <nav className="space-y-1">
+                  <Link
+                    href="/my-listme?tab=notifications"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-3">
+                      <Bell className="w-4 h-4 text-primary" />
+                      Notifications
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  </Link>
                   <Link
                     href="/my-listme?tab=watchlist"
                     onClick={() => setIsOpen(false)}

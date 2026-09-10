@@ -24,6 +24,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { createClient as createBrowserSupabase } from '@/utils/supabase/client';
 import { useCall } from '@/components/CallProvider';
 import { playMessageChime } from '@/utils/callSounds';
+import { respondToOfferAction, OfferPayload } from '@/app/actions/offers';
 
 interface CallLogData {
   status: 'completed' | 'missed' | 'declined';
@@ -35,6 +36,15 @@ function parseCallLog(content: string): CallLogData | null {
   if (!content || !content.startsWith('CALL_LOG:')) return null;
   try {
     return JSON.parse(content.slice(9));
+  } catch {
+    return null;
+  }
+}
+
+function parseOffer(content: string): OfferPayload | null {
+  if (!content || !content.startsWith('OFFER:')) return null;
+  try {
+    return JSON.parse(content.slice(6));
   } catch {
     return null;
   }
@@ -63,6 +73,16 @@ function formatLastMessageSnippet(lastMessage?: string | null): string {
       return 'Voice call';
     } catch {
       return 'Voice call';
+    }
+  }
+  if (lastMessage.startsWith('OFFER:')) {
+    try {
+      const data = JSON.parse(lastMessage.slice(6));
+      if (data.status === 'accepted') return `Offer accepted: €${data.amount.toFixed(2)}`;
+      if (data.status === 'declined') return `Offer declined: €${data.amount.toFixed(2)}`;
+      return `Offer: €${data.amount.toFixed(2)}`;
+    } catch {
+      return 'Offer received';
     }
   }
   return lastMessage;
@@ -371,6 +391,27 @@ export default function MessagesPage() {
     } finally {
       setSending(false);
       inputRef.current?.focus();
+    }
+  };
+
+  // Respond to offer (accept or decline)
+  const handleRespondOffer = async (messageId: string, offerId: string, response: 'accepted' | 'declined') => {
+    if (!selectedConvId) return;
+    try {
+      const res = await respondToOfferAction({
+        conversationId: selectedConvId,
+        messageId,
+        offerId,
+        response,
+      });
+      if (res.success) {
+        fetchMessages(selectedConvId, true);
+        fetchConversations(true);
+      } else {
+        alert(res.error || 'Failed to update offer status.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -685,7 +726,100 @@ export default function MessagesPage() {
                   ) : (
                     messages.map((msg) => {
                       const callLog = parseCallLog(msg.content);
+                      const offerData = parseOffer(msg.content);
                       const isMe = msg.sender_id === currentUserId;
+
+                      if (offerData) {
+                        const isSeller = activeConversation?.isSeller ?? false;
+                        const isPending = offerData.status === 'pending';
+                        const isAccepted = offerData.status === 'accepted';
+                        const isDeclined = offerData.status === 'declined';
+
+                        return (
+                          <div key={msg.id} className="flex flex-col items-center my-4 px-2 animate-in fade-in duration-200">
+                            <div className={`p-4 sm:p-5 rounded-2xl border shadow-sm max-w-md w-full transition-all ${
+                              isAccepted
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100'
+                                : isDeclined
+                                ? 'bg-gray-50 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-gray-300'
+                                : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-zinc-900 dark:to-zinc-900/90 border-amber-300 dark:border-amber-700/70 text-gray-900 dark:text-white'
+                            }`}>
+                              <div className="flex items-start justify-between gap-3 mb-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                                    isAccepted 
+                                      ? 'bg-emerald-500 text-white' 
+                                      : isDeclined 
+                                      ? 'bg-gray-400 text-white' 
+                                      : 'bg-amber-400 text-amber-950 shadow-xs'
+                                  }`}>
+                                    <Tag className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                      {isMe ? 'Your Offer' : 'Offer Received'}
+                                    </div>
+                                    <div className="text-xl font-black leading-tight">
+                                      €{offerData.amount.toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                                  isAccepted
+                                    ? 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
+                                    : isDeclined
+                                    ? 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-400'
+                                    : 'bg-amber-200 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200'
+                                }`}>
+                                  {isAccepted ? 'Accepted' : isDeclined ? 'Declined' : 'Pending Response'}
+                                </span>
+                              </div>
+
+                              <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                                Listing: <span className="font-semibold">{offerData.listingTitle}</span>
+                              </p>
+
+                              {offerData.note && (
+                                <p className="text-xs italic bg-white/70 dark:bg-zinc-800/80 p-2.5 rounded-xl mb-3 border border-black/5 dark:border-white/5">
+                                  &ldquo;{offerData.note}&rdquo;
+                                </p>
+                              )}
+
+                              {/* Action buttons for seller if pending */}
+                              {isPending && isSeller && (
+                                <div className="flex items-center gap-2 pt-2.5 border-t border-amber-200 dark:border-zinc-800">
+                                  <button
+                                    onClick={() => handleRespondOffer(msg.id, offerData.id, 'accepted')}
+                                    className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    Accept (€{offerData.amount.toFixed(2)})
+                                  </button>
+                                  <button
+                                    onClick={() => handleRespondOffer(msg.id, offerData.id, 'declined')}
+                                    className="py-2 px-3 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-xl transition-colors"
+                                  >
+                                    Decline
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Status notices */}
+                              {isPending && !isSeller && (
+                                <p className="text-[11px] text-amber-800 dark:text-amber-300/90 font-medium">
+                                  Awaiting response from seller. You will be notified when they accept or decline.
+                                </p>
+                              )}
+
+                              {isAccepted && (
+                                <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                                  Offer accepted! You can now arrange payment and collection through this chat.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
 
                       if (callLog) {
                         const isMissed = callLog.status === 'missed';

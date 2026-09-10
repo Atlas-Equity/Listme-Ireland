@@ -15,13 +15,13 @@ export default async function Home() {
   const [latestResult, auctionResult] = await Promise.all([
     supabase
       .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(4),
     supabase
       .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
       .eq('status', 'active')
       .ilike('price_type', 'Auction')
       .order('created_at', { ascending: false })
@@ -53,6 +53,8 @@ export default async function Home() {
                   condition={listing.condition}
                   images={listing.images}
                   createdAt={listing.created_at}
+                  location={listing.location}
+                  closesAt={listing.expires_at || listing.ends_at}
                 />
               ))}
             </div>
@@ -76,6 +78,8 @@ export default async function Home() {
                   condition={listing.condition}
                   images={listing.images}
                   createdAt={listing.created_at}
+                  location={listing.location}
+                  closesAt={listing.expires_at || listing.ends_at}
                 />
               ))}
             </div>

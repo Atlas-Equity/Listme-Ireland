@@ -47,6 +47,15 @@ export async function placeBid(listingId: string, amount: number) {
         }
       }
 
+      // Check if user has verified Listme Account Credit or linked card
+      if (!hasCardOnFile) {
+        const linkedCard = user.user_metadata?.linked_card;
+        const credit = user.user_metadata?.account_credit;
+        if ((linkedCard && linkedCard.cardNumberBlocks?.length === 4) || (typeof credit === 'number' && credit > 0)) {
+          hasCardOnFile = true;
+        }
+      }
+
       if (!hasCardOnFile) {
         return {
           success: false,

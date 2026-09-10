@@ -1,16 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Car, Home, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Briefcase, Wrench, ChevronRight } from 'lucide-react';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function TrendingCategories() {
   const supabase = await createClient();
 
   // Fast count query using head: true (transfers 0 bytes of row data, executes index count)
-  const [marketplaceRes, motorsRes, propertyRes] = await Promise.all([
+  const [marketplaceRes, jobsRes, servicesRes] = await Promise.all([
     supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Marketplace%').eq('status', 'active'),
-    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Motors%').eq('status', 'active'),
-    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Property%').eq('status', 'active'),
+    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Jobs%').eq('status', 'active'),
+    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Services%').eq('status', 'active'),
   ]);
 
   const categories = [
@@ -21,16 +21,16 @@ export default async function TrendingCategories() {
       slug: 'marketplace',
     },
     {
-      category: 'Motors',
-      count: motorsRes.count ?? 0,
-      icon: Car,
-      slug: 'motors',
+      category: 'Jobs',
+      count: jobsRes.count ?? 0,
+      icon: Briefcase,
+      slug: 'jobs',
     },
     {
-      category: 'Property',
-      count: propertyRes.count ?? 0,
-      icon: Home,
-      slug: 'property',
+      category: 'Services',
+      count: servicesRes.count ?? 0,
+      icon: Wrench,
+      slug: 'services',
     },
   ];
 

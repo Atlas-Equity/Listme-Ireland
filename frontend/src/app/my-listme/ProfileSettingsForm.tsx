@@ -7,12 +7,12 @@ import { updateProfileSettings, uploadAvatarAction, ProfileData } from './action
 import { useRouter } from 'next/navigation';
 import PhoneVerificationModal from '@/components/PhoneVerificationModal';
 import { validatePhoneNumber } from '@/utils/phoneValidation';
+import { COUNTIES, getCoreLocation } from '@/utils/irelandLocations';
 
 interface ProfileSettingsFormProps {
   initialData: {
     username: string;
     fullName: string;
-    bio: string;
     avatarUrl: string;
     phone: string;
     location: string;
@@ -27,8 +27,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
 
   const [username, setUsername] = useState(initialData.username);
   const [fullName, setFullName] = useState(initialData.fullName);
-  const [bio, setBio] = useState(initialData.bio);
-  const [location, setLocation] = useState(initialData.location);
+  const [location, setLocation] = useState(getCoreLocation(initialData.location) || 'Dublin');
   const [phone, setPhone] = useState(initialData.phone);
   
   // Avatar state
@@ -172,7 +171,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
       const payload: ProfileData = {
         username,
         fullName,
-        bio,
         avatarUrl: finalAvatarUrl,
         phone: phoneToSave,
         location,
@@ -394,26 +392,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
           </div>
         </div>
 
-        {/* Bio */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Bio / About Me
-            </label>
-            <span className={`text-xs ${bio.length > 450 ? 'text-amber-500 font-medium' : 'text-gray-400'}`}>
-              {bio.length} / 500
-            </span>
-          </div>
-          <textarea
-            rows={4}
-            maxLength={500}
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Tell buyers and sellers a bit about yourself, what you collect, or your experience selling..."
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
-          />
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
           {/* Location */}
           <div>
@@ -424,14 +402,21 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                 <MapPin className="w-4 h-4" />
               </div>
-              <input
-                type="text"
+              <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. Dublin, Ireland"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              />
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              >
+                {COUNTIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
             </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Locked strictly to Ireland core counties.
+            </p>
           </div>
 
           {/* Phone */}

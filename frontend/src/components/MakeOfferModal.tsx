@@ -1,0 +1,247 @@
+'use client';
+
+import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { Tag, X, Loader2, AlertCircle, CheckCircle2, MessageSquare, Info } from 'lucide-react';
+import { submitOfferAction } from '@/app/actions/offers';
+import { calculateServiceFee } from '@/utils/serviceFee';
+
+interface MakeOfferModalProps {
+  listingId: string;
+  sellerId: string;
+  listingTitle: string;
+  askingPrice: number;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function MakeOfferModal({
+  listingId,
+  sellerId,
+  listingTitle,
+  askingPrice,
+  isOpen,
+  onClose,
+}: MakeOfferModalProps) {
+  const router = useRouter();
+  const [offerAmount, setOfferAmount] = useState<string>('');
+  const [note, setNote] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  if (!isOpen) return null;
+
+  const handlePreset = (percentage: number) => {
+    const discounted = askingPrice * (1 - percentage / 100);
+    setOfferAmount(discounted.toFixed(2));
+    setError(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = parseFloat(offerAmount);
+
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setError('Please enter a valid offer amount.');
+      return;
+    }
+
+    if (amountNum >= askingPrice) {
+      setError('Your offer should be lower than the asking price. Consider using Buy Now instead.');
+      return;
+    }
+
+    if (amountNum < askingPrice * 0.2) {
+      setError('Please offer a reasonable amount (at least 20% of the asking price).');
+      return;
+    }
+
+    setError(null);
+
+    startTransition(async () => {
+      const res = await submitOfferAction({
+        listingId,
+        sellerId,
+        amount: amountNum,
+        note,
+      });
+
+      if (!res.success) {
+        setError(res.error || 'Failed to submit offer. Please try again.');
+        return;
+      }
+
+      onClose();
+      // Redirect straight to conversation
+      if (res.conversationId) {
+        router.push(`/messages?conversation=${res.conversationId}`);
+      }
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2 text-gray-900 dark:text-white font-bold text-lg">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <Tag className="w-4 h-4" />
+            </div>
+            <span>Make an Offer</span>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isPending}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Listing Summary */}
+          <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+            <div className="min-w-0 pr-3">
+              <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">
+                Item
+              </div>
+              <div className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                {listingTitle}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">
+                Asking Price
+              </div>
+              <div className="font-extrabold text-sm text-gray-900 dark:text-white">
+                €{askingPrice.toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Preset Buttons */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+              Quick Suggestions
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handlePreset(5)}
+                className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
+              >
+                -5% (€{(askingPrice * 0.95).toFixed(0)})
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreset(10)}
+                className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
+              >
+                -10% (€{(askingPrice * 0.9).toFixed(0)})
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreset(15)}
+                className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
+              >
+                -15% (€{(askingPrice * 0.85).toFixed(0)})
+              </button>
+            </div>
+          </div>
+
+          {/* Offer Input Field */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+              Your Offer Amount (€)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-bold text-lg">
+                €
+              </span>
+              <input
+                type="number"
+                step="0.50"
+                min="1"
+                max={askingPrice}
+                value={offerAmount}
+                onChange={(e) => {
+                  setOfferAmount(e.target.value);
+                  setError(null);
+                }}
+                placeholder="0.00"
+                required
+                className="w-full pl-9 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-xl font-bold text-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+            {parseFloat(offerAmount) > 0 && (
+              <div className="mt-2 p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 flex items-center justify-between text-xs">
+                <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5 text-[#0073e6]" />
+                  Service fee ({calculateServiceFee(parseFloat(offerAmount)).percentageFormatted}):
+                </span>
+                <span className="font-mono font-bold text-primary dark:text-blue-400">
+                  +€{calculateServiceFee(parseFloat(offerAmount)).fee.toFixed(2)} (Total: €{calculateServiceFee(parseFloat(offerAmount)).total.toFixed(2)})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Note to Seller */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+              Add a note for the seller (Optional)
+            </label>
+            <textarea
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g. Can collect today with cash, or pay instantly via Revolut."
+              className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="flex-1 py-3 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || !offerAmount}
+              className="flex-1 py-3 px-4 rounded-xl bg-primary hover:bg-green-700 text-white text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Tag className="w-4 h-4" />
+                  Send Offer
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  );
+}

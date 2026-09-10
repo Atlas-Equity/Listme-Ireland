@@ -241,3 +241,52 @@ export const IRELAND_LOCATIONS: Record<string, string[]> = {
 };
 
 export const COUNTIES = Object.keys(IRELAND_LOCATIONS);
+
+/**
+ * Normalizes any specific Irish address or location string to its core county (e.g. "Dublin", "Cork", "Galway").
+ */
+export function getCoreLocation(locationStr?: string | null): string {
+  if (!locationStr || typeof locationStr !== 'string') return 'Dublin';
+  const trimmed = locationStr.trim();
+  if (!trimmed) return 'Dublin';
+
+  const lower = trimmed.toLowerCase();
+
+  // 1. Direct county match
+  for (const county of COUNTIES) {
+    if (new RegExp(`\\b${county}\\b`, 'i').test(lower)) {
+      return county;
+    }
+  }
+
+  // 2. Match sub-area from Ireland locations mapping
+  for (const [county, areas] of Object.entries(IRELAND_LOCATIONS)) {
+    for (const area of areas) {
+      const parts = area.split(/[\(\)\/\,]/).map((p) => p.trim().toLowerCase()).filter(Boolean);
+      for (const part of parts) {
+        if (part.length > 3 && lower.includes(part)) {
+          return county;
+        }
+      }
+    }
+  }
+
+  // 3. If standard single-location entered
+  const primary = trimmed.split(',')[0].trim();
+  return primary.charAt(0).toUpperCase() + primary.slice(1) || 'Dublin';
+}
+
+/**
+ * Deterministically generates a TradeMe-style 7-digit member number from a user UUID.
+ * Example: "6154291"
+ */
+export function getMemberNumber(userId?: string | null): number {
+  if (!userId) return 6154291;
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash << 5) - hash + userId.charCodeAt(i);
+    hash |= 0;
+  }
+  return 6000000 + Math.abs(hash % 3999999);
+}
+

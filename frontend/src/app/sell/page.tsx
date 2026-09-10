@@ -28,8 +28,6 @@ export default function SellPage() {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [condition, setCondition] = useState(CONDITIONS[0]);
   const [county, setCounty] = useState('Dublin');
-  const [area, setArea] = useState(IRELAND_LOCATIONS['Dublin'][0] || '');
-  const [customArea, setCustomArea] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('7');
   const [priceType, setPriceType] = useState('Fixed Price');
@@ -134,12 +132,10 @@ export default function SellPage() {
       setUploadingImages(false);
 
       // 2. Save Listing
-      const fullLocation = customArea.trim() ? `${county}, ${customArea.trim()}` : `${county}, ${area}`;
-
       const result = await createListing({
         title,
         description,
-        location: fullLocation,
+        location: county,
         category,
         condition,
         priceType,
@@ -257,47 +253,20 @@ export default function SellPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Item Location (Ireland)
+                  Item Location (County)
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block font-medium">County / Major Area</span>
-                    <select
-                      value={county}
-                      onChange={(e) => {
-                        const newCounty = e.target.value;
-                        setCounty(newCounty);
-                        setArea(IRELAND_LOCATIONS[newCounty]?.[0] || '');
-                      }}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                    >
-                      {COUNTIES.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 mb-1 block font-medium">Specific Town / Area</span>
-                    <select
-                      value={area}
-                      onChange={(e) => setArea(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                    >
-                      {(IRELAND_LOCATIONS[county] || []).map(a => (
-                        <option key={a} value={a}>{a}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    value={customArea}
-                    onChange={(e) => setCustomArea(e.target.value)}
-                    placeholder="Optional: Enter a specific neighborhood or landmark..."
-                    className="w-full px-4 py-2 text-xs border border-gray-200 dark:border-zinc-800 rounded-md bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+                <select
+                  value={county}
+                  onChange={(e) => setCounty(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+                >
+                  {COUNTIES.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  Listings are locked to Ireland core counties.
+                </p>
               </div>
 
               <div>
@@ -532,7 +501,7 @@ export default function SellPage() {
                   <div>
                     <span className="text-gray-500 block">Location</span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {customArea.trim() ? `${county}, ${customArea.trim()}` : `${county}, ${area}`}
+                      {county}
                     </span>
                   </div>
                   <div>

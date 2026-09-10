@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/utils/supabase/server';
+import { calculateServiceFee } from '@/utils/serviceFee';
 
 const JAVA_BACKEND_URL = process.env.JAVA_BACKEND_URL;
 
@@ -32,23 +33,41 @@ async function createDirectCheckoutSession(req: NextRequest, user: any, body: an
   const stripe = new Stripe(stripeKey);
   const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   const priceInCents = Math.round(Number(listing.price) * 100);
+  const feeCalc = calculateServiceFee(Number(listing.price));
+  const feeInCents = Math.round(feeCalc.fee * 100);
+
+  const lineItems: any[] = [
+    {
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: listing.title,
+          description: listing.description?.substring(0, 200) || undefined,
+          images: listing.images && listing.images.length > 0 ? [listing.images[0]] : undefined,
+        },
+        unit_amount: priceInCents,
+      },
+      quantity: 1,
+    },
+  ];
+
+  if (feeInCents > 0) {
+    lineItems.push({
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: `Listme Service Fee (${feeCalc.percentageFormatted})`,
+          description: 'Platform operation and Buyer Protection coverage up to €5,000.',
+        },
+        unit_amount: feeInCents,
+      },
+      quantity: 1,
+    });
+  }
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
-    line_items: [
-      {
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: listing.title,
-            description: listing.description?.substring(0, 200) || undefined,
-            images: listing.images && listing.images.length > 0 ? [listing.images[0]] : undefined,
-          },
-          unit_amount: priceInCents,
-        },
-        quantity: 1,
-      },
-    ],
+    line_items: lineItems,
     mode: 'payment',
     success_url: `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&listing_id=${listing.id}`,
     cancel_url: `${origin}/listing/${listing.id}`,
@@ -56,6 +75,8 @@ async function createDirectCheckoutSession(req: NextRequest, user: any, body: an
       listing_id: listing.id,
       buyer_id: user.id,
       seller_id: listing.seller_id,
+      service_fee: feeCalc.fee.toString(),
+      total_amount: feeCalc.total.toString(),
     },
   });
 

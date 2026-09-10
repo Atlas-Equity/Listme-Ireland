@@ -1,3 +1,11 @@
+import dns from 'node:dns';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {
+  // Ignore in environments where dns is unavailable
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   compress: true,
