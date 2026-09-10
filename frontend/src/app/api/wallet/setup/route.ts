@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe is not configured.' }, { status: 500 });
     }
 
-    let returnUrl = '/my-listme';
+    let returnUrl = '/my-listme?tab=account';
     try {
       const body = await req.json();
       if (body?.returnUrl) {
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    let customerId = profile?.stripe_customer_id;
+    let customerId = user.user_metadata?.stripe_customer_id || profile?.stripe_customer_id;
 
     // Look for existing Stripe customer by email if not saved on profile
     if (!customerId) {
@@ -58,8 +58,11 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
-    // Attempt to save customerId to Supabase (if column exists)
+    // Attempt to save customerId to Supabase user_metadata and profiles
     try {
+      await supabase.auth.updateUser({
+        data: { stripe_customer_id: customerId },
+      });
       await supabase
         .from('profiles')
         .update({ stripe_customer_id: customerId })
@@ -72,8 +75,8 @@ export async function POST(req: NextRequest) {
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
     const successRedirect = returnUrl.includes('?') 
-      ? `${origin}${returnUrl}&wallet_linked=true`
-      : `${origin}${returnUrl}?wallet_linked=true`;
+      ? `${origin}${returnUrl}&wallet_linked=true&setup_session_id={CHECKOUT_SESSION_ID}`
+      : `${origin}${returnUrl}?wallet_linked=true&setup_session_id={CHECKOUT_SESSION_ID}`;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

@@ -65,7 +65,17 @@ async function createDirectCheckoutSession(req: NextRequest, user: any, body: an
     });
   }
 
-  const session = await stripe.checkout.sessions.create({
+  let customerId: string | undefined = user.user_metadata?.stripe_customer_id;
+  if (!customerId && user.email) {
+    try {
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data && existing.data.length > 0) {
+        customerId = existing.data[0].id;
+      }
+    } catch {}
+  }
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     payment_method_types: ['card'],
     line_items: lineItems,
     mode: 'payment',
@@ -78,7 +88,22 @@ async function createDirectCheckoutSession(req: NextRequest, user: any, body: an
       service_fee: feeCalc.fee.toString(),
       total_amount: feeCalc.total.toString(),
     },
-  });
+  };
+
+  if (customerId) {
+    sessionParams.customer = customerId;
+    sessionParams.saved_payment_method_options = {
+      payment_method_save: 'enabled',
+    };
+    sessionParams.customer_update = {
+      name: 'auto',
+      address: 'auto',
+    };
+  } else if (user.email) {
+    sessionParams.customer_email = user.email;
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
 
   return { sessionId: session.id, url: session.url };
 }

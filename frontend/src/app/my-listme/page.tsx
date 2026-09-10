@@ -87,6 +87,15 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   // Extract user metadata - strictly NO bio
   const userMetadata = user.user_metadata || {};
 
+  const username = profile?.username || userMetadata.username || '';
+  const fullName = userMetadata.full_name || '';
+  const avatarUrl = profile?.avatar_url || userMetadata.avatar_url || '';
+  const location = userMetadata.location || 'Dublin';
+  const phone = userMetadata.phone || '';
+  const userBusinessPages = (userMetadata.business_pages || []) as any[];
+
+  const displayName = fullName || username || user.email?.split('@')[0] || 'User';
+
   // Stripe Top-Up Session Verification
   let topupNotification: { success: boolean; message: string } | null = null;
   const topupSessionId = typeof params?.topup_session_id === 'string' ? params.topup_session_id : undefined;
@@ -98,7 +107,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     if (stripeKey) {
       try {
         const stripe = new Stripe(stripeKey);
-        const session = await stripe.checkout.sessions.retrieve(topupSessionId);
+        const session = await stripe.checkout.sessions.retrieve(topupSessionId, {
+          expand: ['payment_intent.payment_method', 'customer'],
+        });
 
         if (session.payment_status === 'paid' && session.metadata?.type === 'account_credit_topup') {
           const processed: string[] = userMetadata.processed_topup_sessions || [];
@@ -111,19 +122,78 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             currentAccountCredit = Math.round((currentAccountCredit + paidAmount) * 100) / 100;
             const updatedProcessed = [...processed, session.id];
 
+            // Extract customer ID from session
+            const sessionCust = session.customer;
+            const resolvedCustomerId = typeof sessionCust === 'string'
+              ? sessionCust
+              : (sessionCust as Stripe.Customer)?.id || userMetadata.stripe_customer_id;
+
+            // Extract and vault card payment method from successful topup
+            let updatedLinkedCard = userMetadata.linked_card;
+            const pi = session.payment_intent as Stripe.PaymentIntent | undefined;
+            const pm = (pi?.payment_method as Stripe.PaymentMethod | undefined);
+
+            if (pm && pm.card) {
+              const cardData = pm.card;
+              const brand = (cardData.brand || 'VISA').toUpperCase();
+              const last4 = cardData.last4;
+              const expMonth = String(cardData.exp_month).padStart(2, '0');
+              const expYear = String(cardData.exp_year).slice(-2);
+
+              updatedLinkedCard = {
+                cardholderName: pm.billing_details?.name || userMetadata.linked_card?.cardholderName || fullName || 'Cardholder',
+                cardNickname: userMetadata.linked_card?.cardNickname || `${brand} •• ${last4}`,
+                cardNumberBlocks: ['••••', '••••', '••••', last4],
+                expiry: `${expMonth}/${expYear}`,
+                cvvMasked: '•••',
+                brand,
+                stripePaymentMethodId: pm.id,
+                isStripeVaulted: true,
+                updatedAt: new Date().toISOString(),
+              };
+
+              // Make this card the default payment method on the customer in Stripe
+              if (resolvedCustomerId) {
+                try {
+                  await stripe.customers.update(resolvedCustomerId, {
+                    invoice_settings: { default_payment_method: pm.id },
+                  });
+                } catch (custErr) {
+                  console.warn('Could not set customer default payment method:', custErr);
+                }
+              }
+            }
+
+            const updateData: any = {
+              account_credit: currentAccountCredit,
+              processed_topup_sessions: updatedProcessed,
+            };
+
+            if (resolvedCustomerId) {
+              updateData.stripe_customer_id = resolvedCustomerId;
+            }
+            if (updatedLinkedCard) {
+              updateData.linked_card = updatedLinkedCard;
+            }
+
             await supabase.auth.updateUser({
-              data: {
-                account_credit: currentAccountCredit,
-                processed_topup_sessions: updatedProcessed,
-              },
+              data: updateData,
             });
+
+            if (resolvedCustomerId) {
+              try {
+                await supabase.from('profiles').update({ stripe_customer_id: resolvedCustomerId }).eq('id', user.id);
+              } catch {}
+            }
 
             userMetadata.account_credit = currentAccountCredit;
             userMetadata.processed_topup_sessions = updatedProcessed;
+            if (resolvedCustomerId) userMetadata.stripe_customer_id = resolvedCustomerId;
+            if (updatedLinkedCard) userMetadata.linked_card = updatedLinkedCard;
 
             topupNotification = {
               success: true,
-              message: `Payment confirmed via Stripe! €${paidAmount.toFixed(2)} has been added to your Listme Account Credit.`,
+              message: `Payment confirmed via Stripe! €${paidAmount.toFixed(2)} has been added to your Listme Account Credit. Your card has been saved for future 1-click top-ups.`,
             };
           } else {
             topupNotification = {
@@ -150,6 +220,13 @@ export default async function MyListMePage({ searchParams }: PageProps) {
         message: 'Top-up session detected. In production, real funds will be verified and credited automatically via Stripe.',
       };
     }
+  } else if (params?.topup_success === 'true' && params?.topup_amount) {
+    const rawAmt = Array.isArray(params.topup_amount) ? params.topup_amount[0] : params.topup_amount;
+    const amt = parseFloat(rawAmt || '0');
+    topupNotification = {
+      success: true,
+      message: `Payment confirmed! €${isNaN(amt) ? '0.00' : amt.toFixed(2)} has been credited to your account from your saved card.`,
+    };
   } else if (params?.topup_status === 'cancelled') {
     topupNotification = {
       success: false,
@@ -157,14 +234,58 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     };
   }
 
-  const username = profile?.username || userMetadata.username || '';
-  const fullName = userMetadata.full_name || '';
-  const avatarUrl = profile?.avatar_url || userMetadata.avatar_url || '';
-  const location = userMetadata.location || 'Dublin';
-  const phone = userMetadata.phone || '';
-  const userBusinessPages = (userMetadata.business_pages || []) as any[];
+  // Stripe Wallet Setup Session Verification (when linking card via Stripe Vault)
+  const setupSessionId = typeof params?.setup_session_id === 'string' ? params.setup_session_id : undefined;
+  if (setupSessionId && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const session = await stripe.checkout.sessions.retrieve(setupSessionId, {
+        expand: ['setup_intent.payment_method'],
+      });
 
-  const displayName = fullName || username || user.email?.split('@')[0] || 'User';
+      if (session.status === 'complete' && session.setup_intent) {
+        const setupIntent = session.setup_intent as any;
+        const pm = setupIntent.payment_method;
+
+        if (pm?.card) {
+          const cardData = pm.card;
+          const updatedCard = {
+            cardholderName: pm.billing_details?.name || fullName || 'Cardholder',
+            cardNickname: 'Stripe Vaulted Card',
+            cardNumberBlocks: ['••••', '••••', '••••', cardData.last4],
+            expiry: `${String(cardData.exp_month).padStart(2, '0')}/${String(cardData.exp_year).slice(-2)}`,
+            cvvMasked: '•••',
+            brand: cardData.brand.toUpperCase(),
+            stripePaymentMethodId: pm.id,
+            isStripeVaulted: true,
+            updatedAt: new Date().toISOString(),
+          };
+
+          await supabase.auth.updateUser({
+            data: {
+              linked_card: updatedCard,
+              stripe_customer_id: session.customer || undefined,
+            },
+          });
+
+          userMetadata.linked_card = updatedCard;
+
+          if (session.customer) {
+            await stripe.customers.update(session.customer as string, {
+              invoice_settings: { default_payment_method: pm.id },
+            });
+          }
+
+          topupNotification = {
+            success: true,
+            message: `Your card (${cardData.brand.toUpperCase()} ending in ${cardData.last4}) has been securely linked and vaulted with Stripe!`,
+          };
+        }
+      }
+    } catch (setupErr: any) {
+      console.error('Error verifying Stripe wallet setup session:', setupErr);
+    }
+  }
   const initials = displayName
     .split(' ')
     .map((p: string) => p[0])

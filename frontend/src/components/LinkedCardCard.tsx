@@ -59,9 +59,33 @@ export default function LinkedCardCard({
   const [customTopUp, setCustomTopUp] = useState('');
   const [currentCredit, setCurrentCredit] = useState(accountBalance);
   const [topUpPin, setTopUpPin] = useState('');
+  const [topUpMethod, setTopUpMethod] = useState<'saved_card' | 'stripe_checkout'>('saved_card');
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [topUpError, setTopUpError] = useState<string | null>(null);
   const [topUpSuccess, setTopUpSuccess] = useState(false);
+  const [isVaulting, setIsVaulting] = useState(false);
+
+  const handleVaultWithStripe = async () => {
+    setIsVaulting(true);
+    setFormError(null);
+    try {
+      const res = await fetch('/api/wallet/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnUrl: '/my-listme?tab=account' }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setFormError(data?.error || 'Failed to initialize Stripe Vault setup.');
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to connect to Stripe Vault.');
+    } finally {
+      setIsVaulting(false);
+    }
+  };
 
   // Sync with localStorage on client mount if initialCard was not passed from server
   useEffect(() => {
@@ -272,19 +296,55 @@ export default function LinkedCardCard({
 
     setTopUpLoading(true);
     try {
-      // 1. Request real Stripe Checkout session for payment
+      const useSavedCard = isCardLinked && topUpMethod === 'saved_card';
+
+      // 1. Request real Stripe payment (instant 1-click or checkout session)
       const res = await fetch('/api/credit/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: finalAmt }),
+        body: JSON.stringify({
+          amount: finalAmt,
+          useSavedCard,
+          pin: topUpPin || undefined,
+        }),
       });
 
       const data = await res.json();
 
-      if (res.ok && data?.url) {
-        // Redirect directly to Stripe Checkout to take real money from card
-        window.location.href = data.url;
-        return;
+      if (res.ok) {
+        // Case A: 1-Click Instant Charge Succeeded directly on saved card!
+        if (data.instant) {
+          const newBal = typeof data.newCredit === 'number' ? data.newCredit : currentCredit + finalAmt;
+          setCurrentCredit(newBal);
+          try {
+            localStorage.setItem('listme_account_credit', newBal.toString());
+          } catch {}
+
+          setTopUpSuccess(true);
+          setTopUpPin('');
+          setCustomTopUp('');
+          setSuccessToast(data.message || `Charged €${finalAmt.toFixed(2)} directly to your saved card!`);
+          setTimeout(() => {
+            setIsTopUpOpen(false);
+            setTopUpSuccess(false);
+          }, 3000);
+          return;
+        }
+
+        // Case B: 3D Secure bank authorization redirect
+        if (data.requiresAction && data.url) {
+          window.location.href = data.url;
+          return;
+        }
+
+        // Case C: Stripe Checkout redirect (with customer and saved payment method pre-loaded)
+        if (data.url) {
+          if (data.message) {
+            setSuccessToast(data.message);
+          }
+          window.location.href = data.url;
+          return;
+        }
       }
 
       // If Stripe secret key is not configured locally, provide graceful dev fallback
@@ -313,7 +373,13 @@ export default function LinkedCardCard({
         return;
       }
 
-      setTopUpError(data.error || 'Failed to initialize Stripe checkout.');
+      if (data?.canFallbackCheckout) {
+        setTopUpError(data.error);
+        setTopUpMethod('stripe_checkout');
+        return;
+      }
+
+      setTopUpError(data.error || 'Failed to process top up.');
     } catch (err: any) {
       setTopUpError(err.message || 'An error occurred during top up.');
     } finally {
@@ -495,6 +561,17 @@ export default function LinkedCardCard({
 
             <button
               type="button"
+              onClick={handleVaultWithStripe}
+              disabled={isVaulting}
+              className="px-4 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Vault directly with Stripe for guaranteed 1-click charges"
+            >
+              {isVaulting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-primary" />}
+              <span>Sync with Stripe Vault</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleRemoveCard}
               className="px-4 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:border-red-300 dark:hover:border-red-800 text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
@@ -503,14 +580,25 @@ export default function LinkedCardCard({
             </button>
           </>
         ) : (
-          <button
-            type="button"
-            onClick={handleOpenAddModal}
-            className="px-6 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Link Your Credit Card</span>
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={handleVaultWithStripe}
+              disabled={isVaulting}
+              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {isVaulting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              <span>Link via Stripe Vault</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Enter Manually</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -670,9 +758,81 @@ export default function LinkedCardCard({
             </div>
           )}
 
+          {/* Payment Method Selector */}
+          {isCardLinked && (
+            <div className="space-y-1.5 pt-1">
+              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Payment Method
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTopUpMethod('saved_card')}
+                  className={`p-3 rounded-xl border text-left flex items-center justify-between cursor-pointer transition-all ${
+                    topUpMethod === 'saved_card'
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                      : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                      topUpMethod === 'saved_card' ? 'border-primary bg-primary' : 'border-gray-400 dark:border-zinc-600'
+                    }`}>
+                      {topUpMethod === 'saved_card' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
+                          Saved Card ({card?.brand || 'VISA'} •• {last4})
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+                          1-Click Instant
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        Charges your saved card directly. No need to re-enter card information.
+                      </p>
+                    </div>
+                  </div>
+                  <CreditCard className="w-4 h-4 text-primary shrink-0" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTopUpMethod('stripe_checkout')}
+                  className={`p-3 rounded-xl border text-left flex items-center justify-between cursor-pointer transition-all ${
+                    topUpMethod === 'stripe_checkout'
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                      : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                      topUpMethod === 'stripe_checkout' ? 'border-primary bg-primary' : 'border-gray-400 dark:border-zinc-600'
+                    }`}>
+                      {topUpMethod === 'stripe_checkout' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">
+                        Stripe Checkout (New Card / Apple Pay / Google Pay)
+                      </span>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        Redirect to Stripe to enter another card or use a digital wallet.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="p-3 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-            <span>Charged securely using real money via Stripe Checkout. Funds deposit into Listme Account Credit immediately.</span>
+            <span>
+              {isCardLinked && topUpMethod === 'saved_card'
+                ? 'Your saved card will be charged directly via Stripe 256-bit encryption. Funds appear in your credit immediately.'
+                : 'Charged securely using real money via Stripe Checkout. Funds deposit into Listme Account Credit immediately.'}
+            </span>
           </div>
 
           {topUpSuccess ? (
@@ -688,7 +848,9 @@ export default function LinkedCardCard({
             >
               {topUpLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               <span>
-                Proceed to Stripe Checkout (€{customTopUp || topUpAmount})
+                {isCardLinked && topUpMethod === 'saved_card'
+                  ? `Top Up €${(customTopUp ? parseFloat(customTopUp) || 0 : parseFloat(topUpAmount) || 0).toFixed(2)} with Saved Card (•• ${last4})`
+                  : `Proceed to Stripe Checkout (€${(customTopUp ? parseFloat(customTopUp) || 0 : parseFloat(topUpAmount) || 0).toFixed(2)})`}
               </span>
             </button>
           )}
@@ -727,6 +889,34 @@ export default function LinkedCardCard({
                 <span>{formError}</span>
               </div>
             )}
+
+            {/* Stripe Vault Quick Link Option */}
+            <div className="p-4 mb-5 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <span>Stripe Official PCI Vault (Recommended)</span>
+                </span>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                  Securely connects your card to Stripe for guaranteed 1-click instant top-ups.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleVaultWithStripe}
+                disabled={isVaulting}
+                className="px-3 py-1.5 bg-primary hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+              >
+                {isVaulting && <Loader2 className="w-3 h-3 animate-spin" />}
+                <span>Vault via Stripe</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Enter Details Manually</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
+            </div>
 
             {/* Form */}
             <form onSubmit={handleSaveCard} className="space-y-4">

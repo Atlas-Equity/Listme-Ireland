@@ -5,6 +5,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { validatePhoneNumber } from '@/utils/phoneValidation';
 import { calculateServiceFee } from '@/utils/serviceFee';
+import Stripe from 'stripe';
 
 export async function updateAccountType(newType: 'personal' | 'business') {
   const supabase = await createClient();
@@ -327,8 +328,71 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
     detectedBrand = 'DISCOVER';
   }
 
+  // Attempt Stripe Customer & PaymentMethod integration
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  let stripeCustomerId = user.user_metadata?.stripe_customer_id;
+  let stripePaymentMethodId = user.user_metadata?.linked_card?.stripePaymentMethodId;
+
+  if (stripeKey) {
+    try {
+      const stripe = new Stripe(stripeKey);
+
+      if (!stripeCustomerId && user.email) {
+        const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
+        if (existingCustomers.data && existingCustomers.data.length > 0) {
+          stripeCustomerId = existingCustomers.data[0].id;
+        } else {
+          const newCust = await stripe.customers.create({
+            email: user.email,
+            name: card.cardholderName.trim(),
+            metadata: { supabase_uid: user.id },
+          });
+          stripeCustomerId = newCust.id;
+        }
+      }
+
+      // Try creating PaymentMethod if possible
+      if (stripeCustomerId) {
+        try {
+          const [mmStr, yyStr] = cleanExpiry.split('/');
+          const expMonth = parseInt(mmStr, 10);
+          const expYear = parseInt(yyStr.length === 2 ? `20${yyStr}` : yyStr, 10);
+          const digitsOnly = cleanBlocks.join('');
+
+          const pm = await stripe.paymentMethods.create({
+            type: 'card',
+            card: {
+              number: digitsOnly,
+              exp_month: expMonth,
+              exp_year: expYear,
+              cvc: card.cvv ? card.cvv.trim() : undefined,
+            },
+            billing_details: {
+              name: card.cardholderName.trim(),
+              email: user.email || undefined,
+            },
+          });
+
+          if (pm?.id) {
+            await stripe.paymentMethods.attach(pm.id, { customer: stripeCustomerId });
+            await stripe.customers.update(stripeCustomerId, {
+              invoice_settings: { default_payment_method: pm.id },
+            });
+            stripePaymentMethodId = pm.id;
+          }
+        } catch (pmErr: any) {
+          // Fall back gracefully if direct server raw-card creation is restricted
+          console.warn('Direct server card tokenization skipped:', pmErr.message);
+        }
+      }
+    } catch (stripeErr: any) {
+      console.warn('Stripe integration warning during card save:', stripeErr.message);
+    }
+  }
+
   const { error: authError } = await supabase.auth.updateUser({
     data: {
+      stripe_customer_id: stripeCustomerId || undefined,
       linked_card: {
         cardholderName: card.cardholderName.trim(),
         cardNickname: card.cardNickname?.trim() || 'Personal Card',
@@ -336,6 +400,7 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
         expiry: cleanExpiry,
         cvvMasked: '•••',
         brand: detectedBrand,
+        stripePaymentMethodId: stripePaymentMethodId || undefined,
         pin: card.pin ? card.pin.replace(/\D/g, '').slice(0, 4) : undefined,
         updatedAt: new Date().toISOString(),
       }
@@ -517,6 +582,53 @@ export async function payForListingAction(
       }
       if (pin.trim() !== linkedCard.pin.trim()) {
         return { error: 'Incorrect 4-digit PIN. Please re-enter your PIN.' };
+      }
+    }
+
+    // Real card payment via Stripe in production
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    const stripeCustomerId = user.user_metadata?.stripe_customer_id;
+    let pmId = linkedCard.stripePaymentMethodId;
+
+    if (stripeKey && stripeCustomerId) {
+      try {
+        const stripe = new Stripe(stripeKey);
+        if (!pmId) {
+          const cust = await stripe.customers.retrieve(stripeCustomerId) as Stripe.Customer;
+          const defaultPm = cust.invoice_settings?.default_payment_method;
+          if (defaultPm) {
+            pmId = typeof defaultPm === 'string' ? defaultPm : defaultPm.id;
+          } else {
+            const pms = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card', limit: 1 });
+            if (pms.data && pms.data.length > 0) {
+              pmId = pms.data[0].id;
+            }
+          }
+        }
+
+        if (pmId) {
+          const pi = await stripe.paymentIntents.create({
+            amount: Math.round(totalAmount * 100),
+            currency: 'eur',
+            customer: stripeCustomerId,
+            payment_method: pmId,
+            off_session: true,
+            confirm: true,
+            description: `Listme Purchase: ${listing.title}`,
+            metadata: {
+              listing_id: listing.id,
+              buyer_id: user.id,
+              seller_id: listing.seller_id,
+              total_amount: totalAmount.toString(),
+            },
+          });
+
+          if (pi.status !== 'succeeded') {
+            return { error: 'Card authorization was not completed. Please try another card or payment method.' };
+          }
+        }
+      } catch (stripePayErr: any) {
+        return { error: `Card payment failed: ${stripePayErr.message}` };
       }
     }
   } else {
