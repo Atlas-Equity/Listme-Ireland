@@ -2,6 +2,8 @@ import React from 'react';
 import PageLayout from '@/components/PageLayout';
 import { mockServices } from '@/lib/mockData';
 
+export const dynamic = 'force-static';
+
 const servicesFilters = [
   {
     title: 'Category',

@@ -1,6 +1,8 @@
 import React from 'react';
 import CategoryGrid from '@/components/CategoryGrid';
 
+export const dynamic = 'force-static';
+
 export default function BrowsePage() {
   return (
     <div className="w-full">

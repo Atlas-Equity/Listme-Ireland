@@ -9,6 +9,20 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   compress: true,
+  async redirects() {
+    return [
+      {
+        source: '/motors',
+        destination: '/category/marketplace',
+        permanent: true,
+      },
+      {
+        source: '/property',
+        destination: '/category/marketplace',
+        permanent: true,
+      },
+    ];
+  },
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
   },

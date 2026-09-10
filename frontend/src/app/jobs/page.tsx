@@ -2,6 +2,8 @@ import React from 'react';
 import PageLayout from '@/components/PageLayout';
 import { mockJobs } from '@/lib/mockData';
 
+export const dynamic = 'force-static';
+
 const jobsFilters = [
   {
     title: 'Industry',

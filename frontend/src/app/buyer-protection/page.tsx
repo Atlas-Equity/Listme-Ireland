@@ -13,6 +13,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+export const dynamic = 'force-static';
+
 export const metadata = {
   title: 'Buyer Protection Policy | Listme.ie',
   description: 'Learn about Listme.ie Buyer Protection: coverage up to €5,000, eligibility criteria, scammer penalties, and dispute resolution.',

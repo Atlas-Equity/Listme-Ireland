@@ -24,10 +24,10 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SUPABASE_URL}/auth/v1
+          issuer-uri: ${SUPABASE_URL:https://iaimexnxxwrchwpmbvlt.supabase.co}/auth/v1
 
 stripe:
-  api-key: ${STRIPE_SECRET_KEY}
+  api-key: ${STRIPE_SECRET_KEY:sk_test_placeholder}
 
 server:
   port: ${PORT:8080}

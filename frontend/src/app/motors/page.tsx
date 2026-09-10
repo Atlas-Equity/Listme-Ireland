@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 
 export default function MotorsPage() {
-  redirect('/category/marketplace');
+  permanentRedirect('/category/marketplace');
 }
 

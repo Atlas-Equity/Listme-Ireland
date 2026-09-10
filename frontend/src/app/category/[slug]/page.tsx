@@ -1,6 +1,6 @@
 import React from 'react';
-import { createClient } from '@/utils/supabase/server';
 import { ListingCard } from '@/components/ListingCard';
+import { fetchCategoryListings } from '@/utils/backendApi';
 import { PackageX } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,22 +14,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   // Format slug back to category name (e.g. "marketplace" -> "Marketplace")
   const categoryName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
 
-  const supabase = await createClient();
-
-  // Parallelize user check and category listings fetch with lean fields
-  const [userResult, listingsResult] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
-      .ilike('category', categoryName)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-  ]);
-
-  const user = userResult.data?.user;
-  const listings = listingsResult.data || [];
-  const isBusiness = user?.user_metadata?.account_type === 'business';
+  // Fetch category listings via fast cached backend API
+  const listings = await fetchCategoryListings(categoryName);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black py-6 sm:py-8">
@@ -70,14 +56,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">
               There are currently no active listings in the {categoryName} category. Check back later or be the first to list an item!
             </p>
-            {isBusiness && (
-              <Link 
-                href="/sell" 
-                className="px-6 py-2.5 bg-primary hover:bg-green-700 text-white font-medium rounded-lg transition-colors text-sm shadow-sm"
-              >
-                Start a Listing
-              </Link>
-            )}
+            <Link 
+              href="/sell" 
+              className="px-6 py-2.5 bg-primary hover:bg-green-700 text-white font-medium rounded-lg transition-colors text-sm shadow-sm"
+            >
+              Start a Listing
+            </Link>
           </div>
         )}
 

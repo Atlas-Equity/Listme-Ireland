@@ -3,33 +3,13 @@ import PromoBanners from "@/components/PromoBanners";
 import TrendingCategories from "@/components/TrendingCategories";
 import SectionHeader from "@/components/SectionHeader";
 import { ListingCard } from "@/components/ListingCard";
-import { createClient } from "@/utils/supabase/server";
+import { fetchHomeListings } from "@/utils/backendApi";
 
 // ISR: revalidate homepage in the background every 30 seconds for blazing fast instant loads
 export const revalidate = 30;
 
 export default async function Home() {
-  const supabase = await createClient();
-
-  // Fetch only necessary card columns concurrently
-  const [latestResult, auctionResult] = await Promise.all([
-    supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(4),
-    supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
-      .eq('status', 'active')
-      .ilike('price_type', 'Auction')
-      .order('created_at', { ascending: false })
-      .limit(4)
-  ]);
-
-  const latestListings = latestResult.data || [];
-  const auctionListings = auctionResult.data || [];
+  const { latest: latestListings, auctions: auctionListings } = await fetchHomeListings();
 
   return (
     <div className="w-full bg-white dark:bg-black min-h-screen">

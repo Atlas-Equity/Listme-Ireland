@@ -13,6 +13,8 @@ import {
   Scale
 } from 'lucide-react';
 
+export const dynamic = 'force-static';
+
 export const metadata = {
   title: 'Marketplace Fees | Listme.ie',
   description: 'Official Listme.ie Marketplace Fees schedule: casual selling fees, transaction fees, optional extras, and in-trade success fees.',

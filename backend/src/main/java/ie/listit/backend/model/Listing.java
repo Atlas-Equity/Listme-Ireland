@@ -43,6 +43,15 @@ public class Listing {
     @Column(nullable = false)
     private String status;
 
+    @Column
+    private String location;
+
+    @Column(name = "expires_at")
+    private OffsetDateTime expiresAt;
+
+    @Column(name = "ends_at")
+    private OffsetDateTime endsAt;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
