@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -118,7 +118,7 @@ interface Message {
   created_at: string;
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialConvId = searchParams.get('conversationId');
@@ -987,5 +987,17 @@ export default function MessagesPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
   );
 }

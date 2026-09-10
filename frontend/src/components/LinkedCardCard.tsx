@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, 
   Lock, 
@@ -14,12 +14,17 @@ import {
   Loader2,
   Edit3
 } from 'lucide-react';
+import { loadStripe, Stripe, StripeCardElement } from '@stripe/stripe-js';
 import { 
   saveLinkedCardAction, 
   removeLinkedCardAction, 
   topUpAccountCreditAction,
   LinkedCardData 
 } from '@/app/my-listme/actions';
+
+const stripePromise = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 interface LinkedCardProps {
   initialCard?: LinkedCardData | null;
@@ -41,17 +46,19 @@ export default function LinkedCardCard({
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [cardNickname, setCardNickname] = useState(initialCard?.cardNickname || 'Other Stuff');
 
-  // Add / Edit Card Modal
+  // Add / Edit Card Modal & Stripe Elements
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formHolderName, setFormHolderName] = useState(defaultCardholderName);
   const [formNickname, setFormNickname] = useState('Personal Visa');
-  const [formRawNumber, setFormRawNumber] = useState('');
-  const [formExpiry, setFormExpiry] = useState(initialCard?.expiry || '');
-  const [formCvv, setFormCvv] = useState('');
   const [formPin, setFormPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  const [stripeObj, setStripeObj] = useState<Stripe | null>(null);
+  const [cardElement, setCardElement] = useState<StripeCardElement | null>(null);
+  const cardElementRef = useRef<HTMLDivElement | null>(null);
+  const [isStripeReady, setIsStripeReady] = useState(false);
 
   // Top Up state
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
@@ -108,90 +115,81 @@ export default function LinkedCardCard({
     }
   }, [initialCard]);
 
-  // Format card number with spaces as user types: "1234 5678 9012 3456"
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 16);
-    const groups = rawDigits.match(/.{1,4}/g) || [];
-    setFormRawNumber(groups.join(' '));
-  };
-
-  // Format expiration date with slash: "08/28"
-  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawDigits = e.target.value.replace(/\D/g, '').slice(0, 4);
-    if (rawDigits.length >= 3) {
-      setFormExpiry(`${rawDigits.slice(0, 2)}/${rawDigits.slice(2, 4)}`);
-    } else {
-      setFormExpiry(rawDigits);
-    }
-  };
-
-  // Detect card brand
-  const getBrandFromNumber = (rawNum: string) => {
-    const clean = rawNum.replace(/\D/g, '');
-    const first = clean[0];
-    if (first === '4') return 'VISA';
-    if (first === '5' || first === '2') return 'MASTERCARD';
-    if (first === '3') return 'AMEX';
-    if (first === '6') return 'DISCOVER';
-    return 'VISA';
-  };
 
   // Open modal
   const handleOpenAddModal = () => {
     setFormHolderName(card ? card.cardholderName : defaultCardholderName);
     setFormNickname(card ? card.cardNickname : 'Personal Visa');
-    setFormRawNumber(card ? card.cardNumberBlocks.join(' ') : '');
-    setFormExpiry(card?.expiry || '');
-    setFormCvv('');
     setFormPin(card?.pin || '');
     setFormError(null);
+    setIsStripeReady(false);
     setIsModalOpen(true);
   };
 
-  // Save card (server action + localStorage fallback)
+  // Mount official Stripe Card Element when modal opens (PCI SAQ-A compliant)
+  useEffect(() => {
+    if (!isModalOpen) {
+      if (cardElement) {
+        try {
+          cardElement.destroy();
+        } catch {}
+        setCardElement(null);
+      }
+      setIsStripeReady(false);
+      return;
+    }
+
+    if (!stripePromise) return;
+
+    let isMounted = true;
+    stripePromise.then((s) => {
+      if (!isMounted || !s) return;
+      setStripeObj(s);
+
+      // Brief delay to allow modal DOM to be fully mounted
+      setTimeout(() => {
+        if (!isMounted || !cardElementRef.current) return;
+        try {
+          cardElementRef.current.innerHTML = '';
+          const elements = s.elements();
+          const el = elements.create('card', {
+            style: {
+              base: {
+                color: '#18181b',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontSize: '15px',
+                '::placeholder': {
+                  color: '#a1a1aa',
+                },
+              },
+              invalid: {
+                color: '#ef4444',
+                iconColor: '#ef4444',
+              },
+            },
+            hidePostalCode: true,
+          });
+          el.mount(cardElementRef.current);
+          setCardElement(el);
+          setIsStripeReady(true);
+        } catch (mountErr) {
+          console.warn('Card element mount note:', mountErr);
+        }
+      }, 120);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isModalOpen]);
+
+  // Save card via client-side Stripe tokenization (Zero raw card numbers touch the server)
   const handleSaveCard = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
-    const digitsOnly = formRawNumber.replace(/\D/g, '');
-    if (digitsOnly.length !== 16) {
-      setFormError('Please enter a valid 16-digit credit card number.');
-      return;
-    }
-
-    const blocks = [
-      digitsOnly.slice(0, 4),
-      digitsOnly.slice(4, 8),
-      digitsOnly.slice(8, 12),
-      digitsOnly.slice(12, 16),
-    ];
-
     if (!formHolderName.trim()) {
       setFormError('Please enter the cardholder name.');
-      return;
-    }
-
-    // Validate Expiry Date (MM/YY)
-    const cleanExpiry = formExpiry.trim();
-    if (!cleanExpiry) {
-      setFormError('Please enter the card expiration date (MM/YY).');
-      return;
-    }
-    if (!/^\d{2}\/\d{2}$/.test(cleanExpiry)) {
-      setFormError('Expiration date must be in MM/YY format (e.g. 08/28).');
-      return;
-    }
-    const [monthStr] = cleanExpiry.split('/');
-    const month = parseInt(monthStr, 10);
-    if (month < 1 || month > 12) {
-      setFormError('Invalid expiration month. Month must be between 01 and 12.');
-      return;
-    }
-
-    // Validate CVV
-    const cleanCvv = formCvv.replace(/\D/g, '');
-    if (!cleanCvv || cleanCvv.length < 3) {
-      setFormError('Please enter a valid 3 or 4-digit CVV / CVC security code.');
       return;
     }
 
@@ -200,45 +198,70 @@ export default function LinkedCardCard({
       return;
     }
 
-    const detectedBrand = getBrandFromNumber(formRawNumber);
-
-    const newCardData: LinkedCardData = {
-      cardholderName: formHolderName.trim(),
-      cardNickname: formNickname.trim() || 'Personal Card',
-      cardNumberBlocks: blocks,
-      expiry: cleanExpiry,
-      cvv: cleanCvv,
-      cvvMasked: '•••',
-      brand: detectedBrand,
-      pin: formPin || undefined,
-    };
-
     setIsSubmitting(true);
-    try {
-      const res = await saveLinkedCardAction(newCardData);
-      if (res.error) {
-        setFormError(res.error);
-        setIsSubmitting(false);
-        return;
-      }
 
-      // Save locally
+    // 1. Client-Side Tokenization via Stripe.js Elements
+    if (stripeObj && cardElement) {
       try {
-        localStorage.setItem('listme_linked_card', JSON.stringify(newCardData));
-      } catch {
-        // ignore storage error
-      }
+        const { paymentMethod, error: stripeErr } = await stripeObj.createPaymentMethod({
+          type: 'card',
+          card: cardElement,
+          billing_details: {
+            name: formHolderName.trim(),
+          },
+        });
 
-      setCard(newCardData);
-      setCardNickname(newCardData.cardNickname);
-      setIsModalOpen(false);
-      setSuccessToast('Actual credit card linked and verified successfully!');
-      setTimeout(() => setSuccessToast(null), 3000);
-    } catch {
-      setFormError('Failed to save card. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+        if (stripeErr || !paymentMethod) {
+          setFormError(stripeErr?.message || 'Failed to verify card with Stripe.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const cardData = paymentMethod.card;
+        const brand = (cardData?.brand || 'VISA').toUpperCase();
+        const last4 = cardData?.last4 || '1234';
+        const expMonth = String(cardData?.exp_month || 12).padStart(2, '0');
+        const expYear = String(cardData?.exp_year || 28).slice(-2);
+
+        const newCardData: LinkedCardData = {
+          cardholderName: formHolderName.trim(),
+          cardNickname: formNickname.trim() || `${brand} Card`,
+          cardNumberBlocks: ['••••', '••••', '••••', last4],
+          expiry: `${expMonth}/${expYear}`,
+          cvvMasked: '•••',
+          brand,
+          stripePaymentMethodId: paymentMethod.id,
+          isStripeVaulted: true,
+          pin: formPin || undefined,
+        };
+
+        const res = await saveLinkedCardAction(newCardData);
+        if (res.error) {
+          setFormError(res.error);
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Save masked card locally for offline / fast display
+        try {
+          localStorage.setItem('listme_linked_card', JSON.stringify(newCardData));
+        } catch {}
+
+        setCard(newCardData);
+        setCardNickname(newCardData.cardNickname);
+        setIsModalOpen(false);
+        setSuccessToast(`Card (${brand} ending in ${last4}) securely linked and vaulted with Stripe!`);
+        setTimeout(() => setSuccessToast(null), 3000);
+      } catch (err: any) {
+        setFormError(err.message || 'Failed to link card with Stripe.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
     }
+
+    setIsSubmitting(false);
+    setFormError('Stripe security module could not be initialized. Please use the Stripe Vault button above.');
   };
 
   // Remove card
@@ -914,37 +937,13 @@ export default function LinkedCardCard({
 
             <div className="flex items-center gap-2 mb-4">
               <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Enter Details Manually</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Enter Card Details Below</span>
               <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSaveCard} className="space-y-4">
               
-              {/* Card Number */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  16-Digit Card Number
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formRawNumber}
-                    onChange={handleCardNumberChange}
-                    placeholder="1234 1234 1234 1234"
-                    maxLength={19}
-                    required
-                    className="w-full font-mono px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-base tracking-wider focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black italic text-gray-400 select-none">
-                    {getBrandFromNumber(formRawNumber)}
-                  </div>
-                </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                  Format: 4 blocks of 4 digits (e.g. 1234 1234 1234 1234)
-                </p>
-              </div>
-
               {/* Cardholder Name */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
@@ -960,43 +959,24 @@ export default function LinkedCardCard({
                 />
               </div>
 
-              {/* Expiration Date & CVV (2 Columns) */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                    Expiration Date
-                  </label>
-                  <input
-                    type="text"
-                    value={formExpiry}
-                    onChange={handleExpiryChange}
-                    placeholder="MM/YY"
-                    maxLength={5}
-                    required
-                    className="w-full font-mono px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                    e.g. 08/28
-                  </p>
+              {/* Official Stripe Card Element (PCI SAQ-A Compliant) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                  Card Details (Card Number, Expiry &amp; CVC)
+                </label>
+                <div className="w-full px-4 py-3.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
+                  <div ref={cardElementRef} id="stripe-card-element" />
+                  {!isStripeReady && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-0.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                      <span>Loading secure Stripe card encryption...</span>
+                    </div>
+                  )}
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                    Security Code (CVV)
-                  </label>
-                  <input
-                    type="password"
-                    value={formCvv}
-                    onChange={(e) => setFormCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="123"
-                    maxLength={4}
-                    required={!isCardLinked}
-                    className="w-full font-mono px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                    3 or 4 digits
-                  </p>
-                </div>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-primary shrink-0" />
+                  <span>Encrypted directly by Stripe. Card numbers never touch Listme servers.</span>
+                </p>
               </div>
 
               {/* Card Nickname */}
@@ -1035,7 +1015,7 @@ export default function LinkedCardCard({
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <span>
-                  <strong>Encrypted Security Guarantee:</strong> Actual card credentials including expiration and CVV are validated under 256-bit bank-grade encryption and protected by Listme Buyer Protection.
+                  <strong>Stripe Verified Vault:</strong> Card numbers are tokenized by Stripe's PCI-DSS Level 1 compliant infrastructure. Protected by Listme Buyer Protection up to €5,000.
                 </span>
               </div>
 

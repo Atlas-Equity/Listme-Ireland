@@ -271,6 +271,8 @@ export interface LinkedCardData {
   cvv?: string;
   cvvMasked?: string;
   brand?: string;
+  stripePaymentMethodId?: string;
+  isStripeVaulted?: boolean;
   pin?: string;
   updatedAt?: string;
 }
@@ -288,8 +290,12 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
   }
 
   const cleanBlocks = card.cardNumberBlocks.map(b => b.trim());
-  if (cleanBlocks.some(b => b.length !== 4 || !/^\d{4}$/.test(b))) {
-    return { error: 'Each card block must contain exactly 4 numeric digits.' };
+  const isMaskedOrVaulted = !!card.stripePaymentMethodId || !!card.isStripeVaulted || cleanBlocks[0].includes('•');
+  
+  if (!isMaskedOrVaulted) {
+    if (cleanBlocks.some(b => b.length !== 4 || !/^\d{4}$/.test(b))) {
+      return { error: 'Each card block must contain exactly 4 numeric digits.' };
+    }
   }
 
   if (!card.cardholderName || !card.cardholderName.trim()) {
@@ -309,17 +315,9 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
     }
   }
 
-  // Validate CVV
-  if (card.cvv && card.cvv.trim()) {
-    const cleanCvv = card.cvv.trim();
-    if (!/^\d{3,4}$/.test(cleanCvv)) {
-      return { error: 'Security code (CVV) must be 3 or 4 digits.' };
-    }
-  }
-
   // Detect card brand automatically
   const firstDigit = cleanBlocks[0]?.[0];
-  let detectedBrand = 'VISA';
+  let detectedBrand = card.brand || 'VISA';
   if (firstDigit === '5' || firstDigit === '2') {
     detectedBrand = 'MASTERCARD';
   } else if (firstDigit === '3') {
@@ -328,10 +326,10 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
     detectedBrand = 'DISCOVER';
   }
 
-  // Attempt Stripe Customer & PaymentMethod integration
+  // Look up / create customer and attach client-tokenized Stripe PaymentMethod
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   let stripeCustomerId = user.user_metadata?.stripe_customer_id;
-  let stripePaymentMethodId = user.user_metadata?.linked_card?.stripePaymentMethodId;
+  let stripePaymentMethodId = card.stripePaymentMethodId || user.user_metadata?.linked_card?.stripePaymentMethodId;
 
   if (stripeKey) {
     try {
@@ -351,44 +349,26 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
         }
       }
 
-      // Try creating PaymentMethod if possible
-      if (stripeCustomerId) {
+      // Attach client-side vaulted PaymentMethod to customer
+      // NEVER send raw card numbers from server (PCI SAQ-A compliant)
+      if (stripeCustomerId && stripePaymentMethodId) {
         try {
-          const [mmStr, yyStr] = cleanExpiry.split('/');
-          const expMonth = parseInt(mmStr, 10);
-          const expYear = parseInt(yyStr.length === 2 ? `20${yyStr}` : yyStr, 10);
-          const digitsOnly = cleanBlocks.join('');
-
-          const pm = await stripe.paymentMethods.create({
-            type: 'card',
-            card: {
-              number: digitsOnly,
-              exp_month: expMonth,
-              exp_year: expYear,
-              cvc: card.cvv ? card.cvv.trim() : undefined,
-            },
-            billing_details: {
-              name: card.cardholderName.trim(),
-              email: user.email || undefined,
-            },
+          await stripe.paymentMethods.attach(stripePaymentMethodId, { customer: stripeCustomerId });
+          await stripe.customers.update(stripeCustomerId, {
+            invoice_settings: { default_payment_method: stripePaymentMethodId },
           });
-
-          if (pm?.id) {
-            await stripe.paymentMethods.attach(pm.id, { customer: stripeCustomerId });
-            await stripe.customers.update(stripeCustomerId, {
-              invoice_settings: { default_payment_method: pm.id },
-            });
-            stripePaymentMethodId = pm.id;
-          }
         } catch (pmErr: any) {
-          // Fall back gracefully if direct server raw-card creation is restricted
-          console.warn('Direct server card tokenization skipped:', pmErr.message);
+          // Payment method might already be attached to this customer
+          console.log('Payment method attachment note:', pmErr.message);
         }
       }
     } catch (stripeErr: any) {
-      console.warn('Stripe integration warning during card save:', stripeErr.message);
+      console.warn('Stripe customer check warning:', stripeErr.message);
     }
   }
+
+  const last4 = cleanBlocks[3]?.slice(-4) || '1234';
+  const maskedBlocks = ['••••', '••••', '••••', last4];
 
   const { error: authError } = await supabase.auth.updateUser({
     data: {
@@ -396,11 +376,12 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
       linked_card: {
         cardholderName: card.cardholderName.trim(),
         cardNickname: card.cardNickname?.trim() || 'Personal Card',
-        cardNumberBlocks: cleanBlocks,
+        cardNumberBlocks: maskedBlocks,
         expiry: cleanExpiry,
         cvvMasked: '•••',
         brand: detectedBrand,
         stripePaymentMethodId: stripePaymentMethodId || undefined,
+        isStripeVaulted: !!stripePaymentMethodId,
         pin: card.pin ? card.pin.replace(/\D/g, '').slice(0, 4) : undefined,
         updatedAt: new Date().toISOString(),
       }
