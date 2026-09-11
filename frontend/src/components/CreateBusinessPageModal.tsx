@@ -2,8 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Building2, 
+  Store,
+  Briefcase,
   Globe, 
   Phone, 
   Mail, 
@@ -13,7 +16,11 @@ import {
   X, 
   Loader2, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Clock,
+  Megaphone,
+  Camera,
+  Edit2
 } from 'lucide-react';
 import { COUNTIES } from '@/utils/irelandLocations';
 import { createOrUpdateBusinessPage, BusinessPageData } from '@/app/actions/businessPages';
@@ -30,27 +37,73 @@ const BIZ_CATEGORIES = [
   'Retail & Local Storefront',
 ];
 
-export default function CreateBusinessPageModal() {
+const OPENING_HOURS_PRESETS = [
+  'Mon - Fri: 9:00 AM - 6:00 PM',
+  'Mon - Sat: 9:00 AM - 6:00 PM',
+  'Mon - Sun: 8:00 AM - 8:00 PM',
+  'Open 24 Hours / 7 Days',
+  'By Appointment Only',
+];
+
+interface CreateBusinessPageModalProps {
+  initialData?: BusinessPageData;
+  triggerButton?: React.ReactNode;
+  onSuccess?: () => void;
+}
+
+export default function CreateBusinessPageModal({
+  initialData,
+  triggerButton,
+  onSuccess,
+}: CreateBusinessPageModalProps) {
   const router = useRouter();
+  const isEditing = !!initialData;
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [tagline, setTagline] = useState('');
-  const [category, setCategory] = useState(BIZ_CATEGORIES[0]);
-  const [county, setCounty] = useState('Dublin');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [website, setWebsite] = useState('');
-  const [facebook, setFacebook] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [linkedin, setLinkedin] = useState('');
+  const [businessType, setBusinessType] = useState<'service' | 'marketplace'>(
+    initialData?.business_type || 'service'
+  );
+  const [name, setName] = useState(initialData?.name || '');
+  const [slug, setSlug] = useState(initialData?.slug || '');
+  const [tagline, setTagline] = useState(initialData?.tagline || '');
+  const [category, setCategory] = useState(initialData?.category || BIZ_CATEGORIES[0]);
+  const [county, setCounty] = useState(initialData?.county || 'Dublin');
+  
+  // Irish phone locking: ensure '+353 ' prefix
+  const initialPhone = initialData?.phone 
+    ? (initialData.phone.startsWith('+353 ') ? initialData.phone : `+353 ${initialData.phone.replace(/^\+?353\s?|^0/, '')}`)
+    : '+353 ';
+  const [phone, setPhone] = useState(initialPhone);
+
+  const [email, setEmail] = useState(initialData?.email || '');
+  const [openingHours, setOpeningHours] = useState(
+    initialData?.opening_hours || OPENING_HOURS_PRESETS[0]
+  );
+  const [customHours, setCustomHours] = useState('');
+  const [isCustomHours, setIsCustomHours] = useState(
+    initialData?.opening_hours ? !OPENING_HOURS_PRESETS.includes(initialData.opening_hours) : false
+  );
+  const [announcement, setAnnouncement] = useState(initialData?.announcement || '');
+  const [avatarUrl, setAvatarUrl] = useState(initialData?.avatarUrl || '');
+
+  const [website, setWebsite] = useState(initialData?.website || '');
+  const [facebook, setFacebook] = useState(initialData?.facebook || '');
+  const [instagram, setInstagram] = useState(initialData?.instagram || '');
+  const [linkedin, setLinkedin] = useState(initialData?.linkedin || '');
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (!val.startsWith('+353 ')) {
+      val = '+353 ' + val.replace(/^\+?353\s?/, '');
+    }
+    setPhone(val);
+  };
 
   const handleNameChange = (val: string) => {
     setName(val);
-    if (!slug || slug === name.toLowerCase().replace(/[^a-z0-9]/g, '-')) {
+    if (!isEditing && (!slug || slug === name.toLowerCase().replace(/[^a-z0-9]/g, '-'))) {
       setSlug(val.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'));
     }
   };
@@ -64,17 +117,25 @@ export default function CreateBusinessPageModal() {
       return;
     }
 
-    if (!phone.trim()) {
-      setErrorMessage('A contact phone number is required for business listings.');
+    const rawNumber = phone.replace('+353 ', '').trim();
+    if (!rawNumber) {
+      setErrorMessage('A contact phone number is required (Irish prefix +353).');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const resolvedHours = isCustomHours && customHours.trim() ? customHours.trim() : openingHours;
+
       const payload: BusinessPageData = {
+        id: initialData?.id,
         name,
         slug,
         tagline,
+        business_type: businessType,
+        opening_hours: resolvedHours,
+        announcement: announcement.trim().slice(0, 250),
+        avatarUrl: avatarUrl.trim(),
         category,
         county,
         phone,
@@ -90,10 +151,14 @@ export default function CreateBusinessPageModal() {
         setErrorMessage(res.error);
       } else {
         setIsOpen(false);
+        if (onSuccess) {
+          onSuccess();
+        }
         router.push(`/page/${res.slug}`);
+        router.refresh();
       }
     } catch {
-      setErrorMessage('Failed to create business page.');
+      setErrorMessage('Failed to save business page.');
     } finally {
       setIsSubmitting(false);
     }
@@ -101,31 +166,44 @@ export default function CreateBusinessPageModal() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
-      >
-        <Plus className="w-4 h-4" />
-        <span>Create Business Page</span>
-      </button>
+      {triggerButton ? (
+        <div onClick={() => setIsOpen(true)}>{triggerButton}</div>
+      ) : isEditing ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 font-bold text-xs transition-colors cursor-pointer shadow-xs"
+        >
+          <Edit2 className="w-3.5 h-3.5 text-primary" />
+          <span>Edit Page</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create Business Page</span>
+        </button>
+      )}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+            <div className="p-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-gray-900 dark:text-white">
-                    Create a Business Page
+                    {isEditing ? 'Edit Business Page' : 'Create a Business Page'}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    A dedicated storefront and service hub with social media links and listings.
+                    Declare your business model, opening hours, Irish phone number, and announcement.
                   </p>
                 </div>
               </div>
@@ -149,25 +227,113 @@ export default function CreateBusinessPageModal() {
                 </div>
               )}
 
+              {/* 1. REQUIRED DECLARATION: Service Business vs Marketplace Store */}
+              <div>
+                <label className="block text-xs font-bold text-gray-900 dark:text-white mb-2">
+                  Business Declaration *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusinessType('service');
+                      setCategory('Services & Trades');
+                    }}
+                    className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                      businessType === 'service'
+                        ? 'border-primary bg-primary/10 dark:bg-primary/20 ring-1 ring-primary'
+                        : 'border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <Briefcase className={`w-4 h-4 ${businessType === 'service' ? 'text-primary' : 'text-gray-500'}`} />
+                      <span className="font-extrabold text-sm text-gray-900 dark:text-white">
+                        Service Business
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                      Trades, domestic work, consulting, IT, repairs, or professional contract services.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusinessType('marketplace');
+                      setCategory('Retail & Local Storefront');
+                    }}
+                    className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                      businessType === 'marketplace'
+                        ? 'border-primary bg-primary/10 dark:bg-primary/20 ring-1 ring-primary'
+                        : 'border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <Store className={`w-4 h-4 ${businessType === 'marketplace' ? 'text-primary' : 'text-gray-500'}`} />
+                      <span className="font-extrabold text-sm text-gray-900 dark:text-white">
+                        Marketplace Store
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                      Commercial seller or retail store selling inventory and multiple items.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Profile Picture / Logo */}
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/60 space-y-3">
+                <label className="block text-xs font-bold text-gray-900 dark:text-white">
+                  Page Profile Picture / Logo (PFP)
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 flex items-center justify-center shrink-0 relative">
+                    {avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt="Profile preview"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <Camera className="w-6 h-6 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      value={avatarUrl}
+                      onChange={(e) => setAvatarUrl(e.target.value)}
+                      placeholder="Paste image URL (e.g. https://... logo or avatar)"
+                      className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                      Displays in your page profile header and public business badge.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Business / Company Name *
+                    Business / Store Name *
                   </label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    placeholder="e.g. Apex Auto Repairs Dublin"
+                    placeholder="e.g. Web Studios Dublin"
                     className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Custom Page URL Handle (Slug) *
+                    Custom URL Slug *
                   </label>
                   <div className="flex items-center">
                     <span className="text-xs text-gray-400 px-2.5 py-2 bg-gray-100 dark:bg-zinc-800 border border-r-0 border-gray-300 dark:border-zinc-700 rounded-l-lg font-mono">
@@ -178,14 +344,35 @@ export default function CreateBusinessPageModal() {
                       required
                       value={slug}
                       onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                      placeholder="apex-auto"
+                      placeholder="web-studios"
                       className="w-full px-3 py-2 rounded-r-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-primary outline-none"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Tagline / Summary */}
+              {/* Announcement (max 250 chars) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Megaphone className="w-3.5 h-3.5 text-primary" />
+                    <span>Business Announcement (Max 250 characters)</span>
+                  </label>
+                  <span className={`text-[11px] font-mono ${announcement.length > 250 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
+                    {announcement.length} / 250
+                  </span>
+                </div>
+                <textarea
+                  value={announcement}
+                  maxLength={250}
+                  rows={2}
+                  onChange={(e) => setAnnouncement(e.target.value)}
+                  placeholder="e.g. Special spring sale: 10% off all website design packages this week! Open for urgent inquiries."
+                  className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
+                />
+              </div>
+
+              {/* Tagline */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                   Tagline / Business Pitch
@@ -194,28 +381,65 @@ export default function CreateBusinessPageModal() {
                   type="text"
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. Premier mechanical diagnostics and car servicing across Co. Dublin."
+                  placeholder="e.g. Modern web design, branding, and digital strategy for Irish brands."
                   className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
 
-              {/* Category & County */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Trade / Category
-                  </label>
+              {/* Opening Hours */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-primary" />
+                  <span>Opening Hours *</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    value={isCustomHours ? 'custom' : openingHours}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomHours(true);
+                      } else {
+                        setIsCustomHours(false);
+                        setOpeningHours(e.target.value);
+                      }
+                    }}
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
                   >
-                    {BIZ_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
+                    {OPENING_HOURS_PRESETS.map((preset) => (
+                      <option key={preset} value={preset}>
+                        {preset}
                       </option>
                     ))}
+                    <option value="custom">Custom Hours...</option>
                   </select>
+
+                  {isCustomHours && (
+                    <input
+                      type="text"
+                      value={customHours}
+                      onChange={(e) => setCustomHours(e.target.value)}
+                      placeholder="e.g. Tue - Sat: 10:00 AM - 5:00 PM"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* County & Locked Phone (+353 ) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Contact Phone (Locked to Ireland +353) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    placeholder="+353 87 123 4567"
+                    className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-primary outline-none"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Prefix +353 is permanently locked.</p>
                 </div>
 
                 <div>
@@ -236,22 +460,8 @@ export default function CreateBusinessPageModal() {
                 </div>
               </div>
 
-              {/* Contact Information */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Business Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+353 87 123 4567"
-                    className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-
+              {/* Email & Website */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                     Public Contact Email
@@ -264,80 +474,53 @@ export default function CreateBusinessPageModal() {
                     className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Website URL
+                  </label>
+                  <input
+                    type="url"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    placeholder="https://yourwebsite.ie"
+                    className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
               </div>
 
-              {/* Social Media Links (Facebook, Instagram, LinkedIn, Website) */}
+              {/* Social Links */}
               <div className="pt-2 border-t border-gray-100 dark:border-zinc-800 space-y-3">
                 <span className="block text-xs font-bold text-gray-900 dark:text-white">
-                  Social Media Links (Facebook-Style Profile Integration)
+                  Social Links
                 </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">
-                      Official Website
-                    </label>
-                    <input
-                      type="url"
-                      value={website}
-                      onChange={(e) => setWebsite(e.target.value)}
-                      placeholder="https://yourwebsite.ie"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">
-                      Facebook Page URL
-                    </label>
-                    <input
-                      type="url"
-                      value={facebook}
-                      onChange={(e) => setFacebook(e.target.value)}
-                      placeholder="https://facebook.com/yourpage"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">
-                      Instagram Profile URL
-                    </label>
-                    <input
-                      type="url"
-                      value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
-                      placeholder="https://instagram.com/yourhandle"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">
-                      LinkedIn Page URL
-                    </label>
-                    <input
-                      type="url"
-                      value={linkedin}
-                      onChange={(e) => setLinkedin(e.target.value)}
-                      placeholder="https://linkedin.com/company/yourpage"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="url"
+                    value={facebook}
+                    onChange={(e) => setFacebook(e.target.value)}
+                    placeholder="Facebook URL"
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="url"
+                    value={instagram}
+                    onChange={(e) => setInstagram(e.target.value)}
+                    placeholder="Instagram URL"
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <input
+                    type="url"
+                    value={linkedin}
+                    onChange={(e) => setLinkedin(e.target.value)}
+                    placeholder="LinkedIn URL"
+                    className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
+                  />
                 </div>
-              </div>
-
-              {/* Plan Badge Info */}
-              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-blue-900 dark:text-blue-300">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  <span>Includes Verified Business Badge and Priority Placement.</span>
-                </div>
-                <span className="font-bold text-primary">Active Plan</span>
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-2 flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
@@ -351,7 +534,7 @@ export default function CreateBusinessPageModal() {
                   className="px-5 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Publish Business Page</span>
+                  <span>{isEditing ? 'Save Changes' : 'Publish Business Page'}</span>
                 </button>
               </div>
 

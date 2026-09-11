@@ -1,43 +1,33 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React from 'react';
 import { Heart } from 'lucide-react';
-import { toggleWatchlist } from '@/app/actions/wishlist';
+import { useWatchlist } from '@/context/WatchlistContext';
 
 interface WatchlistButtonProps {
   listingId: string;
-  initialIsWatchlisted: boolean;
+  initialIsWatchlisted?: boolean;
 }
 
-export default function WatchlistButton({ listingId, initialIsWatchlisted }: WatchlistButtonProps) {
-  const [isWatchlisted, setIsWatchlisted] = useState(initialIsWatchlisted);
-  const [isPending, startTransition] = useTransition();
+export default function WatchlistButton({ listingId, initialIsWatchlisted = false }: WatchlistButtonProps) {
+  const { isWatchlisted, toggleWatchlist } = useWatchlist();
+  const isSaved = isWatchlisted(listingId) || initialIsWatchlisted;
 
-  const handleToggle = () => {
-    // Optimistic update
-    const newStatus = !isWatchlisted;
-    setIsWatchlisted(newStatus);
-
-    startTransition(async () => {
-      const result = await toggleWatchlist(listingId, !newStatus); // pass the OLD status
-      if (!result.success) {
-        // Revert on failure
-        setIsWatchlisted(!newStatus);
-        alert(result.error === 'Unauthorized' ? 'Please sign in to add to your watchlist.' : 'Failed to update watchlist.');
-      }
-    });
+  const handleToggle = async () => {
+    await toggleWatchlist(listingId);
   };
 
   return (
     <button 
+      type="button"
       onClick={handleToggle}
-      disabled={isPending}
-      className="w-full py-3 px-4 bg-[#b38000] hover:bg-[#c68d00] text-black font-semibold rounded-sm transition-colors shadow-sm flex items-center justify-center mb-6 disabled:opacity-70"
+      className="w-full py-3 px-4 bg-[#b38000] hover:bg-[#c68d00] text-black font-semibold rounded-sm transition-colors shadow-sm flex items-center justify-center mb-6 cursor-pointer"
     >
       <Heart 
-        className={`w-4 h-4 mr-2 ${isWatchlisted ? 'fill-black' : ''}`} 
+        className={`w-4 h-4 mr-2 ${isSaved ? 'fill-black' : ''}`} 
       /> 
-      {isWatchlisted ? 'Remove from Watchlist' : 'Add to Watchlist'}
+      {isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}
     </button>
   );
 }
+

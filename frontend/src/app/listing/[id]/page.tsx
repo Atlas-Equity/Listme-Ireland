@@ -12,6 +12,7 @@ import BiddingForm from '@/components/BiddingForm';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import MakeOfferButton from '@/components/MakeOfferButton';
 import ServiceFeeModal from '@/components/ServiceFeeModal';
+import DeleteListingButton from '@/components/DeleteListingButton';
 import { getCoreLocation } from '@/utils/irelandLocations';
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -250,8 +251,15 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 
                 {!isClosed ? (
                   isOwnListing ? (
-                    <div className="w-full py-3.5 px-4 bg-primary/10 border border-primary/20 text-primary font-semibold rounded text-sm flex items-center justify-center">
-                      You are the seller of this listing
+                    <div className="space-y-3">
+                      <div className="w-full py-3 px-4 bg-primary/10 border border-primary/20 text-primary font-semibold rounded-xl text-xs flex items-center justify-center">
+                        You are the seller of this listing
+                      </div>
+                      <DeleteListingButton 
+                        listingId={listing.id} 
+                        listingTitle={listing.title} 
+                        redirectTo="/my-listme?tab=listings"
+                      />
                     </div>
                   ) : isAuction ? (
                     <div className="space-y-4">

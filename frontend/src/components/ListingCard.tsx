@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Package, Heart, Check, Clock, Eye } from 'lucide-react';
 import { formatDistanceToNow, format, addDays } from 'date-fns';
-import { toggleWatchlist } from '@/app/actions/wishlist';
+import { useWatchlist } from '@/context/WatchlistContext';
 import { getCoreLocation } from '@/utils/irelandLocations';
 
 export interface ListingCardProps {
@@ -33,8 +33,8 @@ export function ListingCard({
   closesAt,
   initialWatchlisted = false,
 }: ListingCardProps) {
-  const [isWatchlisted, setIsWatchlisted] = useState(initialWatchlisted);
-  const [isPending, startTransition] = useTransition();
+  const { isWatchlisted, toggleWatchlist } = useWatchlist();
+  const isSaved = isWatchlisted(id) || initialWatchlisted;
 
   const mainImage = images && images.length > 0 ? images[0] : null;
   const coreLocation = getCoreLocation(location);
@@ -52,20 +52,12 @@ export function ListingCard({
 
   const isAuction = priceType?.toLowerCase() === 'auction';
 
-  const handleWatchlistToggle = (e: React.MouseEvent) => {
+  const handleWatchlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    const nextState = !isWatchlisted;
-    setIsWatchlisted(nextState);
-
-    startTransition(async () => {
-      const res = await toggleWatchlist(id, !nextState);
-      if (!res.success) {
-        setIsWatchlisted(!nextState);
-      }
-    });
+    await toggleWatchlist(id);
   };
+
 
   return (
     <Link
@@ -102,11 +94,10 @@ export function ListingCard({
         <button
           type="button"
           onClick={handleWatchlistToggle}
-          disabled={isPending}
-          aria-label={isWatchlisted ? 'Remove from watchlist' : 'Add to watchlist'}
-          className="absolute top-0 right-0 z-20 transition-transform active:scale-95 focus:outline-none"
+          aria-label={isSaved ? 'Remove from watchlist' : 'Add to watchlist'}
+          className="absolute top-0 right-0 z-20 transition-transform active:scale-95 focus:outline-none cursor-pointer"
         >
-          {isWatchlisted ? (
+          {isSaved ? (
             /* Iconic golden triangle bookmark with checkmark */
             <div className="relative w-12 h-12 overflow-hidden drop-shadow-md">
               <div className="absolute -top-6 -right-6 w-16 h-16 bg-gradient-to-br from-[#f8c633] to-[#e6ac10] rotate-45 flex items-end justify-center pb-1">

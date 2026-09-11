@@ -24,7 +24,10 @@ import {
   Globe,
   Check,
   ChevronDown,
-  AlertCircle
+  AlertCircle,
+  Store,
+  Briefcase,
+  Clock
 } from 'lucide-react';
 import Stripe from 'stripe';
 import { format } from 'date-fns';
@@ -41,6 +44,10 @@ import LinkedCardCard from '@/components/LinkedCardCard';
 import RelistNotificationCard from '@/components/RelistNotificationCard';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import TradeMeSettingsSections from './TradeMeSettingsSections';
+import DeleteListingButton from '@/components/DeleteListingButton';
+import ClearAllNotificationsButton from '@/components/ClearAllNotificationsButton';
+import FavouriteSellerButton from '@/components/FavouriteSellerButton';
+import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
 import { autoCleanupExpiredListings } from '@/app/actions/relist';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 
@@ -74,18 +81,20 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const profile = profileRes.data;
   const accountType = profile?.account_type || 'personal';
 
+  // Extract user metadata - strictly NO bio
+  const userMetadata = user.user_metadata || {};
+  const dismissedNotificationIds: string[] = userMetadata.dismissed_notifications || [];
+
   // In-memory categorization of user listings (runs in 0.1ms without remote roundtrips)
   const allUserListings = userListingsRes.data || [];
   const userListings = allUserListings.filter(l => 
     l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
   );
   const closedListings = allUserListings.filter(l => 
-    l.status === 'closed' || (l.expires_at && new Date(l.expires_at) < now)
+    (l.status === 'closed' || (l.expires_at && new Date(l.expires_at) < now)) &&
+    !dismissedNotificationIds.includes(l.id)
   );
   const closedCount = closedListings.length;
-
-  // Extract user metadata - strictly NO bio
-  const userMetadata = user.user_metadata || {};
 
   const username = profile?.username || userMetadata.username || '';
   const fullName = userMetadata.full_name || '';
@@ -336,6 +345,25 @@ export default async function MyListMePage({ searchParams }: PageProps) {
       .map((item: any) => item.listing);
   }
 
+  // Tab: Favourite Sellers data
+  let favouriteSellers: any[] = [];
+  if (currentTab === 'favourite-sellers') {
+    const { data: favs } = await supabase
+      .from('favourite_sellers')
+      .select('id, seller_id, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    const sellerIds = (favs || []).map((f: any) => f.seller_id);
+    if (sellerIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, account_type, created_at')
+        .in('id', sellerIds);
+      favouriteSellers = profiles || [];
+    }
+  }
+
   const settingsInitialData = {
     username,
     fullName,
@@ -459,8 +487,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                 {/* Favourite Sellers */}
                 <Link
-                  href="/favourite-sellers"
-                  className="flex items-center gap-3 px-4 py-3 border-l-4 border-transparent text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  href="/my-listme?tab=favourite-sellers"
+                  className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
+                    currentTab === 'favourite-sellers'
+                      ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
+                  }`}
                 >
                   <Heart className="w-4 h-4 text-primary" />
                   <span>Favourite Sellers</span>
@@ -811,9 +843,14 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </p>
                     </div>
 
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                      {closedListings.length} Active {closedListings.length === 1 ? 'Alert' : 'Alerts'}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        {closedListings.length} Active {closedListings.length === 1 ? 'Alert' : 'Alerts'}
+                      </span>
+                      {closedListings.length > 0 && (
+                        <ClearAllNotificationsButton listingIds={closedListings.map((l: any) => l.id)} />
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1006,18 +1043,104 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                     {userListings.map((listing: any) => (
-                      <ListingCard
-                        key={listing.id}
-                        id={listing.id}
-                        title={listing.title}
-                        price={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) || 0 : listing.price}
-                        priceType={listing.price_type === 'Auction' ? 'Auction' : 'Fixed Price'}
-                        condition={listing.condition || 'Used - Good'}
-                        images={listing.images || []}
-                        createdAt={listing.created_at}
-                        location={listing.location}
-                        closesAt={listing.expires_at || listing.ends_at}
-                      />
+                      <div key={listing.id} className="flex flex-col space-y-2">
+                        <ListingCard
+                          id={listing.id}
+                          title={listing.title}
+                          price={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) || 0 : listing.price}
+                          priceType={listing.price_type === 'Auction' ? 'Auction' : 'Fixed Price'}
+                          condition={listing.condition || 'Used - Good'}
+                          images={listing.images || []}
+                          createdAt={listing.created_at}
+                          location={listing.location}
+                          closesAt={listing.expires_at || listing.ends_at}
+                        />
+                        <div className="flex items-center justify-end">
+                          <DeleteListingButton
+                            listingId={listing.id}
+                            listingTitle={listing.title}
+                            variant="badge"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: Favourite Sellers */}
+            {currentTab === 'favourite-sellers' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800">
+                    <div>
+                      <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
+                        FAVOURITE SELLERS
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {favouriteSellers.length} {favouriteSellers.length === 1 ? 'seller saved' : 'sellers saved'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {favouriteSellers.length === 0 ? (
+                  <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
+                      <Heart className="w-7 h-7 text-primary" />
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+                      You haven&apos;t saved any sellers yet
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-5">
+                      Save your favourite traders, shops, and verified members to keep track of their latest listings.
+                    </p>
+                    <Link
+                      href="/category/marketplace"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-green-700 text-white font-bold transition-colors shadow-xs text-xs"
+                    >
+                      Browse Marketplace
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {favouriteSellers.map((seller: any) => (
+                      <div
+                        key={seller.id}
+                        className="border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#181818] shadow-xs flex flex-col items-center text-center"
+                      >
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-white mb-3 border border-gray-200 dark:border-zinc-700 overflow-hidden relative">
+                          {seller.avatar_url ? (
+                            <Image
+                              src={seller.avatar_url}
+                              alt={seller.username || 'Seller'}
+                              fill
+                              sizes="64px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            seller.username ? seller.username.charAt(0).toUpperCase() : 'U'
+                          )}
+                        </div>
+                        <div className="text-base font-bold text-gray-900 dark:text-white mb-0.5">
+                          {seller.username || seller.full_name || 'Seller'}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-5 flex items-center">
+                          <span className="capitalize">{seller.account_type || 'Personal'} Account</span>
+                        </div>
+                        
+                        <div className="w-full space-y-2 mt-auto">
+                          <Link
+                            href={`/member/${seller.id}`}
+                            className="block w-full py-2 px-3 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl transition-colors"
+                          >
+                            View Profile
+                          </Link>
+                          <FavouriteSellerButton sellerId={seller.id} initialIsFavourite={true} />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -1035,7 +1158,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         Business Pages &amp; Storefronts
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        Subsidiary service hubs and retail pages with social links, quotes, and custom URLs.
+                        Subsidiary service hubs and retail pages with custom URLs, Irish phone locking, and opening hours.
                       </p>
                     </div>
 
@@ -1052,7 +1175,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       No Business Pages created yet
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6 leading-relaxed">
-                      Create dedicated Facebook-style business pages for your services, trades, or commercial shops. Showcase social media links, team profiles, and direct customer quote requests.
+                      Create dedicated Facebook-style business pages for your services, trades, or retail stores. Showcase opening hours, official announcements, and direct messaging.
                     </p>
                     <CreateBusinessPageModal />
                   </div>
@@ -1061,48 +1184,76 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     {userBusinessPages.map((page: any) => (
                       <div
                         key={page.id || page.slug}
-                        className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs hover:shadow-sm transition-all"
+                        className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between"
                       >
-                        <div className="flex items-start justify-between gap-3 mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 font-black text-lg flex items-center justify-center">
-                              {page.name.substring(0, 2).toUpperCase()}
+                        <div>
+                          <div className="flex items-start justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 font-black text-lg flex items-center justify-center overflow-hidden relative border border-gray-200 dark:border-zinc-700">
+                                {page.avatarUrl ? (
+                                  <Image
+                                    src={page.avatarUrl}
+                                    alt={page.name}
+                                    fill
+                                    sizes="48px"
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  page.name.substring(0, 2).toUpperCase()
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-1.5">
+                                  {page.name}
+                                  <Check className="w-3.5 h-3.5 text-primary" />
+                                </h4>
+                                <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                  /page/{page.slug}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-1.5">
-                                {page.name}
-                                <Check className="w-3.5 h-3.5 text-primary" />
-                              </h4>
-                              <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                /page/{page.slug}
-                              </p>
-                            </div>
+
+                            <span className="text-[10px] uppercase font-bold text-primary px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                              {page.business_type === 'marketplace' ? 'Marketplace Store' : 'Service Business'}
+                            </span>
                           </div>
 
-                          <span className="text-[10px] uppercase font-semibold text-gray-500 dark:text-gray-400">
-                            {page.category}
-                          </span>
+                          {page.announcement && (
+                            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 font-medium line-clamp-2 mb-3">
+                              📢 {page.announcement}
+                            </div>
+                          )}
+
+                          {page.tagline && (
+                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
+                              {page.tagline}
+                            </p>
+                          )}
+
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-500 mb-4">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {page.county}, Ireland
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 font-mono">
+                              <Phone className="w-3.5 h-3.5" />
+                              {page.phone}
+                            </span>
+                            {page.opening_hours && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                                  {page.opening_hours}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
 
-                        {page.tagline && (
-                          <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-4">
-                            {page.tagline}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-3 text-xs text-gray-500 mb-5">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            {page.county}, Ireland
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5" />
-                            {page.phone}
-                          </span>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                        <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between mt-auto">
                           <Link
                             href={`/page/${page.slug}`}
                             className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
@@ -1111,9 +1262,25 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
 
-                          <span className="text-[11px] font-semibold text-gray-400">
-                            Verified Business
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <CreateBusinessPageModal
+                              initialData={page}
+                              triggerButton={
+                                <button
+                                  type="button"
+                                  className="p-2 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300 text-xs font-semibold cursor-pointer"
+                                  title="Edit page"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                              }
+                            />
+                            <DeleteBusinessPageButton
+                              slug={page.slug}
+                              pageName={page.name}
+                              variant="icon"
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}

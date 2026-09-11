@@ -114,3 +114,48 @@ export async function autoCleanupExpiredListings() {
     console.error('Auto cleanup error:', err);
   }
 }
+
+/**
+ * Dismiss a notification for a closed/unsold listing.
+ */
+export async function dismissNotificationAction(listingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'You must be logged in.' };
+  }
+
+  const dismissed: string[] = user.user_metadata?.dismissed_notifications || [];
+  if (!dismissed.includes(listingId)) {
+    dismissed.push(listingId);
+    await supabase.auth.updateUser({
+      data: { dismissed_notifications: dismissed },
+    });
+  }
+
+  revalidatePath('/my-listme');
+  return { success: true };
+}
+
+/**
+ * Clear all notifications for closed/unsold listings.
+ */
+export async function clearAllNotificationsAction(listingIds: string[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'You must be logged in.' };
+  }
+
+  const dismissed: string[] = user.user_metadata?.dismissed_notifications || [];
+  const combined = Array.from(new Set([...dismissed, ...listingIds]));
+  await supabase.auth.updateUser({
+    data: { dismissed_notifications: combined },
+  });
+
+  revalidatePath('/my-listme');
+  return { success: true };
+}
+

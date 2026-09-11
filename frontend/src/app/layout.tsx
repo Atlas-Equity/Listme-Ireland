@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import CookieConsent from "@/components/CookieConsent";
 
 import { CallProvider } from "@/components/CallProvider";
+import { WatchlistProvider } from "@/context/WatchlistContext";
 
 export const metadata: Metadata = {
   title: "ListMe | The Ultimate Marketplace",
@@ -26,14 +27,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <CallProvider>
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-            <CookieConsent />
-          </CallProvider>
+          <WatchlistProvider>
+            <CallProvider>
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+              <CookieConsent />
+            </CallProvider>
+          </WatchlistProvider>
         </ThemeProvider>
       </body>
     </html>

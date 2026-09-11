@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { RotateCcw, Trash2, AlertTriangle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
-import { relistListingAction, deleteListingAction } from '@/app/actions/relist';
+import { RotateCcw, Trash2, AlertTriangle, CheckCircle2, Clock, Loader2, X } from 'lucide-react';
+import { relistListingAction, deleteListingAction, dismissNotificationAction } from '@/app/actions/relist';
 
 interface RelistNotificationCardProps {
   listing: {
@@ -20,6 +20,7 @@ interface RelistNotificationCardProps {
 export default function RelistNotificationCard({ listing }: RelistNotificationCardProps) {
   const [isRelisting, setIsRelisting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isDone, setIsDone] = useState(false);
 
@@ -38,6 +39,18 @@ export default function RelistNotificationCard({ listing }: RelistNotificationCa
       setStatusMessage('Failed to relist listing.');
     } finally {
       setIsRelisting(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    setIsDismissing(true);
+    setIsDone(true);
+    try {
+      await dismissNotificationAction(listing.id);
+    } catch {
+      // Ignore
+    } finally {
+      setIsDismissing(false);
     }
   };
 
@@ -134,7 +147,7 @@ export default function RelistNotificationCard({ listing }: RelistNotificationCa
           <button
             type="button"
             onClick={handleDelete}
-            disabled={isRelisting || isDeleting}
+            disabled={isRelisting || isDeleting || isDismissing}
             className="p-2 rounded-xl border border-gray-300 dark:border-zinc-700 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:border-red-300 dark:hover:border-red-800 transition-colors cursor-pointer disabled:opacity-50"
             title="Delete permanently"
           >
@@ -143,6 +156,16 @@ export default function RelistNotificationCard({ listing }: RelistNotificationCa
             ) : (
               <Trash2 className="w-4 h-4" />
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDismiss}
+            disabled={isRelisting || isDeleting || isDismissing}
+            className="p-2 rounded-xl border border-gray-300 dark:border-zinc-700 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50"
+            title="Dismiss notification"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
 

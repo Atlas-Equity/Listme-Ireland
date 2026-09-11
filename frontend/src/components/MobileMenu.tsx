@@ -228,7 +228,6 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: Mobil
                       <Bell className="w-4 h-4 text-primary" />
                       Notifications
                     </span>
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
                   </Link>
                   <Link
                     href="/my-listme?tab=watchlist"
@@ -239,7 +238,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: Mobil
                     My Watchlist
                   </Link>
                   <Link
-                    href="/favourite-sellers"
+                    href="/my-listme?tab=favourite-sellers"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
@@ -267,10 +266,10 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: Mobil
                 </nav>
               </div>
 
-              {/* Categories Navigation */}
+              {/* Browse & Community */}
               <div className="p-3">
                 <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  Categories
+                  Explore &amp; Community
                 </p>
                 <nav className="space-y-1">
                   <Link
@@ -298,12 +297,28 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: Mobil
                     Services
                   </Link>
                   <Link
-                    href="/community"
+                    href="/community#announcements"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <Bell className="w-4 h-4 text-gray-400" />
+                    Announcements
+                  </Link>
+                  <Link
+                    href="/help"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <Users className="w-4 h-4 text-gray-400" />
-                    Community
+                    Help Centre &amp; Support
+                  </Link>
+                  <Link
+                    href="/community#stats"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    <Users className="w-4 h-4 text-gray-400" />
+                    Site Stats
                   </Link>
                 </nav>
               </div>

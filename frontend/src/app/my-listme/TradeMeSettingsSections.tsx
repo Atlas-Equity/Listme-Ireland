@@ -75,23 +75,6 @@ export default function TradeMeSettingsSections() {
 
         <div className="divide-y divide-gray-100 dark:divide-zinc-800 text-sm">
           
-          {/* Email Preferences */}
-          <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-bold text-gray-900 dark:text-white text-xs">Email Preferences</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Manage automated notifications for bids, offers, outbids, and watchlist alerts.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => alert('Email notification preferences saved.')}
-              className="text-xs font-bold text-primary hover:underline text-left sm:text-right"
-            >
-              Edit email preferences &rarr;
-            </button>
-          </div>
-
           {/* Search History Toggle & Delete */}
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>

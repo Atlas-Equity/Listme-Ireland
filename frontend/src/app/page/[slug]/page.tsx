@@ -16,6 +16,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
 
   let businessPage: BusinessPageData | null = null;
   let sellerId: string | null = null;
+  let isOwner = false;
 
   // 1. Check current logged-in user pages
   if (user?.user_metadata?.business_pages) {
@@ -25,6 +26,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     if (found) {
       businessPage = found;
       sellerId = user.id;
+      isOwner = true;
     }
   }
 
@@ -72,7 +74,11 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   }
 
   return (
-    <BusinessPageClient businessPage={businessPage} listings={pageListings} />
+    <BusinessPageClient 
+      businessPage={businessPage} 
+      listings={pageListings} 
+      isOwner={isOwner}
+    />
   );
 }
 
