@@ -60,14 +60,14 @@ export default function BusinessPageClient({
         
         {/* Owner Management Banner (if owner is viewing their page) */}
         {isOwner && (
-          <div className="mb-4 p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="mb-4 p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
               <div>
-                <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                <p className="text-xs font-bold text-gray-900 dark:text-white">
                   You are viewing this page as the Owner
                 </p>
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   You can edit opening hours, announcement, business model, or delete this page.
                 </p>
               </div>
@@ -80,53 +80,51 @@ export default function BusinessPageClient({
           </div>
         )}
 
-        {/* Facebook-Style Main Profile Header Container */}
-        <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xs overflow-hidden mb-6">
+        {/* Flat Main Profile Header Container */}
+        <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden mb-6">
           
-          {/* 1. Cover Photo Banner */}
-          <div className="h-44 sm:h-64 w-full bg-gradient-to-r from-emerald-800 via-zinc-900 to-green-950 relative">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.12),transparent)]"></div>
-            
+          {/* 1. Cover Photo Banner (Clean flat solid dark neutral - NO gradients) */}
+          <div className="h-40 sm:h-52 w-full bg-zinc-800 dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 relative">
             {/* Top Right Verified Pill & Business Model Declaration */}
-            <div className="absolute top-4 right-4 flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold border border-white/20 flex items-center gap-1.5 shadow-sm">
+            <div className="absolute top-3 right-3 flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-1 rounded-md bg-black/75 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
                 {isMarketplace ? (
                   <>
-                    <Store className="w-3.5 h-3.5 text-primary" />
+                    <Store className="w-3.5 h-3.5 text-amber-400" />
                     <span>Marketplace Store</span>
                   </>
                 ) : (
                   <>
-                    <Briefcase className="w-3.5 h-3.5 text-primary" />
+                    <Briefcase className="w-3.5 h-3.5 text-white" />
                     <span>Service Business</span>
                   </>
                 )}
               </span>
 
-              <span className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold border border-white/20 flex items-center gap-1.5 shadow-sm">
+              <span className="px-2.5 py-1 rounded-md bg-black/75 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Verified Irish Business</span>
+                <span>Verified Business</span>
               </span>
             </div>
           </div>
 
           {/* 2. Overlapping Profile Avatar + Info & Action Buttons */}
-          <div className="px-6 sm:px-10 pb-4 relative">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-16 sm:-mt-20 pb-6 border-b border-gray-100 dark:border-zinc-800">
+          <div className="px-6 sm:px-8 pb-4 relative">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-14 sm:-mt-18 pb-6 border-b border-gray-100 dark:border-zinc-800">
               
               {/* Profile Avatar & Details */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-5">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4">
                 
-                {/* Circular Profile Avatar (Supports Custom PFP) */}
+                {/* Circular Profile Avatar (Solid flat neutral - NO gradients) */}
                 <div className="relative group">
-                  <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-white dark:bg-[#181818] p-1.5 shadow-xl ring-4 ring-white dark:ring-[#181818]">
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 via-emerald-100 dark:via-zinc-800 to-primary/5 border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-primary font-black text-4xl uppercase select-none overflow-hidden relative">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white dark:bg-[#181818] p-1 shadow-md ring-4 ring-white dark:ring-[#181818]">
+                    <div className="w-full h-full rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-gray-800 dark:text-gray-200 font-bold text-3xl uppercase select-none overflow-hidden relative">
                       {businessPage.avatarUrl ? (
                         <Image
                           src={businessPage.avatarUrl}
                           alt={businessPage.name}
                           fill
-                          sizes="144px"
+                          sizes="128px"
                           className="object-cover"
                           unoptimized
                         />
@@ -137,7 +135,7 @@ export default function BusinessPageClient({
                   </div>
 
                   {/* Online / Active Indicator */}
-                  <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-500 border-4 border-white dark:border-[#181818]" title="Verified & Active"></div>
+                  <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#181818]" title="Verified & Active"></div>
                 </div>
 
                 {/* Name, Handle, Metrics */}
@@ -381,18 +379,15 @@ export default function BusinessPageClient({
             
             {/* 1 Announcement Banner (Max 250 characters, configurable by owner) */}
             {businessPage.announcement ? (
-              <div className="bg-white dark:bg-[#181818] border border-emerald-200 dark:border-emerald-900/60 rounded-2xl p-5 shadow-xs relative overflow-hidden">
-                <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-primary"></div>
-                <div className="flex items-start gap-3 pl-1">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
-                    <Megaphone className="w-5 h-5" />
+              <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shrink-0 mt-0.5">
+                    <Megaphone className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                        Official Announcement
-                      </span>
-                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">
+                      Announcement
+                    </span>
                     <p className="text-sm font-medium text-gray-900 dark:text-white leading-relaxed">
                       {businessPage.announcement}
                     </p>

@@ -1214,13 +1214,13 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                               </div>
                             </div>
 
-                            <span className="text-[10px] uppercase font-bold text-primary px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                            <span className="text-[10px] uppercase font-semibold text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
                               {page.business_type === 'marketplace' ? 'Marketplace Store' : 'Service Business'}
                             </span>
                           </div>
 
                           {page.announcement && (
-                            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-[11px] text-emerald-800 dark:text-emerald-300 font-medium line-clamp-2 mb-3">
+                            <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 font-medium line-clamp-2 mb-3">
                               📢 {page.announcement}
                             </div>
                           )}

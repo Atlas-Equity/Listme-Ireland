@@ -60,9 +60,7 @@ export default function CommunityNavDropdown() {
             onClick={() => setIsOpen(false)}
             className="flex items-start gap-3 px-3 py-2.5 mx-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800/80 transition-colors group"
           >
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-primary shrink-0 mt-0.5 group-hover:bg-primary group-hover:text-white transition-colors">
-              <BellRing className="w-4 h-4" />
-            </div>
+            <BellRing className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                 Announcements
@@ -78,11 +76,9 @@ export default function CommunityNavDropdown() {
             onClick={() => setIsOpen(false)}
             className="flex items-start gap-3 px-3 py-2.5 mx-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800/80 transition-colors group"
           >
-            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <HelpCircle className="w-4 h-4" />
-            </div>
+            <HelpCircle className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <p className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                 Help Centre
               </p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5">
@@ -96,11 +92,9 @@ export default function CommunityNavDropdown() {
             onClick={() => setIsOpen(false)}
             className="flex items-start gap-3 px-3 py-2.5 mx-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800/80 transition-colors group"
           >
-            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <BarChart3 className="w-4 h-4" />
-            </div>
+            <BarChart3 className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+              <p className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                 Site Stats
               </p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight mt-0.5">
