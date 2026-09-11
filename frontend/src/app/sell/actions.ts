@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function createListing(formData: {
+export interface CreateListingInput {
   title: string;
   description: string;
   location: string;
@@ -15,7 +15,22 @@ export async function createListing(formData: {
   durationDays: number;
   paymentOptions: string[];
   images: string[];
-}) {
+  listingType?: 'item' | 'job' | 'service';
+  businessPageSlug?: string;
+  businessPageName?: string;
+  jobDetails?: {
+    companyName?: string;
+    jobType?: string;
+    salary?: string;
+    applicationMethod?: string;
+  };
+  serviceDetails?: {
+    serviceCategory?: string;
+    pricingModel?: string;
+  };
+}
+
+export async function createListing(formData: CreateListingInput) {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -38,10 +53,21 @@ export async function createListing(formData: {
   // Calculate expiration date
   const expiresAt = new Date(Date.now() + formData.durationDays * 24 * 60 * 60 * 1000).toISOString();
 
-  // If auction with buy now price, embed note in description as fallback
-  let finalDescription = formData.description;
+  // Construct description with rich TradeMe metadata tags
+  let finalDescription = formData.description || '';
+
+  if (formData.businessPageSlug) {
+    finalDescription = `${finalDescription}\n\n[Business Page: ${formData.businessPageSlug} | ${formData.businessPageName || formData.businessPageSlug}]`;
+  }
+
+  if (formData.listingType === 'job' && formData.jobDetails) {
+    finalDescription = `${finalDescription}\n\n[Job: ${formData.jobDetails.jobType || 'Full-Time'} | Salary: ${formData.jobDetails.salary || 'Competitive'} | Company: ${formData.jobDetails.companyName || 'Verified Employer'}]`;
+  } else if (formData.listingType === 'service' && formData.serviceDetails) {
+    finalDescription = `${finalDescription}\n\n[Service: ${formData.serviceDetails.serviceCategory || 'Trades'} | Pricing: ${formData.serviceDetails.pricingModel || 'Hourly'}]`;
+  }
+
   if (formData.priceType === 'Auction' && formData.buyNowPrice && formData.buyNowPrice > 0) {
-    finalDescription = `${formData.description}\n\n[Buy It Now: €${formData.buyNowPrice}]`;
+    finalDescription = `${finalDescription}\n\n[Buy It Now: €${formData.buyNowPrice}]`;
   }
 
   const basePayload: any = {
@@ -59,41 +85,36 @@ export async function createListing(formData: {
     status: 'active'
   };
 
-  // Attempt insert with buy_now_price
+  // Attempt insert with additional columns if present, otherwise fallback to standard
   let data: any = null;
   let error: any = null;
 
+  const extendedPayload: any = { ...basePayload };
   if (formData.priceType === 'Auction' && formData.buyNowPrice && formData.buyNowPrice > 0) {
-    const attemptWithCol = await supabase
-      .from('listings')
-      .insert({
-        ...basePayload,
-        buy_now_price: formData.buyNowPrice
-      })
-      .select()
-      .single();
+    extendedPayload.buy_now_price = formData.buyNowPrice;
+  }
+  if (formData.businessPageSlug) {
+    extendedPayload.business_page_slug = formData.businessPageSlug;
+  }
 
-    if (attemptWithCol.error && attemptWithCol.error.message.includes('buy_now_price')) {
-      // Column doesn't exist yet, insert without it (metadata is in description)
-      const fallbackInsert = await supabase
-        .from('listings')
-        .insert(basePayload)
-        .select()
-        .single();
-      data = fallbackInsert.data;
-      error = fallbackInsert.error;
-    } else {
-      data = attemptWithCol.data;
-      error = attemptWithCol.error;
-    }
-  } else {
-    const standardInsert = await supabase
+  const attempt = await supabase
+    .from('listings')
+    .insert(extendedPayload)
+    .select()
+    .single();
+
+  if (attempt.error) {
+    // Fallback without dynamic extra columns
+    const fallback = await supabase
       .from('listings')
       .insert(basePayload)
       .select()
       .single();
-    data = standardInsert.data;
-    error = standardInsert.error;
+    data = fallback.data;
+    error = fallback.error;
+  } else {
+    data = attempt.data;
+    error = attempt.error;
   }
 
   if (error) {
@@ -101,9 +122,15 @@ export async function createListing(formData: {
     return { error: 'Failed to create listing. Please try again.' };
   }
 
-  // Revalidate the homepage and category pages so the new listing shows up
+  // Revalidate relevant pages
   revalidatePath('/');
   revalidatePath('/browse');
+  revalidatePath('/category/marketplace');
+  revalidatePath('/category/jobs');
+  revalidatePath('/category/services');
+  if (formData.businessPageSlug) {
+    revalidatePath(`/page/${formData.businessPageSlug}`);
+  }
   
-  return { success: true, listingId: data.id };
+  return { success: true, listingId: data?.id };
 }

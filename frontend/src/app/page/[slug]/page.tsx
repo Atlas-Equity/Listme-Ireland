@@ -60,10 +60,13 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   if (sellerId) {
     const { data } = await supabase
       .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
+      .select('id, title, description, price, price_type, condition, images, created_at, location, expires_at, ends_at')
       .eq('seller_id', sellerId)
-      .limit(8);
-    pageListings = data || [];
+      .limit(20);
+    pageListings = (data || []).filter(l => 
+      l.description?.includes(`[Business Page: ${slug}`) || 
+      !l.description?.includes('[Business Page:')
+    );
   } else {
     // Show sample active marketplace listings
     const { data } = await supabase

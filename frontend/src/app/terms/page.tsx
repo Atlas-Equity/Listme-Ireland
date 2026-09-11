@@ -651,7 +651,7 @@ export default function TermsPage() {
             <div className="flex items-center gap-2 sm:gap-4">
               <span>Last updated: September 2026</span>
               <span>•</span>
-              <span>Applies to all registered members in Ireland</span>
+              <span>Applies to all registered members</span>
             </div>
             
             <button

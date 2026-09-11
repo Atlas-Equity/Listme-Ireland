@@ -584,17 +584,6 @@ export default function LinkedCardCard({
 
             <button
               type="button"
-              onClick={handleVaultWithStripe}
-              disabled={isVaulting}
-              className="px-4 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Vault directly with Stripe for guaranteed 1-click charges"
-            >
-              {isVaulting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-primary" />}
-              <span>Sync with Stripe Vault</span>
-            </button>
-
-            <button
-              type="button"
               onClick={handleRemoveCard}
               className="px-4 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 hover:text-red-600 hover:border-red-300 dark:hover:border-red-800 text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
@@ -913,33 +902,37 @@ export default function LinkedCardCard({
               </div>
             )}
 
-            {/* Stripe Vault Quick Link Option */}
-            <div className="p-4 mb-5 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  <span>Stripe Official PCI Vault (Recommended)</span>
-                </span>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  Securely connects your card to Stripe for guaranteed 1-click instant top-ups.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleVaultWithStripe}
-                disabled={isVaulting}
-                className="px-3 py-1.5 bg-primary hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1"
-              >
-                {isVaulting && <Loader2 className="w-3 h-3 animate-spin" />}
-                <span>Vault via Stripe</span>
-              </button>
-            </div>
+            {/* Stripe Vault Quick Link Option (Only shown when no card is linked yet) */}
+            {!isCardLinked && (
+              <>
+                <div className="p-4 mb-5 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-primary" />
+                      <span>Stripe Official PCI Vault (Recommended)</span>
+                    </span>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      Securely connects your card to Stripe for guaranteed 1-click instant top-ups.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleVaultWithStripe}
+                    disabled={isVaulting}
+                    className="px-3 py-1.5 bg-primary hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1"
+                  >
+                    {isVaulting && <Loader2 className="w-3 h-3 animate-spin" />}
+                    <span>Vault via Stripe</span>
+                  </button>
+                </div>
 
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Enter Card Details Below</span>
-              <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
-            </div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Or Enter Card Details Below</span>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-zinc-800"></div>
+                </div>
+              </>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSaveCard} className="space-y-4">
