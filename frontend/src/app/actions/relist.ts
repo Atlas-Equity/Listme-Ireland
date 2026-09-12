@@ -94,18 +94,18 @@ export async function deleteListingAction(listingId: string) {
 }
 
 /**
- * Auto-cleanup: cleans up unsold listings closed more than 3 days ago.
+ * Auto-cleanup: permanently deletes listings that are closed or expired without a relist or reply.
  */
 export async function autoCleanupExpiredListings() {
   const supabase = await createClient();
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date().toISOString();
 
   try {
-    // Delete listings where status is 'closed' or expires_at < 3 days ago
+    // Delete any listings where status is explicitly closed or expires_at is past
     const { error } = await supabase
       .from('listings')
       .delete()
-      .or(`status.eq.closed,expires_at.lt.${threeDaysAgo}`);
+      .or(`status.eq.closed,expires_at.lt.${now}`);
 
     if (error) {
       console.warn('Auto cleanup warning:', error.message);
@@ -116,7 +116,8 @@ export async function autoCleanupExpiredListings() {
 }
 
 /**
- * Dismiss a notification for a closed/unsold listing.
+ * Dismiss a notification for a closed listing.
+ * When the notification is ignored/dismissed, the closed listing is automatically deleted.
  */
 export async function dismissNotificationAction(listingId: string) {
   const supabase = await createClient();
@@ -124,6 +125,17 @@ export async function dismissNotificationAction(listingId: string) {
 
   if (!user) {
     return { error: 'You must be logged in.' };
+  }
+
+  // Automatically delete the closed listing when notification is dismissed/ignored
+  try {
+    await supabase
+      .from('listings')
+      .delete()
+      .eq('id', listingId)
+      .eq('seller_id', user.id);
+  } catch (delErr) {
+    console.warn('Auto-delete on notification dismissal note:', delErr);
   }
 
   const dismissed: string[] = user.user_metadata?.dismissed_notifications || [];
@@ -135,11 +147,13 @@ export async function dismissNotificationAction(listingId: string) {
   }
 
   revalidatePath('/my-listme');
+  revalidatePath('/');
   return { success: true };
 }
 
 /**
- * Clear all notifications for closed/unsold listings.
+ * Clear all notifications for closed listings.
+ * All dismissed closed listings are automatically purged.
  */
 export async function clearAllNotificationsAction(listingIds: string[]) {
   const supabase = await createClient();
@@ -149,6 +163,19 @@ export async function clearAllNotificationsAction(listingIds: string[]) {
     return { error: 'You must be logged in.' };
   }
 
+  // Purge all closed listings whose notifications were ignored
+  try {
+    if (listingIds.length > 0) {
+      await supabase
+        .from('listings')
+        .delete()
+        .in('id', listingIds)
+        .eq('seller_id', user.id);
+    }
+  } catch (delErr) {
+    console.warn('Batch auto-delete closed listings note:', delErr);
+  }
+
   const dismissed: string[] = user.user_metadata?.dismissed_notifications || [];
   const combined = Array.from(new Set([...dismissed, ...listingIds]));
   await supabase.auth.updateUser({
@@ -156,6 +183,7 @@ export async function clearAllNotificationsAction(listingIds: string[]) {
   });
 
   revalidatePath('/my-listme');
+  revalidatePath('/');
   return { success: true };
 }
 

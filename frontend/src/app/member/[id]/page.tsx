@@ -21,6 +21,8 @@ import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import MemberAdminActions from '@/components/MemberAdminActions';
+import { isAdmin, isAccountBanned } from '@/utils/admin';
 
 // Cache member profiles for 60s
 export const revalidate = 60;
@@ -41,6 +43,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
 
   // 1. Get current logged-in user (only if session cookie present)
   const currentUser = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null;
+  const currentUserIsAdmin = isAdmin(currentUser);
 
   // 2. Fetch profile by UUID or username or deterministic member ID match
   let profileQuery = supabase.from('profiles').select('*');
@@ -72,13 +75,19 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const sellerId = profile.id;
   const isOwnProfile = Boolean(currentUser && currentUser.id === sellerId);
 
+  // Check ban status & admin status of target user
+  const banStatus = isAccountBanned(profile);
+  const targetIsAdmin = Boolean(profile.role === 'admin' || profile.is_admin);
+
   // 3. Concurrently fetch listings, reviews, and favourite status
+  const nowIso = new Date().toISOString();
   const [listingsResult, reviewsResult, favouriteResult] = await Promise.all([
     supabase
       .from('listings')
       .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
       .eq('seller_id', sellerId)
       .eq('status', 'active')
+      .gt('expires_at', nowIso)
       .order('created_at', { ascending: false }),
     supabase
       .from('reviews')
@@ -119,9 +128,34 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black py-6 sm:py-10">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-black py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
         
+        {/* Admin Moderation Panel (visible only to platform administrators) */}
+        {currentUserIsAdmin && !isOwnProfile && (
+          <MemberAdminActions
+            targetUserId={sellerId}
+            targetUsername={displayName}
+            isCurrentlyVerified={isVerified}
+            isCurrentlyAdmin={targetIsAdmin}
+            banStatus={banStatus}
+          />
+        )}
+
+        {/* Account Suspended Alert Banner */}
+        {banStatus.isBanned && (
+          <div className="mb-6 p-4 rounded-2xl bg-red-950/60 border border-red-800 text-red-200 text-xs flex items-center gap-3">
+            <span className="p-2 rounded-xl bg-red-900/80 font-bold">SUSPENDED</span>
+            <div>
+              <p className="font-bold text-sm text-white">This account is currently suspended</p>
+              <p className="text-red-300 mt-0.5">
+                Reason: {banStatus.reason}
+                {banStatus.bannedUntil ? ` • Active until ${new Date(banStatus.bannedUntil).toLocaleDateString()}` : ' • Permanent ban'}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-6 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>

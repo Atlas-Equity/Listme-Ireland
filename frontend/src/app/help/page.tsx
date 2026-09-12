@@ -25,6 +25,9 @@ import {
   X
 } from 'lucide-react';
 
+import { isAdmin } from '@/utils/admin';
+import { getAllSupportTicketsAdminAction, adminReplySupportTicketAction } from '@/app/actions/admin';
+
 interface TicketMessage {
   id: string;
   sender: 'user' | 'support' | 'system';
@@ -41,6 +44,9 @@ interface SupportTicket {
   status: 'Open' | 'In Review' | 'Resolved' | 'Closed';
   createdAt: string;
   referenceId?: string;
+  userId?: string;
+  userEmail?: string;
+  userDisplayName?: string;
   messages: TicketMessage[];
 }
 
@@ -92,6 +98,12 @@ export default function HelpCentrePage() {
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
 
+  // Admin Capabilities State
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [ticketViewScope, setTicketViewScope] = useState<'my' | 'admin_all'>('my');
+  const [adminAllTickets, setAdminAllTickets] = useState<SupportTicket[]>([]);
+  const [adminLoading, setAdminLoading] = useState(false);
+
   // New Ticket Form State
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketCategory, setTicketCategory] = useState('Buyer Protection Claim');
@@ -103,12 +115,31 @@ export default function HelpCentrePage() {
   const [replyText, setReplyText] = useState('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  const loadAdminTickets = async () => {
+    setAdminLoading(true);
+    try {
+      const res = await getAllSupportTicketsAdminAction();
+      if (res.success && res.tickets) {
+        setAdminAllTickets(res.tickets);
+        if (res.tickets.length > 0) {
+          setActiveTicketId(res.tickets[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading admin tickets:', err);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
   // Load real user profile & persisted tickets from Supabase metadata (fallback to localStorage)
   useEffect(() => {
     const loadUserAndTickets = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUser(user);
+        const adminCheck = isAdmin(user);
+        setIsAdminUser(adminCheck);
 
         // Fetch user profile for avatar and username
         const { data: profile } = await supabase
@@ -125,7 +156,14 @@ export default function HelpCentrePage() {
         const userSavedTickets = (user.user_metadata?.support_tickets || []) as SupportTicket[];
         if (Array.isArray(userSavedTickets) && userSavedTickets.length > 0) {
           setTickets(userSavedTickets);
-          setActiveTicketId(userSavedTickets[0].id);
+          if (!adminCheck) {
+            setActiveTicketId(userSavedTickets[0].id);
+          }
+        }
+
+        if (adminCheck) {
+          setTicketViewScope('admin_all');
+          loadAdminTickets();
           return;
         }
       }
@@ -143,9 +181,10 @@ export default function HelpCentrePage() {
         }
       } catch {}
 
-      // No tickets yet: keep empty so there is no fake placeholder content!
-      setTickets([]);
-      setActiveTicketId(null);
+      if (!isAdminUser) {
+        setTickets([]);
+        setActiveTicketId(null);
+      }
     };
 
     loadUserAndTickets();
@@ -169,7 +208,9 @@ export default function HelpCentrePage() {
     }
   };
 
-  const activeTicket = tickets.find(t => t.id === activeTicketId) || tickets[0] || null;
+  // Active tickets list depending on view scope
+  const displayTickets = (isAdminUser && ticketViewScope === 'admin_all') ? adminAllTickets : tickets;
+  const activeTicket = displayTickets.find(t => t.id === activeTicketId) || displayTickets[0] || null;
 
   // Scroll ONLY the message list container without ever scrolling the parent browser window!
   useEffect(() => {
@@ -199,16 +240,26 @@ export default function HelpCentrePage() {
       id: newId,
       subject: ticketSubject.trim(),
       category: ticketCategory,
-      referenceId: ticketRef.trim() || undefined,
       status: 'Open',
       createdAt: nowStr,
+      referenceId: ticketRef.trim() || undefined,
+      userId: currentUser?.id,
+      userEmail: currentUser?.email,
+      userDisplayName,
       messages: [
         {
-          id: `msg-${Date.now()}-user`,
+          id: `msg-open`,
           sender: 'user',
           senderName: userDisplayName,
           senderAvatar: userAvatarUrl,
           content: ticketInitialMessage.trim(),
+          timestamp: 'Just now'
+        },
+        {
+          id: `msg-ack`,
+          sender: 'support',
+          senderName: 'ListMe Support Team',
+          content: 'Thank you for reaching out to ListMe Ireland. A verified support officer has been assigned to this ticket and will respond directly in this channel shortly.',
           timestamp: 'Just now'
         }
       ]
@@ -228,6 +279,34 @@ export default function HelpCentrePage() {
     e.preventDefault();
     if (!replyText.trim() || !activeTicket) return;
 
+    // Case 1: Admin replying across user channels
+    if (isAdminUser && ticketViewScope === 'admin_all' && activeTicket.userId) {
+      const adminName = userProfile?.full_name || currentUser?.email?.split('@')[0] || 'ListMe Support Officer';
+      const newMsg: TicketMessage = {
+        id: `msg-${Date.now()}`,
+        sender: 'support',
+        senderName: `${adminName} (Admin)`,
+        content: replyText.trim(),
+        timestamp: 'Just now'
+      };
+
+      const updatedTicket: SupportTicket = {
+        ...activeTicket,
+        messages: [...activeTicket.messages, newMsg]
+      };
+
+      setAdminAllTickets(prev => prev.map(t => t.id === activeTicket.id ? updatedTicket : t));
+      setReplyText('');
+
+      try {
+        await adminReplySupportTicketAction(activeTicket.userId, activeTicket.id, replyText.trim(), activeTicket.status);
+      } catch (err) {
+        console.error('Error sending admin reply:', err);
+      }
+      return;
+    }
+
+    // Case 2: Regular user replying in their own ticket
     const userDisplayName = userProfile?.full_name || userProfile?.username || currentUser?.email?.split('@')[0] || 'You';
     const userAvatarUrl = userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url || '';
 
@@ -248,6 +327,30 @@ export default function HelpCentrePage() {
     const updatedList = tickets.map(t => t.id === activeTicket.id ? updatedTicket : t);
     await saveTickets(updatedList);
     setReplyText('');
+  };
+
+  const handleAdminChangeStatus = async (newStatus: 'Open' | 'In Review' | 'Resolved' | 'Closed') => {
+    if (!activeTicket || !isAdminUser) return;
+
+    const updatedTicket: SupportTicket = {
+      ...activeTicket,
+      status: newStatus,
+    };
+
+    if (ticketViewScope === 'admin_all') {
+      setAdminAllTickets(prev => prev.map(t => t.id === activeTicket.id ? updatedTicket : t));
+      if (activeTicket.userId) {
+        await adminReplySupportTicketAction(
+          activeTicket.userId,
+          activeTicket.id,
+          `Ticket status updated to "${newStatus}" by administrator.`,
+          newStatus
+        );
+      }
+    } else {
+      const updatedList = tickets.map(t => t.id === activeTicket.id ? updatedTicket : t);
+      await saveTickets(updatedList);
+    }
   };
 
   const handleCloseTicket = async (ticketId: string) => {
@@ -438,11 +541,49 @@ export default function HelpCentrePage() {
                   </div>
                 </div>
 
-                {/* Ticket Selector Tabs if multiple tickets exist */}
-                {tickets.length > 1 && (
+                {/* Admin Mode Scope Switcher */}
+                {isAdminUser && (
+                  <div className="px-4 py-2.5 bg-zinc-900 text-white border-b border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 font-bold">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Admin View: Support Text Channels</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => { setTicketViewScope('admin_all'); if (adminAllTickets[0]) setActiveTicketId(adminAllTickets[0].id); }}
+                        className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                          ticketViewScope === 'admin_all'
+                            ? 'bg-primary text-white'
+                            : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                        }`}
+                      >
+                        All User Channels ({adminAllTickets.length})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setTicketViewScope('my'); if (tickets[0]) setActiveTicketId(tickets[0].id); }}
+                        className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
+                          ticketViewScope === 'my'
+                            ? 'bg-primary text-white'
+                            : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                        }`}
+                      >
+                        My Tickets ({tickets.length})
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ticket Selector Tabs */}
+                {displayTickets.length > 0 && (
                   <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2 overflow-x-auto bg-gray-50/30 dark:bg-zinc-900/20">
-                    <span className="text-[10px] font-bold uppercase text-gray-400 shrink-0">Your Tickets:</span>
-                    {tickets.map(t => (
+                    <span className="text-[10px] font-bold uppercase text-gray-400 shrink-0">
+                      {ticketViewScope === 'admin_all' ? 'Channels:' : 'Your Tickets:'}
+                    </span>
+                    {displayTickets.map(t => (
                       <button
                         key={t.id}
                         type="button"
@@ -453,36 +594,40 @@ export default function HelpCentrePage() {
                             : 'bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-700'
                         }`}
                       >
-                        #{t.id} - {t.subject}
+                        #{t.id} {ticketViewScope === 'admin_all' && t.userDisplayName ? `(${t.userDisplayName})` : ''} - {t.subject}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {/* If no tickets exist, show honest empty state (NOT fake mock data) */}
-                {tickets.length === 0 ? (
+                {/* If no tickets exist, show honest empty state */}
+                {displayTickets.length === 0 ? (
                   <div className="p-8 sm:p-12 text-center bg-white dark:bg-[#151515]">
                     <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 flex items-center justify-center mx-auto mb-3">
                       <MessageSquare className="w-6 h-6" />
                     </div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                      No Support Tickets Open
+                      {ticketViewScope === 'admin_all' ? 'No User Channels Open' : 'No Support Tickets Open'}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-5">
-                      Need help with a purchase, dispute, linked card, or business storefront? Open a support ticket to start a direct, authenticated conversation.
+                      {ticketViewScope === 'admin_all'
+                        ? 'All user support tickets have been attended to.'
+                        : 'Need help with a purchase, dispute, linked card, or business storefront? Open a support ticket to start a direct, authenticated conversation.'}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowNewTicketModal(true)}
-                      className="px-5 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-xs inline-flex items-center gap-2 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Open Support Ticket</span>
-                    </button>
+                    {ticketViewScope === 'my' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowNewTicketModal(true)}
+                        className="px-5 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-xs inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Open Support Ticket</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>
-                    {/* Active Ticket Details & Header Info (Neutral, NO green pill background) */}
+                    {/* Active Ticket Details & Header Info */}
                     {activeTicket && (
                       <div className="p-3.5 px-4 bg-gray-50 dark:bg-zinc-900/60 border-b border-gray-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-3">
@@ -490,7 +635,11 @@ export default function HelpCentrePage() {
                             <Hash className="w-3.5 h-3.5 text-gray-400" />
                             {activeTicket.subject}
                           </span>
-                          {/* Neutral Category Tag (NO green background) */}
+                          {ticketViewScope === 'admin_all' && activeTicket.userEmail && (
+                            <span className="px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px]">
+                              User: {activeTicket.userDisplayName || activeTicket.userEmail}
+                            </span>
+                          )}
                           <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700">
                             {activeTicket.category}
                           </span>
@@ -500,12 +649,32 @@ export default function HelpCentrePage() {
                             </span>
                           )}
                         </div>
+
+                        {/* Status Tags & Admin Status Controls */}
                         <div className="flex items-center gap-2">
-                          {/* Neutral Status Tag (NO green background) */}
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700">
-                            <span className={`w-1.5 h-1.5 rounded-full ${activeTicket.status === 'Resolved' ? 'bg-gray-400' : 'bg-emerald-500'}`}></span>
-                            {activeTicket.status}
-                          </span>
+                          {isAdminUser && ticketViewScope === 'admin_all' ? (
+                            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                              {(['Open', 'In Review', 'Resolved', 'Closed'] as const).map((st) => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => handleAdminChangeStatus(st)}
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                                    activeTicket.status === st
+                                      ? 'bg-primary text-white'
+                                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                                  }`}
+                                >
+                                  {st}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700">
+                              <span className={`w-1.5 h-1.5 rounded-full ${activeTicket.status === 'Resolved' || activeTicket.status === 'Closed' ? 'bg-gray-400' : 'bg-emerald-500'}`}></span>
+                              {activeTicket.status}
+                            </span>
+                          )}
                           <span className="text-gray-400 text-[11px]">
                             Created {activeTicket.createdAt}
                           </span>

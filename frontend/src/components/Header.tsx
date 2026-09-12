@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Briefcase, Wrench, Users, LogOut, MessageSquare, Bell } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { MobileMenu } from './MobileMenu';
-import CommunityNavDropdown from './CommunityNavDropdown';
 import { cookies } from 'next/headers';
 import VerifiedBadge from './VerifiedBadge';
 import { createClient } from '@/utils/supabase/server';
@@ -151,7 +150,9 @@ export default async function Header() {
             <Link href="/category/services" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
               <Wrench className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Services
             </Link>
-            <CommunityNavDropdown />
+            <Link href="/community" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
+              <Users className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Community
+            </Link>
           </nav>
         </div>
       </div>

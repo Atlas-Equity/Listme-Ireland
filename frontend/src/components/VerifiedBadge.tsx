@@ -27,21 +27,23 @@ export default function VerifiedBadge({
       className={`inline-flex items-center gap-1 shrink-0 select-none align-middle group relative cursor-help ${className}`}
       title={tooltipText}
     >
-      {/* Exclusive Twitter / Facebook-Style Scalloped Verified Seal */}
+      {/* Twitter / Meta-Style Circular Verified Sphere */}
       <svg
-        className={`${iconSize} drop-shadow-xs transition-transform duration-150 group-hover:scale-110`}
+        className={`${iconSize} drop-shadow-xs transition-transform duration-150 group-hover:scale-110 shrink-0`}
         viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Scalloped rosette seal */}
-        <path
-          d="M10.29 2.308a2.5 2.5 0 0 1 3.42 0l.966.86a2.5 2.5 0 0 0 2.228.618l1.272-.25a2.5 2.5 0 0 1 2.87 1.86l.326 1.255a2.5 2.5 0 0 0 1.547 1.74l1.208.455a2.5 2.5 0 0 1 1.487 3.09l-.427 1.226a2.5 2.5 0 0 0 .34 2.302l.808 1.01a2.5 2.5 0 0 1-.58 3.425l-1.037.773a2.5 2.5 0 0 0-1.026 2.083l.036 1.296a2.5 2.5 0 0 1-2.28 2.55l-1.293.107a2.5 2.5 0 0 0-1.92 1.309l-.658 1.118a2.5 2.5 0 0 1-3.238 1.05l-1.196-.505a2.5 2.5 0 0 0-2.316 0l-1.196.505a2.5 2.5 0 0 1-3.238-1.05l-.658-1.118a2.5 2.5 0 0 0-1.92-1.309l-1.293-.107a2.5 2.5 0 0 1-2.28-2.55l.036-1.296a2.5 2.5 0 0 0-1.026-2.083l-1.037-.773a2.5 2.5 0 0 1-.58-3.425l.808-1.01a2.5 2.5 0 0 0 .34-2.302l-.427-1.226a2.5 2.5 0 0 1 1.487-3.09l1.208-.455a2.5 2.5 0 0 0 1.547-1.74l.326-1.255a2.5 2.5 0 0 1 2.87-1.86l1.272.25a2.5 2.5 0 0 0 2.228-.618l.966-.86z"
+        {/* Spherical circle background */}
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
           className="fill-emerald-500 dark:fill-emerald-400"
         />
         {/* Crisp checkmark */}
         <path
-          d="M8.5 12.2l2.3 2.3 5.2-5.5"
+          d="M8 12.2l2.6 2.6 5.4-5.6"
           stroke="#ffffff"
           strokeWidth="2.4"
           strokeLinecap="round"

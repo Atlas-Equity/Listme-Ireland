@@ -825,6 +825,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                   <LinkedCardCard
                     initialCard={user.user_metadata?.linked_card || null}
+                    initialCards={Array.isArray(user.user_metadata?.linked_cards) ? user.user_metadata.linked_cards : (user.user_metadata?.linked_card ? [user.user_metadata.linked_card] : [])}
                     defaultCardholderName={fullName || username || 'Cardholder'}
                     accountBalance={currentAccountCredit}
                   />

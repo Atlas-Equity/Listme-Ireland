@@ -83,33 +83,6 @@ export default async function CommunityPage() {
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
             Platform announcements, social channels, Help Centre access, and verified marketplace statistics.
           </p>
-
-          <div className="flex flex-wrap items-center gap-3 mt-4">
-            <a
-              href="#announcements"
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
-            >
-              Announcements
-            </a>
-            <a
-              href="#social"
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
-            >
-              Social Channels
-            </a>
-            <Link
-              href="/help"
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
-            >
-              Help Centre
-            </Link>
-            <a
-              href="#stats"
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:border-gray-400 dark:hover:border-zinc-600 transition-colors"
-            >
-              Site Stats
-            </a>
-          </div>
         </div>
 
         {/* SECTION 1: ANNOUNCEMENTS */}
@@ -298,7 +271,7 @@ export default async function CommunityPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-5 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 shadow-xs">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Inventory</span>
@@ -323,24 +296,13 @@ export default async function CommunityPage() {
 
             <div className="p-5 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 shadow-xs">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Coverage</span>
-                <Globe2 className="w-4 h-4 text-gray-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Security</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                26
+              <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                100%
               </div>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Core Republic Counties</p>
-            </div>
-
-            <div className="p-5 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 shadow-xs">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Success Fees</span>
-                <ShieldCheck className="w-4 h-4 text-gray-400" />
-              </div>
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                0.0%
-              </div>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Seller Commission</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Scams Prevented (Credit Card &amp; Escrow)</p>
             </div>
           </div>
         </section>

@@ -21,6 +21,7 @@ import {
   Settings,
   Package,
   Bell,
+  HelpCircle,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import VerifiedBadge from './VerifiedBadge';
@@ -302,28 +303,20 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                     Services
                   </Link>
                   <Link
-                    href="/community#announcements"
+                    href="/community"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
-                    <Bell className="w-4 h-4 text-gray-400" />
-                    Announcements
+                    <Users className="w-4 h-4 text-gray-400" />
+                    Community Hub
                   </Link>
                   <Link
                     href="/help"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
-                    <Users className="w-4 h-4 text-gray-400" />
+                    <HelpCircle className="w-4 h-4 text-gray-400" />
                     Help Centre &amp; Support
-                  </Link>
-                  <Link
-                    href="/community#stats"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <Users className="w-4 h-4 text-gray-400" />
-                    Site Stats
                   </Link>
                 </nav>
               </div>

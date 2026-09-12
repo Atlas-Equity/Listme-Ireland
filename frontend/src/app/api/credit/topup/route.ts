@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Minimum top-up amount is €1.00.' }, { status: 400 });
     }
 
-    if (amount > 5000) {
-      return NextResponse.json({ error: 'Maximum top-up amount per transaction is €5,000.00.' }, { status: 400 });
+    if (amount > 25000) {
+      return NextResponse.json({ error: 'Maximum top-up amount per transaction is €25,000.00.' }, { status: 400 });
     }
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -97,8 +97,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Resolve saved payment method from Stripe or user_metadata
-    let savedPaymentMethodId: string | undefined = user.user_metadata?.linked_card?.stripePaymentMethodId;
+    // 2. Resolve saved payment method from Stripe, selected card, or user_metadata
+    let savedPaymentMethodId: string | undefined = body.paymentMethodId;
+
+    if (!savedPaymentMethodId && (body.cardId || typeof body.cardIndex === 'number')) {
+      const allCards = Array.isArray(user.user_metadata?.linked_cards) ? user.user_metadata.linked_cards : [];
+      const chosen = body.cardId 
+        ? allCards.find((c: any) => c.id === body.cardId)
+        : allCards[body.cardIndex];
+      if (chosen?.stripePaymentMethodId) {
+        savedPaymentMethodId = chosen.stripePaymentMethodId;
+      }
+    }
+
+    if (!savedPaymentMethodId) {
+      savedPaymentMethodId = user.user_metadata?.linked_card?.stripePaymentMethodId;
+    }
 
     if (customerId) {
       try {

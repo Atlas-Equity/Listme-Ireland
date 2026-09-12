@@ -264,6 +264,7 @@ export async function uploadAvatarAction(formData: FormData) {
 }
 
 export interface LinkedCardData {
+  id?: string;
   cardholderName: string;
   cardNickname: string;
   cardNumberBlocks: string[];
@@ -274,10 +275,13 @@ export interface LinkedCardData {
   stripePaymentMethodId?: string;
   isStripeVaulted?: boolean;
   pin?: string;
+  isDefault?: boolean;
+  cardType?: 'credit' | 'debit';
+  funding?: string;
   updatedAt?: string;
 }
 
-export async function saveLinkedCardAction(card: LinkedCardData) {
+export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: boolean = false) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -329,7 +333,7 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
   // Look up / create customer and attach client-tokenized Stripe PaymentMethod
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   let stripeCustomerId = user.user_metadata?.stripe_customer_id;
-  let stripePaymentMethodId = card.stripePaymentMethodId || user.user_metadata?.linked_card?.stripePaymentMethodId;
+  let stripePaymentMethodId = card.stripePaymentMethodId;
 
   if (stripeKey) {
     try {
@@ -364,7 +368,6 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
       }
 
       // Attach client-side vaulted PaymentMethod to customer
-      // NEVER send raw card numbers from server (PCI SAQ-A compliant)
       if (stripeCustomerId && stripePaymentMethodId) {
         try {
           await stripe.paymentMethods.attach(stripePaymentMethodId, { customer: stripeCustomerId });
@@ -372,7 +375,6 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
             invoice_settings: { default_payment_method: stripePaymentMethodId },
           });
         } catch (pmErr: any) {
-          // Payment method might already be attached to this customer
           console.log('Payment method attachment note:', pmErr.message);
         }
       }
@@ -383,22 +385,58 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
 
   const last4 = cleanBlocks[3]?.slice(-4) || '1234';
   const maskedBlocks = ['••••', '••••', '••••', last4];
+  const cardId = card.id || `card_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+  const newCardObj: LinkedCardData = {
+    id: cardId,
+    cardholderName: card.cardholderName.trim(),
+    cardNickname: card.cardNickname?.trim() || `${detectedBrand} ending in ${last4}`,
+    cardNumberBlocks: maskedBlocks,
+    expiry: cleanExpiry,
+    cvvMasked: '•••',
+    brand: detectedBrand,
+    stripePaymentMethodId: stripePaymentMethodId || undefined,
+    isStripeVaulted: !!stripePaymentMethodId,
+    pin: card.pin ? card.pin.replace(/\D/g, '').slice(0, 4) : undefined,
+    cardType: 'credit',
+    funding: 'credit',
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Support up to TWO cards in user metadata
+  const existingCards: LinkedCardData[] = Array.isArray(user.user_metadata?.linked_cards)
+    ? [...user.user_metadata.linked_cards]
+    : user.user_metadata?.linked_card
+      ? [{ ...user.user_metadata.linked_card, id: user.user_metadata.linked_card.id || 'card_primary' }]
+      : [];
+
+  const existingIndex = existingCards.findIndex(c => (card.id && c.id === card.id) || (c.cardNumberBlocks?.[3] === last4 && c.brand === detectedBrand));
+
+  let updatedCards: LinkedCardData[];
+  if (existingIndex >= 0) {
+    // Update existing card
+    existingCards[existingIndex] = { ...existingCards[existingIndex], ...newCardObj };
+    updatedCards = existingCards;
+  } else {
+    // Adding a new card
+    if (existingCards.length >= 2) {
+      return { error: 'Maximum 2 cards allowed in your ListMe wallet. Please remove one before adding another.' };
+    }
+    if (makeDefault || existingCards.length === 0) {
+      updatedCards = [newCardObj, ...existingCards];
+    } else {
+      updatedCards = [...existingCards, newCardObj];
+    }
+  }
+
+  // Ensure primary card is set to first card
+  const primaryCard = updatedCards[0] || newCardObj;
 
   const { error: authError } = await supabase.auth.updateUser({
     data: {
       stripe_customer_id: stripeCustomerId || undefined,
-      linked_card: {
-        cardholderName: card.cardholderName.trim(),
-        cardNickname: card.cardNickname?.trim() || 'Personal Card',
-        cardNumberBlocks: maskedBlocks,
-        expiry: cleanExpiry,
-        cvvMasked: '•••',
-        brand: detectedBrand,
-        stripePaymentMethodId: stripePaymentMethodId || undefined,
-        isStripeVaulted: !!stripePaymentMethodId,
-        pin: card.pin ? card.pin.replace(/\D/g, '').slice(0, 4) : undefined,
-        updatedAt: new Date().toISOString(),
-      }
+      linked_cards: updatedCards,
+      linked_card: primaryCard,
     }
   });
 
@@ -408,10 +446,10 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
   }
 
   revalidatePath('/my-listme');
-  return { success: true };
+  return { success: true, card: newCardObj, cards: updatedCards };
 }
 
-export async function removeLinkedCardAction() {
+export async function removeLinkedCardAction(cardIdentifier?: string | number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -419,9 +457,29 @@ export async function removeLinkedCardAction() {
     return { error: 'Not authenticated' };
   }
 
+  const existingCards: LinkedCardData[] = Array.isArray(user.user_metadata?.linked_cards)
+    ? [...user.user_metadata.linked_cards]
+    : user.user_metadata?.linked_card
+      ? [user.user_metadata.linked_card]
+      : [];
+
+  let updatedCards: LinkedCardData[] = [];
+
+  if (typeof cardIdentifier === 'number') {
+    updatedCards = existingCards.filter((_, idx) => idx !== cardIdentifier);
+  } else if (typeof cardIdentifier === 'string') {
+    updatedCards = existingCards.filter(c => c.id !== cardIdentifier);
+  } else {
+    // Remove all cards
+    updatedCards = [];
+  }
+
+  const primaryCard = updatedCards.length > 0 ? updatedCards[0] : null;
+
   const { error: authError } = await supabase.auth.updateUser({
     data: {
-      linked_card: null,
+      linked_cards: updatedCards,
+      linked_card: primaryCard,
     }
   });
 
@@ -431,10 +489,54 @@ export async function removeLinkedCardAction() {
   }
 
   revalidatePath('/my-listme');
-  return { success: true };
+  return { success: true, cards: updatedCards };
 }
 
-export async function topUpAccountCreditAction(amount: number, pin?: string) {
+export async function setDefaultLinkedCardAction(cardIdentifier: string | number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  const existingCards: LinkedCardData[] = Array.isArray(user.user_metadata?.linked_cards)
+    ? [...user.user_metadata.linked_cards]
+    : user.user_metadata?.linked_card
+      ? [user.user_metadata.linked_card]
+      : [];
+
+  let targetIndex = -1;
+  if (typeof cardIdentifier === 'number') {
+    targetIndex = cardIdentifier;
+  } else {
+    targetIndex = existingCards.findIndex(c => c.id === cardIdentifier);
+  }
+
+  if (targetIndex < 0 || targetIndex >= existingCards.length) {
+    return { error: 'Card not found.' };
+  }
+
+  const selectedCard = existingCards[targetIndex];
+  const otherCards = existingCards.filter((_, idx) => idx !== targetIndex);
+  const reorderedCards = [selectedCard, ...otherCards];
+
+  const { error: authError } = await supabase.auth.updateUser({
+    data: {
+      linked_cards: reorderedCards,
+      linked_card: selectedCard,
+    }
+  });
+
+  if (authError) {
+    return { error: authError.message };
+  }
+
+  revalidatePath('/my-listme');
+  return { success: true, cards: reorderedCards };
+}
+
+export async function topUpAccountCreditAction(amount: number, pin?: string, cardIndex: number = 0) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -446,20 +548,27 @@ export async function topUpAccountCreditAction(amount: number, pin?: string) {
     return { error: 'Please specify a valid top-up amount.' };
   }
 
-  if (amount > 5000) {
-    return { error: 'Maximum top-up per transaction is €5,000.00.' };
+  // Custom amount support up to €25,000 for large top ups
+  if (amount > 25000) {
+    return { error: 'Maximum top-up per transaction is €25,000.00.' };
   }
 
-  const linkedCard = user.user_metadata?.linked_card;
-  if (!linkedCard || !linkedCard.cardNumberBlocks || linkedCard.cardNumberBlocks.length !== 4) {
-    return { error: 'Please link a credit card before topping up your account credit.' };
+  const allCards: LinkedCardData[] = Array.isArray(user.user_metadata?.linked_cards) && user.user_metadata.linked_cards.length > 0
+    ? user.user_metadata.linked_cards
+    : user.user_metadata?.linked_card
+      ? [user.user_metadata.linked_card]
+      : [];
+
+  const targetCard = allCards[cardIndex] || allCards[0];
+  if (!targetCard || !targetCard.cardNumberBlocks || targetCard.cardNumberBlocks.length !== 4) {
+    return { error: 'Please link a verified credit card before topping up your account credit.' };
   }
 
-  if (linkedCard.pin) {
+  if (targetCard.pin) {
     if (!pin) {
       return { error: 'Please enter your 4-digit PIN to authorize this top up.' };
     }
-    if (pin.trim() !== linkedCard.pin.trim()) {
+    if (pin.trim() !== targetCard.pin.trim()) {
       return { error: 'Incorrect security PIN. Please re-enter your 4-digit PIN.' };
     }
   }
@@ -490,14 +599,21 @@ export async function getUserPaymentStateAction() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return { isLoggedIn: false, credit: 0, linkedCard: null, userId: null };
+    return { isLoggedIn: false, credit: 0, linkedCard: null, linkedCards: [], userId: null };
   }
+
+  const cards: LinkedCardData[] = Array.isArray(user.user_metadata?.linked_cards) && user.user_metadata.linked_cards.length > 0
+    ? user.user_metadata.linked_cards
+    : user.user_metadata?.linked_card
+      ? [user.user_metadata.linked_card]
+      : [];
 
   return {
     isLoggedIn: true,
     userId: user.id,
     credit: typeof user.user_metadata?.account_credit === 'number' ? user.user_metadata.account_credit : 0,
-    linkedCard: user.user_metadata?.linked_card || null,
+    linkedCard: cards[0] || null,
+    linkedCards: cards,
   };
 }
 

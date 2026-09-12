@@ -121,40 +121,35 @@ export default function SellPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('account_type, stripe_onboarding_complete, username, full_name')
+        .select('account_type, full_name, username')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.account_type !== 'business') {
-        setIsBusiness(false);
-        setLoading(false);
-        return;
-      } 
-      
-      // If business account but hasn't completed Stripe onboarding, redirect
-      if (!profile?.stripe_onboarding_complete) {
-        router.push('/stripe-setup');
-        return;
-      }
+      const userMeta = user.user_metadata || {};
+      const accountType = (profile?.account_type || userMeta.account_type || 'personal').toLowerCase();
+      const isBiz = accountType === 'business';
+      setIsBusiness(isBiz);
 
-      // Check linked credit card requirement
-      const linkedCard = user.user_metadata?.linked_card;
-      const cardValid = Boolean(
-        linkedCard && 
-        Array.isArray(linkedCard.cardNumberBlocks) && 
-        linkedCard.cardNumberBlocks.length === 4
+      // Check linked credit card requirement across linked_cards array or legacy linked_card
+      const linkedCards: any[] = Array.isArray(userMeta.linked_cards)
+        ? userMeta.linked_cards
+        : (userMeta.linked_card ? [userMeta.linked_card] : []);
+
+      const cardValid = linkedCards.some(card => 
+        card && 
+        (card.funding === 'credit' || card.cardNickname?.toLowerCase().includes('credit') || !card.funding) &&
+        Array.isArray(card.cardNumberBlocks) && 
+        card.cardNumberBlocks.length === 4
       );
       setHasCreditCard(cardValid);
 
-      setIsBusiness(true);
-
       // Check owned marketplace pages in metadata
-      const userPages = (user.user_metadata?.business_pages || []) as BusinessPageData[];
+      const userPages = (userMeta.business_pages || []) as BusinessPageData[];
       const mktPages = userPages.filter(p => p.business_type === 'marketplace');
       setMarketplacePages(mktPages);
 
       // Default company name if user has profile info
-      setCompanyName(profile.full_name || profile.username || '');
+      setCompanyName(profile?.full_name || profile?.username || userMeta.full_name || userMeta.username || '');
 
       setLoading(false);
     };
@@ -165,30 +160,6 @@ export default function SellPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isBusiness) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 dark:bg-black px-4">
-        <div className="max-w-md w-full bg-white dark:bg-[#181818] rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Package className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Selling is for Business Accounts
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm">
-            Currently, registered business accounts can list items, jobs, and services for sale on ListMe with 0% success fees.
-          </p>
-          <button 
-            onClick={() => router.push('/my-listme')}
-            className="w-full py-3 px-4 bg-primary hover:bg-green-700 text-white font-bold rounded-xl transition-colors text-sm shadow-xs cursor-pointer"
-          >
-            Upgrade to Business Account
-          </button>
-        </div>
       </div>
     );
   }
