@@ -9,89 +9,149 @@ import { getMemberNumber } from '@/utils/irelandLocations';
 import Stripe from 'stripe';
 
 export async function updateAccountType(newType: 'personal' | 'business') {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Not authenticated' };
-  }
-
-  if (newType === 'business') {
-    const userPhone = user.user_metadata?.phone || user.phone;
-    if (!userPhone || !userPhone.trim()) {
-      return { 
-        error: 'A phone number is required before switching to a Business account.',
-        requiresPhone: true 
-      };
+    if (!user) {
+      return { error: 'Not authenticated' };
     }
-    const phoneVal = validatePhoneNumber(userPhone);
-    if (!phoneVal.isValid) {
-      return {
-        error: 'A valid phone number format is required before switching to a Business account.',
-        requiresPhone: true
-      };
+
+    if (newType === 'business') {
+      const userPhone = user.user_metadata?.phone || user.phone;
+      if (!userPhone || !userPhone.trim()) {
+        return { 
+          error: 'A phone number is required before switching to a Business account.',
+          requiresPhone: true 
+        };
+      }
+      const phoneVal = validatePhoneNumber(userPhone);
+      if (!phoneVal.isValid) {
+        return {
+          error: 'A valid phone number format is required before switching to a Business account.',
+          requiresPhone: true
+        };
+      }
     }
+
+    let updateError: string | null = null;
+
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      const adminClient = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+
+      const [profRes, authRes] = await Promise.all([
+        adminClient
+          .from('profiles')
+          .update({ 
+            account_type: newType, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', user.id),
+        adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...(user.user_metadata || {}),
+            account_type: newType,
+          }
+        })
+      ]);
+
+      if (profRes.error) {
+        updateError = profRes.error.message;
+      }
+    } else {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          account_type: newType, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
+      if (error) updateError = error.message;
+
+      await supabase.auth.updateUser({
+        data: { account_type: newType }
+      });
+    }
+
+    if (updateError) {
+      return { error: updateError };
+    }
+
+    revalidatePath('/my-listme');
+    revalidatePath(`/member/${getMemberNumber(user.id)}`);
+    revalidatePath(`/member/${user.id}`);
+    return { success: true };
+  } catch (err: any) {
+    console.error('updateAccountType failure:', err);
+    return { error: err.message || 'Failed to update account type. Please try again.' };
   }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ account_type: newType })
-    .eq('id', user.id);
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  // Revalidate the profile page so it shows the new data
-  revalidatePath('/my-listme');
-  return { success: true };
 }
 
 export async function upgradeToBusinessWithPhone(phone: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { error: 'Not authenticated' };
-  }
-
-  const phoneValidation = validatePhoneNumber(phone);
-  if (!phoneValidation.isValid) {
-    return { error: phoneValidation.error || 'Please enter a valid phone number format.' };
-  }
-
-  const normalizedPhone = phoneValidation.e164 || phone.trim();
-
-  // 1. Update user_metadata with the phone number
-  const { error: authError } = await supabase.auth.updateUser({
-    data: {
-      phone: normalizedPhone,
+    if (!user) {
+      return { error: 'Not authenticated' };
     }
-  });
 
-  if (authError) {
-    return { error: authError.message };
+    const phoneValidation = validatePhoneNumber(phone);
+    if (!phoneValidation.isValid) {
+      return { error: phoneValidation.error || 'Please enter a valid phone number format.' };
+    }
+
+    const normalizedPhone = phoneValidation.e164 || phone.trim();
+
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      const adminClient = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+
+      await Promise.all([
+        adminClient.from('profiles').update({ 
+          account_type: 'business',
+          updated_at: new Date().toISOString() 
+        }).eq('id', user.id),
+        adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...(user.user_metadata || {}),
+            phone: normalizedPhone,
+            account_type: 'business',
+          }
+        })
+      ]);
+    } else {
+      await supabase.auth.updateUser({
+        data: {
+          phone: normalizedPhone,
+          account_type: 'business',
+        }
+      });
+      await supabase
+        .from('profiles')
+        .update({ 
+          account_type: 'business',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
+    }
+
+    revalidatePath('/my-listme');
+    revalidatePath(`/member/${getMemberNumber(user.id)}`);
+    revalidatePath(`/member/${user.id}`);
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('upgradeToBusinessWithPhone failure:', err);
+    return { error: err.message || 'Failed to upgrade to business account.' };
   }
-
-  // 2. Upgrade account_type to 'business'
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ 
-      account_type: 'business',
-      updated_at: new Date().toISOString() 
-    })
-    .eq('id', user.id);
-
-  if (profileError) {
-    return { error: profileError.message };
-  }
-
-  revalidatePath('/my-listme');
-  revalidatePath('/my-listme', 'layout');
-  revalidatePath('/', 'layout');
-
-  return { success: true };
 }
 
 export interface ProfileData {
