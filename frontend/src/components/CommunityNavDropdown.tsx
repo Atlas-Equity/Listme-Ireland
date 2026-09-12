@@ -6,19 +6,7 @@ import { Users, ChevronDown, BellRing, HelpCircle, BarChart3, ArrowRight } from 
 
 export default function CommunityNavDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setIsOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setIsOpen(false);
-    }, 150);
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,29 +19,22 @@ export default function CommunityNavDropdown() {
   }, []);
 
   return (
-    <div 
-      ref={menuRef}
-      className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <Link 
-        href="/community" 
-        className={`group flex items-center h-11 text-sm font-medium transition-colors ${
+    <div ref={menuRef} className="relative">
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`group flex items-center h-11 text-sm font-medium transition-colors cursor-pointer ${
           isOpen ? 'text-primary dark:text-white' : 'text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white'
         }`}
       >
         <Users className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> 
         <span>Community</span>
         <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : 'text-gray-400'}`} />
-      </Link>
+      </button>
 
       {/* Flyout Menu */}
       {isOpen && (
         <div className="absolute top-full left-0 w-72 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="px-3 py-1.5 border-b border-gray-100 dark:border-zinc-800 mb-1">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">ListMe Community</p>
-          </div>
 
           <Link
             href="/community#announcements"

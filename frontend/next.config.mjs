@@ -66,7 +66,35 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'cdn.discordapp.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media.discordapp.net',
+        port: '',
+        pathname: '/**',
+      },
     ],
+  },
+  turbopack: {
+    root: '/home/sahleyis/Documents/Listme',
+  },
+  async headers() {
+    return [
+      {
+        source: '/clover-logo.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 };
 

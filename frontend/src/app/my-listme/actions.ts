@@ -335,6 +335,20 @@ export async function saveLinkedCardAction(card: LinkedCardData) {
     try {
       const stripe = new Stripe(stripeKey);
 
+      // Verify that card funding is strictly 'credit' for scam prevention & chargeback guarantees
+      if (stripePaymentMethodId) {
+        try {
+          const pm = await stripe.paymentMethods.retrieve(stripePaymentMethodId);
+          if (pm.card && pm.card.funding && pm.card.funding !== 'credit') {
+            return {
+              error: `ListMe strictly requires a Credit Card for seller scam prevention and chargeback protection. The card you entered is a ${pm.card.funding} card.`
+            };
+          }
+        } catch (checkErr: any) {
+          console.warn('Stripe card funding check note:', checkErr.message);
+        }
+      }
+
       if (!stripeCustomerId && user.email) {
         const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
         if (existingCustomers.data && existingCustomers.data.length > 0) {
@@ -674,4 +688,44 @@ export async function payForListingAction(
   return { success: true, listingId: listing.id, total: totalAmount };
 }
 
+export async function purchaseVerificationAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    return { error: 'Not authenticated' };
+  }
+
+  const currentCredit = Number(user.user_metadata?.account_credit || 0);
+  const VERIFY_FEE = 19.99;
+  let newCredit = currentCredit;
+  if (currentCredit >= VERIFY_FEE) {
+    newCredit = Math.round((currentCredit - VERIFY_FEE) * 100) / 100;
+  }
+
+  const { error: authError } = await supabase.auth.updateUser({
+    data: {
+      is_verified: true,
+      verified_at: new Date().toISOString(),
+      verification_type: 'paid',
+      account_credit: newCredit,
+    }
+  });
+
+  if (authError) {
+    return { error: authError.message };
+  }
+
+  try {
+    await supabase
+      .from('profiles')
+      .update({ is_verified: true })
+      .eq('id', user.id);
+  } catch {
+    // metadata is source of truth
+  }
+
+  revalidatePath('/my-listme');
+  revalidatePath(`/member/${user.id}`);
+  return { success: true };
+}

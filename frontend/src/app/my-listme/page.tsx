@@ -43,6 +43,8 @@ import MakeOfferButton from '@/components/MakeOfferButton';
 import LinkedCardCard from '@/components/LinkedCardCard';
 import RelistNotificationCard from '@/components/RelistNotificationCard';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
+import VerifiedBadge from '@/components/VerifiedBadge';
+import VerifyAccountButton from './VerifyAccountButton';
 import TradeMeSettingsSections from './TradeMeSettingsSections';
 import DeleteListingButton from '@/components/DeleteListingButton';
 import ClearAllNotificationsButton from '@/components/ClearAllNotificationsButton';
@@ -307,6 +309,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
   const memberSinceDate = user.created_at ? new Date(user.created_at) : new Date(2023, 0, 1);
   const memberSinceFormatted = format(memberSinceDate, 'EEEE, d MMMM yyyy');
+  const isOneYearOld = Date.now() - memberSinceDate.getTime() >= 365 * 24 * 60 * 60 * 1000;
+  const isExplicitlyVerified = Boolean(userMetadata?.is_verified || profile?.is_verified);
+  const isVerified = isOneYearOld || isExplicitlyVerified;
 
   // Review statistics
   const userReviews = reviewsRes.data || [];
@@ -428,9 +433,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                    {displayName}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                      {displayName}
+                    </p>
+                    {isVerified && <VerifiedBadge size="sm" />}
+                  </div>
                   <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
                     Member #{memberNumber}
                   </p>
@@ -667,9 +675,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         <span className="font-bold text-gray-900 dark:text-white">
                           {coreLocation}, Ireland
                         </span>
-                        <span className="text-[10px] text-gray-400 italic">
-                          (Locked to 26 core counties)
-                        </span>
                       </div>
                     </div>
 
@@ -693,6 +698,44 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                           Protected Member (Phone &amp; Email Verified)
                         </span>
+                      </div>
+                    </div>
+
+                    {/* Account Verification (Cute Verified Checkmark & 1-Year or €19.99 Upgrade) */}
+                    <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 dark:border-zinc-800/80">
+                      <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
+                        Account Verification
+                      </span>
+                      <div className="sm:w-2/3">
+                        {isVerified ? (
+                          <div className="flex items-center gap-2.5">
+                            <VerifiedBadge size="md" />
+                            <div>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                                Verified Account • Safe to Trade With
+                              </span>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                {isOneYearOld 
+                                  ? 'Platform Veteran (1+ Year Active Member — Personally verified by ListMe)'
+                                  : 'Personally Verified by ListMe'}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
+                            <div>
+                              <span className="text-gray-700 dark:text-gray-300 font-bold text-xs">
+                                Standard Member
+                              </span>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                                Accounts active for 1 year are verified for free. Or unlock immediate verification now.
+                              </p>
+                            </div>
+                            <div className="shrink-0">
+                              <VerifyAccountButton />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 

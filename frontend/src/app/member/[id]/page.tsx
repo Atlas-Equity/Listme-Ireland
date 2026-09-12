@@ -19,6 +19,11 @@ import { format } from 'date-fns';
 import { ListingCard } from '@/components/ListingCard';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
+import { cookies } from 'next/headers';
+import VerifiedBadge from '@/components/VerifiedBadge';
+
+// Cache member profiles for 60s
+export const revalidate = 60;
 
 interface MemberPageProps {
   params: Promise<{ id: string }>;
@@ -30,10 +35,12 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const sParams = await searchParams;
   const activeTab = (typeof sParams?.tab === 'string' ? sParams.tab : 'listings').toLowerCase();
 
+  const cookieStore = await cookies();
+  const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
   const supabase = await createClient();
 
-  // 1. Get current logged-in user
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  // 1. Get current logged-in user (only if session cookie present)
+  const currentUser = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null;
 
   // 2. Fetch profile by UUID or username or deterministic member ID match
   let profileQuery = supabase.from('profiles').select('*');
@@ -97,6 +104,9 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   // Dates
   const memberSinceDate = profile.created_at ? new Date(profile.created_at) : (profile.updated_at ? new Date(profile.updated_at) : new Date(2023, 0, 1));
   const memberSinceFormatted = format(memberSinceDate, 'EEEE, d MMMM yyyy');
+  const isOneYearOld = Date.now() - memberSinceDate.getTime() >= 365 * 24 * 60 * 60 * 1000;
+  const isExplicitlyVerified = Boolean(profile.is_verified || (profile as any)?.user_metadata?.is_verified);
+  const isVerified = isOneYearOld || isExplicitlyVerified;
 
   // Feedback calculation
   const totalReviews = reviews.length;
@@ -151,9 +161,16 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
                       {displayName}
                     </h1>
-                    <span title="Verified Member" className="text-primary inline-flex">
-                      <CheckCircle2 className="w-5 h-5 fill-primary text-white dark:text-black" />
-                    </span>
+                    {isVerified && (
+                      <VerifiedBadge
+                        size="md"
+                        tooltipText={
+                          isOneYearOld
+                            ? 'Verified Account • Safe to Trade With (1+ Year Active Platform Veteran)'
+                            : 'Verified Account • Safe to Trade With (Personally verified by ListMe)'
+                        }
+                      />
+                    )}
                   </div>
 
                   <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">
@@ -212,11 +229,20 @@ export default async function MemberProfilePage({ params, searchParams }: Member
 
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-100 dark:border-zinc-800/80">
                 <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
+                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Authentication Status</div>
-                  <div className="font-bold text-gray-900 dark:text-white">Email Verified & Protected</div>
+                  <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    {isVerified ? (
+                      <>
+                        <VerifiedBadge size="xs" />
+                        <span>Verified Safe Trader</span>
+                      </>
+                    ) : (
+                      <span>Phone &amp; Email Protected</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

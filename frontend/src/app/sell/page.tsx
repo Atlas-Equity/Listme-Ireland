@@ -20,7 +20,9 @@ import {
   Store,
   Building2,
   Euro,
-  FileText
+  FileText,
+  ShieldCheck,
+  CreditCard
 } from 'lucide-react';
 import { uploadListingImage } from '@/utils/supabase/storage';
 import { createListing } from './actions';
@@ -68,6 +70,7 @@ export default function SellPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [isBusiness, setIsBusiness] = useState(false);
+  const [hasCreditCard, setHasCreditCard] = useState(false);
   const [marketplacePages, setMarketplacePages] = useState<BusinessPageData[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +137,15 @@ export default function SellPage() {
         return;
       }
 
+      // Check linked credit card requirement
+      const linkedCard = user.user_metadata?.linked_card;
+      const cardValid = Boolean(
+        linkedCard && 
+        Array.isArray(linkedCard.cardNumberBlocks) && 
+        linkedCard.cardNumberBlocks.length === 4
+      );
+      setHasCreditCard(cardValid);
+
       setIsBusiness(true);
 
       // Check owned marketplace pages in metadata
@@ -161,7 +173,7 @@ export default function SellPage() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 dark:bg-black px-4">
         <div className="max-w-md w-full bg-white dark:bg-[#181818] rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800 p-8 text-center">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Package className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
@@ -176,6 +188,39 @@ export default function SellPage() {
           >
             Upgrade to Business Account
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasCreditCard) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 dark:bg-black px-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#181818] rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800 p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
+            <CreditCard className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            Verified Credit Card Required
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed">
+            To prevent fraud, protect Irish buyers, and ensure scam chargeback security, all sellers must have a verified Credit Card linked before listing items, jobs, or services.
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => router.push('/my-listme?tab=account')}
+              className="w-full py-3 px-4 bg-primary hover:bg-green-700 text-white font-bold rounded-xl transition-colors text-sm shadow-xs cursor-pointer flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Link Credit Card in Account Details</span>
+            </button>
+            <button 
+              onClick={() => router.push('/')}
+              className="w-full py-2.5 px-4 bg-transparent hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl transition-colors text-xs cursor-pointer"
+            >
+              Return to Homepage
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -50,7 +50,6 @@ export default function LinkedCardCard({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formHolderName, setFormHolderName] = useState(defaultCardholderName);
   const [formNickname, setFormNickname] = useState('Personal Visa');
-  const [formPin, setFormPin] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -62,10 +61,9 @@ export default function LinkedCardCard({
 
   // Top Up state
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState('25');
+  const [topUpAmount, setTopUpAmount] = useState('50');
   const [customTopUp, setCustomTopUp] = useState('');
   const [currentCredit, setCurrentCredit] = useState(accountBalance);
-  const [topUpPin, setTopUpPin] = useState('');
   const [topUpMethod, setTopUpMethod] = useState<'saved_card' | 'stripe_checkout'>('saved_card');
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [topUpError, setTopUpError] = useState<string | null>(null);
@@ -120,7 +118,6 @@ export default function LinkedCardCard({
   const handleOpenAddModal = () => {
     setFormHolderName(card ? card.cardholderName : defaultCardholderName);
     setFormNickname(card ? card.cardNickname : 'Personal Visa');
-    setFormPin(card?.pin || '');
     setFormError(null);
     setIsStripeReady(false);
     setIsModalOpen(true);
@@ -193,11 +190,6 @@ export default function LinkedCardCard({
       return;
     }
 
-    if (formPin && (formPin.length < 4 || !/^\d{4}$/.test(formPin))) {
-      setFormError('Security PIN must be exactly 4 digits.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     // 1. Client-Side Tokenization via Stripe.js Elements
@@ -218,6 +210,14 @@ export default function LinkedCardCard({
         }
 
         const cardData = paymentMethod.card;
+
+        // Strictly enforce Credit Card funding for scam protection & chargeback capability
+        if (cardData?.funding && cardData.funding !== 'credit') {
+          setFormError(`ListMe strictly requires a Credit Card for seller scam prevention and chargeback protection. The card entered is a ${cardData.funding} card. Debit or prepaid cards cannot be accepted.`);
+          setIsSubmitting(false);
+          return;
+        }
+
         const brand = (cardData?.brand || 'VISA').toUpperCase();
         const last4 = cardData?.last4 || '1234';
         const expMonth = String(cardData?.exp_month || 12).padStart(2, '0');
@@ -232,7 +232,6 @@ export default function LinkedCardCard({
           brand,
           stripePaymentMethodId: paymentMethod.id,
           isStripeVaulted: true,
-          pin: formPin || undefined,
         };
 
         const res = await saveLinkedCardAction(newCardData);
@@ -328,7 +327,6 @@ export default function LinkedCardCard({
         body: JSON.stringify({
           amount: finalAmt,
           useSavedCard,
-          pin: topUpPin || undefined,
         }),
       });
 
@@ -344,7 +342,6 @@ export default function LinkedCardCard({
           } catch {}
 
           setTopUpSuccess(true);
-          setTopUpPin('');
           setCustomTopUp('');
           setSuccessToast(data.message || `Charged €${finalAmt.toFixed(2)} directly to your saved card!`);
           setTimeout(() => {
@@ -372,7 +369,7 @@ export default function LinkedCardCard({
 
       // If Stripe secret key is not configured locally, provide graceful dev fallback
       if (data?.unconfigured) {
-        const fallbackRes = await topUpAccountCreditAction(finalAmt, topUpPin);
+        const fallbackRes = await topUpAccountCreditAction(finalAmt);
         if (fallbackRes.error) {
           setTopUpError(fallbackRes.error);
           setTopUpLoading(false);
@@ -386,7 +383,6 @@ export default function LinkedCardCard({
         } catch {}
 
         setTopUpSuccess(true);
-        setTopUpPin('');
         setCustomTopUp('');
         setSuccessToast(`(Dev Mode) Deposited €${finalAmt.toFixed(2)} test credit. In production, Stripe Checkout will charge your real card.`);
         setTimeout(() => {
@@ -523,26 +519,6 @@ export default function LinkedCardCard({
               </p>
             </div>
           )}
-
-          {isCardLinked && (
-            <button
-              type="button"
-              onClick={() => setShowFullNumber(!showFullNumber)}
-              className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
-            >
-              {showFullNumber ? (
-                <>
-                  <EyeOff className="w-3.5 h-3.5" />
-                  <span>Mask number</span>
-                </>
-              ) : (
-                <>
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>Reveal card number</span>
-                </>
-              )}
-            </button>
-          )}
         </div>
 
         {/* Card Footer: Expiration + Cardholder + Brand Logo */}
@@ -617,25 +593,25 @@ export default function LinkedCardCard({
       {/* 2. Security & Compliance Neutral Badges */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         
-        {/* PIN Protection Info */}
-        <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60">
-          <div className="flex items-center gap-2 mb-1 text-sm font-bold text-gray-900 dark:text-white">
-            <Lock className="w-4 h-4 text-primary" />
-            <span>PIN Authorized Protection</span>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            Card operations require your 4-digit security PIN for instant one-click bids and checkouts.
-          </p>
-        </div>
-
-        {/* CVV & Expiry Verified Card Tokenization */}
+        {/* Credit Card Anti-Scam Protection */}
         <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60">
           <div className="flex items-center gap-2 mb-1 text-sm font-bold text-gray-900 dark:text-white">
             <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Encrypted CVV &amp; Expiry Verification</span>
+            <span>Credit Card Anti-Scam Protection</span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-            Actual cards are verified with 3-digit CVV and expiration date under 256-bit encryption for authentic fraud prevention.
+            Linked cards are verified as authentic Credit Cards for chargeback security against scammers and 1-click safe trading.
+          </p>
+        </div>
+
+        {/* 256-Bit Stripe Tokenization */}
+        <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-2 mb-1 text-sm font-bold text-gray-900 dark:text-white">
+            <Lock className="w-4 h-4 text-primary" />
+            <span>Stripe 256-Bit Vault Tokenization</span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Card credentials remain securely encrypted with Stripe PCI Level 1 infrastructure. Unmasked numbers never touch our servers.
           </p>
         </div>
 
@@ -715,16 +691,16 @@ export default function LinkedCardCard({
             <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Choose Amount
             </label>
-            <div className="flex gap-2">
-              {['10', '25', '50', '100'].map((amt) => (
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {['25', '50', '100', '250', '500', '1000'].map((amt) => (
                 <button
                   key={amt}
                   type="button"
                   onClick={() => { setTopUpAmount(amt); setCustomTopUp(''); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                  className={`py-2 px-2 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
                     topUpAmount === amt && !customTopUp
                       ? 'border-primary bg-primary/10 text-primary dark:text-green-400'
-                      : 'border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300'
+                      : 'border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:border-gray-400'
                   }`}
                 >
                   €{amt}
@@ -738,37 +714,22 @@ export default function LinkedCardCard({
             <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Or Enter Custom Amount (€)
             </label>
-            <input
-              type="number"
-              min="1"
-              max="5000"
-              step="1"
-              value={customTopUp}
-              onChange={(e) => setCustomTopUp(e.target.value)}
-              placeholder="e.g. 75"
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary font-mono"
-            />
-          </div>
-
-          {/* Card PIN (optional confirmation) */}
-          {card?.pin && (
-            <div>
-              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                Enter 4-Digit Security PIN (Optional for registered card)
-              </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-sm font-bold text-gray-400 pointer-events-none">
+                €
+              </span>
               <input
-                type="password"
-                maxLength={4}
-                value={topUpPin}
-                onChange={(e) => setTopUpPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="••••"
-                className="w-32 px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-center font-mono text-sm tracking-widest text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary"
+                type="number"
+                min="5"
+                max="25000"
+                step="1"
+                value={customTopUp}
+                onChange={(e) => setCustomTopUp(e.target.value)}
+                placeholder="e.g. 500, 1500, 5000 (No limit for verified accounts)"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-primary font-mono"
               />
-              <p className="text-[10px] text-gray-400 mt-1">
-                Security verification for Visa •• {last4}
-              </p>
             </div>
-          )}
+          </div>
 
           {/* Payment Method Selector */}
           {isCardLinked && (
@@ -984,24 +945,6 @@ export default function LinkedCardCard({
                   placeholder="e.g. Everyday Visa, Personal Card"
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
-              </div>
-
-              {/* 4-Digit PIN */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  4-Digit Security PIN (For Quick Authorization)
-                </label>
-                <input
-                  type="password"
-                  value={formPin}
-                  onChange={(e) => setFormPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="••••"
-                  maxLength={4}
-                  className="w-32 px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-center font-mono text-base tracking-widest focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                  Used instead of passwords to confirm instant bids and checkouts.
-                </p>
               </div>
 
               {/* PCI-DSS Security Callout */}

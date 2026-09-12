@@ -14,16 +14,23 @@ import MakeOfferButton from '@/components/MakeOfferButton';
 import ServiceFeeModal from '@/components/ServiceFeeModal';
 import DeleteListingButton from '@/components/DeleteListingButton';
 import { getCoreLocation } from '@/utils/irelandLocations';
+import { cookies } from 'next/headers';
+import VerifiedBadge from '@/components/VerifiedBadge';
+
+// Cache listing page for 60s for blazing fast instant loads
+export const revalidate = 60;
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
   
+  const cookieStore = await cookies();
+  const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
   const supabase = await createClient();
 
-  // Parallel Phase 1: Fetch user and listing simultaneously
+  // Parallel Phase 1: Fetch user (only if session cookie exists) and listing simultaneously
   const [userResult, listingResult] = await Promise.all([
-    supabase.auth.getUser(),
+    hasAuthCookie ? supabase.auth.getUser() : Promise.resolve({ data: { user: null } }),
     supabase.from('listings').select('*').eq('id', id).single()
   ]);
 
@@ -46,7 +53,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     watchlistResult,
     favouriteResult
   ] = await Promise.all([
-    supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url').eq('id', listing.seller_id).maybeSingle(),
+    supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url, created_at, is_verified').eq('id', listing.seller_id).maybeSingle(),
     supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id),
     isAuction 
       ? supabase.from('bids').select('amount', { count: 'exact' }).eq('listing_id', id).order('amount', { ascending: false }).limit(1)
@@ -69,6 +76,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const sellerInitial = sellerDisplayName.charAt(0).toUpperCase();
   const memberSinceDate = seller?.updated_at ? new Date(seller.updated_at) : (listing.created_at ? new Date(listing.created_at) : new Date());
   const memberSinceText = format(memberSinceDate, 'MMMM yyyy');
+  const isSellerOneYearOld = seller?.created_at ? Date.now() - new Date(seller.created_at).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
+  const isSellerVerified = Boolean(isSellerOneYearOld || seller?.is_verified || (seller as any)?.user_metadata?.is_verified);
 
   // Auction Buy Now Price: check buy_now_price column or parse tag from description
   const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
@@ -351,6 +360,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 <div className="min-w-0">
                   <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1 group-hover:text-primary transition-colors">
                     <span className="truncate">{sellerDisplayName}</span>
+                    {isSellerVerified && <VerifiedBadge size="xs" />}
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </div>
                   <div className="text-xs text-gray-700 dark:text-gray-300">
@@ -388,8 +398,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
                   )}
                 </div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1">
-                  {sellerDisplayName}
+                <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1.5">
+                  <span>{sellerDisplayName}</span>
+                  {isSellerVerified && <VerifiedBadge size="sm" />}
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
               </Link>

@@ -5,22 +5,43 @@ import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Brief
 import { ThemeToggle } from './ThemeToggle';
 import { MobileMenu } from './MobileMenu';
 import CommunityNavDropdown from './CommunityNavDropdown';
+import { cookies } from 'next/headers';
+import VerifiedBadge from './VerifiedBadge';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function Header() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
 
+  let user: any = null;
   let isBusiness = false;
   let avatarUrl: string | undefined = undefined;
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('account_type, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
-    isBusiness = profile?.account_type === 'business';
-    avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
+  let isVerified = false;
+
+  if (hasAuthCookie) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
+
+    if (user) {
+      avatarUrl = user.user_metadata?.avatar_url;
+      isBusiness = user.user_metadata?.account_type === 'business';
+      isVerified = Boolean(user.user_metadata?.is_verified);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('account_type, avatar_url, created_at, is_verified')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile) {
+        if (profile.account_type) isBusiness = profile.account_type === 'business';
+        if (profile.avatar_url) avatarUrl = profile.avatar_url;
+        const createdAt = profile.created_at || user.created_at;
+        const isOneYearOld = createdAt ? Date.now() - new Date(createdAt).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
+        isVerified = Boolean(isOneYearOld || profile.is_verified || user.user_metadata?.is_verified);
+      }
+    }
   }
 
   return (
@@ -32,7 +53,7 @@ export default async function Header() {
             
             {/* Logo & Mobile Menu */}
             <div className="flex-shrink-0 flex items-center gap-3">
-              <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} />
+              <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} isVerified={isVerified} />
               <Link href="/" className="relative flex items-center ml-1 lg:ml-0 gap-2">
                 <span className="font-extrabold text-4xl tracking-tight text-primary">
                   List<span className="text-black dark:text-white transition-colors">me</span>
@@ -85,7 +106,10 @@ export default async function Header() {
                     ) : (
                       <User className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                     )}
-                    <span className="max-w-[80px] truncate">Hi, {user.user_metadata?.username || user.email?.split('@')[0]}</span>
+                    <span className="max-w-[100px] truncate flex items-center gap-1">
+                      <span>Hi, {user.user_metadata?.username || user.email?.split('@')[0]}</span>
+                      {isVerified && <VerifiedBadge size="xs" />}
+                    </span>
                   </Link>
                   <form action="/auth/signout" method="POST" className="flex flex-col items-center">
                     <button type="submit" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">

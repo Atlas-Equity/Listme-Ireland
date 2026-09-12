@@ -23,10 +23,11 @@ import {
   Bell,
 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import VerifiedBadge from './VerifiedBadge';
 
 interface MobileMenuProps {
   user: {
-    id: string;
+    id?: string;
     email?: string;
     user_metadata?: {
       username?: string;
@@ -36,9 +37,10 @@ interface MobileMenuProps {
   } | null;
   isBusiness: boolean;
   avatarUrl?: string;
+  isVerified?: boolean;
 }
 
-export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: MobileMenuProps) {
+export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerified }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -147,9 +149,12 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl }: Mobil
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                          {displayName}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                            {displayName}
+                          </p>
+                          {isVerified && <VerifiedBadge size="sm" />}
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {user.email}
                         </p>

@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accountType, setAccountType] = useState<'personal' | 'business'>('personal');
   const [phone, setPhone] = useState('');
+  const [notifyTosUpdates, setNotifyTosUpdates] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,20 +42,26 @@ export default function RegisterPage() {
 
     let validatedPhoneE164: string | undefined = undefined;
 
-    if (accountType === 'business' && !phone.trim()) {
-      setError("A valid contact phone number is required for business accounts.");
+    const trimmedPhone = phone.trim();
+    if (accountType === 'business' && !trimmedPhone) {
+      setError("A valid contact phone number is required for business accounts (locked to Ireland +353).");
       setLoading(false);
       return;
     }
 
-    if (phone.trim()) {
-      const phoneValidation = validatePhoneNumber(phone.trim());
+    if (trimmedPhone) {
+      // Ensure Irish prefix is applied to the raw number
+      const formattedInput = trimmedPhone.startsWith('+353')
+        ? trimmedPhone
+        : `+353 ${trimmedPhone.replace(/^0/, '').trim()}`;
+
+      const phoneValidation = validatePhoneNumber(formattedInput);
       if (!phoneValidation.isValid) {
-        setError(phoneValidation.error || "Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).");
+        setError(phoneValidation.error || "Please enter a valid Irish phone number (e.g. 87 123 4567).");
         setLoading(false);
         return;
       }
-      validatedPhoneE164 = phoneValidation.e164 || phone.trim();
+      validatedPhoneE164 = phoneValidation.e164 || formattedInput;
     }
 
     const { error, data } = await supabase.auth.signUp({
@@ -65,6 +72,7 @@ export default function RegisterPage() {
           username: username,
           account_type: accountType,
           phone: validatedPhoneE164 || undefined,
+          tos_updates_notify: notifyTosUpdates,
         }
       }
     });
@@ -253,44 +261,49 @@ export default function RegisterPage() {
                   </span>
                 )}
               </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="phone"
-                  type="tel"
-                  required={accountType === 'business'}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className={`block w-full pl-10 pr-10 px-3 py-2 border rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 sm:text-sm transition-colors ${
-                    phone.trim() && !validatePhoneNumber(phone).isValid
-                      ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400 focus:border-red-400'
-                      : accountType === 'business' && !phone.trim()
-                      ? 'border-amber-400 dark:border-amber-600/70 focus:ring-amber-400'
-                      : 'border-gray-300 dark:border-zinc-700 focus:ring-primary focus:border-primary'
-                  }`}
-                  placeholder="+353 87 123 4567"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  {phone.trim() ? (
-                    validatePhoneNumber(phone).isValid ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                    )
-                  ) : null}
+              <div className="flex rounded-md shadow-sm">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold text-sm select-none">
+                  🇮🇪 +353
+                </span>
+                <div className="relative flex-1">
+                  <input
+                    id="phone"
+                    type="tel"
+                    required={accountType === 'business'}
+                    value={phone.replace(/^\+353\s?/, '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/^\+?353\s?/, '');
+                      setPhone(val ? `+353 ${val.trim()}` : '');
+                    }}
+                    className={`block w-full rounded-none rounded-r-md px-3 py-2 border bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 sm:text-sm transition-colors ${
+                      phone.trim() && !validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`).isValid
+                        ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400 focus:border-red-400'
+                        : accountType === 'business' && !phone.trim()
+                        ? 'border-amber-400 dark:border-amber-600/70 focus:ring-amber-400'
+                        : 'border-gray-300 dark:border-zinc-700 focus:ring-primary focus:border-primary'
+                    }`}
+                    placeholder="87 123 4567"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    {phone.trim() ? (
+                      validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`).isValid ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      )
+                    ) : null}
+                  </div>
                 </div>
               </div>
-              {phone.trim() && !validatePhoneNumber(phone).isValid ? (
+              {phone.trim() && !validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`).isValid ? (
                 <p className="text-xs text-red-500 mt-1">
-                  {validatePhoneNumber(phone).error || 'Please enter a valid phone number (e.g. +353 87 123 4567).'}
+                  {validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`).error || 'Please enter a valid Irish mobile/landline (e.g. 87 123 4567).'}
                 </p>
-              ) : accountType === 'business' ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Required for business accounts to allow customer communication & seller verification.
+              ) : (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                  Prefix +353 is locked to Republic of Ireland numbers.
                 </p>
-              ) : null}
+              )}
             </div>
 
             <div>
@@ -333,10 +346,42 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Legal Agreement & TOS Notification Checkbox */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-2.5">
+                <input
+                  id="notify-tos"
+                  type="checkbox"
+                  checked={notifyTosUpdates}
+                  onChange={(e) => setNotifyTosUpdates(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-zinc-700 text-primary focus:ring-primary cursor-pointer accent-primary"
+                />
+                <label htmlFor="notify-tos" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none leading-normal">
+                  Receive notifications about Terms of Service and Privacy Policy updates in your ListMe inbox
+                </label>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed text-center sm:text-left">
+                By signing up you agree to our{' '}
+                <Link href="/terms" className="font-semibold text-primary hover:underline">
+                  Terms of Service
+                </Link>
+                ,{' '}
+                <Link href="/privacy" className="font-semibold text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+                , and{' '}
+                <Link href="/buyer-protection" className="font-semibold text-primary hover:underline">
+                  Buyer Protection
+                </Link>
+                .
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50 cursor-pointer"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>

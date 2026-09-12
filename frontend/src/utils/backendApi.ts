@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient as createStatelessClient } from '@supabase/supabase-js';
 
 export interface ListingCardData {
   id: string;
@@ -13,14 +13,27 @@ export interface ListingCardData {
   ends_at?: string;
 }
 
+const publicSupabase = createStatelessClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 const JAVA_BACKEND_URL = (process.env.JAVA_BACKEND_URL || 'https://listme-u0k4.onrender.com').replace(/\/$/, '');
 
-// In-memory memory cache with TTL for blazing fast server-side responses
+// In-memory cache with TTL persisted across hot-reloads on globalThis
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
 }
-const memoryCache = new Map<string, CacheEntry<any>>();
+
+const globalForCache = globalThis as unknown as {
+  listmeMemoryCache?: Map<string, CacheEntry<any>>;
+};
+
+const memoryCache = globalForCache.listmeMemoryCache ?? new Map<string, CacheEntry<any>>();
+if (!globalForCache.listmeMemoryCache) {
+  globalForCache.listmeMemoryCache = memoryCache;
+}
 
 function getCached<T>(key: string): T | null {
   const entry = memoryCache.get(key);
@@ -39,11 +52,12 @@ function setCached<T>(key: string, data: T, ttlSeconds: number): void {
   });
 }
 
-// Circuit breaker for Java backend: if it fails once, skip for 60s to avoid latency
+// Circuit breaker for Java backend: disabled by default to avoid Render cold-start latency
 let javaBackendAvailable = true;
 let lastJavaBackendCheck = 0;
 
 function canAttemptJavaBackend(): boolean {
+  if (process.env.ENABLE_JAVA_BACKEND !== 'true') return false;
   if (!JAVA_BACKEND_URL) return false;
   if (javaBackendAvailable) return true;
   if (Date.now() - lastJavaBackendCheck > 60000) {
@@ -75,7 +89,7 @@ function normalizeListing(item: any): ListingCardData {
 
 /**
  * High-speed home page listings loader.
- * Serves from in-memory cache in <1ms, or queries Java backend / Supabase.
+ * Serves from global in-memory cache in <1ms, or runs a single consolidated Supabase query.
  */
 export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; auctions: ListingCardData[] }> {
   const cacheKey = 'home_listings';
@@ -84,7 +98,7 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
     return cached;
   }
 
-  // 1. Try Java Spring Boot backend if available
+  // 1. Try Java Spring Boot backend if explicitly enabled
   if (canAttemptJavaBackend()) {
     try {
       const controller = new AbortController();
@@ -111,27 +125,25 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
     }
   }
 
-  // 2. Direct Supabase fallback with lean columns
-  const supabase = await createClient();
-  const [latestResult, auctionResult] = await Promise.all([
-    supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(4),
-    supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
-      .eq('status', 'active')
-      .ilike('price_type', 'Auction')
-      .order('created_at', { ascending: false })
-      .limit(4),
-  ]);
+  // 2. Direct Supabase query: fetch top 20 active listings in a single round-trip
+  const { data: listingsData } = await publicSupabase
+    .from('listings')
+    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  const allListings = (listingsData || []).map(normalizeListing);
+
+  const auctions = allListings
+    .filter(l => l.price_type?.toLowerCase() === 'auction')
+    .slice(0, 4);
+
+  const latest = allListings.slice(0, 4);
 
   const result = {
-    latest: (latestResult.data || []).map(normalizeListing),
-    auctions: (auctionResult.data || []).map(normalizeListing),
+    latest,
+    auctions,
   };
 
   setCached(cacheKey, result, 30);
@@ -173,8 +185,7 @@ export async function fetchCategoryListings(categoryName: string): Promise<Listi
     }
   }
 
-  const supabase = await createClient();
-  const { data } = await supabase
+  const { data } = await publicSupabase
     .from('listings')
     .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
     .ilike('category', categoryName)
@@ -224,8 +235,7 @@ export async function searchListings(query: string): Promise<ListingCardData[]> 
     }
   }
 
-  const supabase = await createClient();
-  const { data } = await supabase
+  const { data } = await publicSupabase
     .from('listings')
     .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
     .eq('status', 'active')

@@ -1,34 +1,57 @@
 import React from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Briefcase, Wrench, ChevronRight } from 'lucide-react';
-import { createClient } from '@/utils/supabase/server';
+import { createClient as createStatelessClient } from '@supabase/supabase-js';
+
+const publicSupabase = createStatelessClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const globalForCatCache = globalThis as unknown as {
+  categoryCountsCache?: { counts: { marketplace: number; jobs: number; services: number }; expiresAt: number };
+};
 
 export default async function TrendingCategories() {
-  const supabase = await createClient();
+  let counts = globalForCatCache.categoryCountsCache?.counts;
+  const isExpired = !globalForCatCache.categoryCountsCache || Date.now() > globalForCatCache.categoryCountsCache.expiresAt;
 
-  // Fast count query using head: true (transfers 0 bytes of row data, executes index count)
-  const [marketplaceRes, jobsRes, servicesRes] = await Promise.all([
-    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Marketplace%').eq('status', 'active'),
-    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Jobs%').eq('status', 'active'),
-    supabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Services%').eq('status', 'active'),
-  ]);
+  if (!counts || isExpired) {
+    // Fast count query using head: true (transfers 0 bytes of row data, executes index count)
+    const [marketplaceRes, jobsRes, servicesRes] = await Promise.all([
+      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Marketplace%').eq('status', 'active'),
+      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Jobs%').eq('status', 'active'),
+      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Services%').eq('status', 'active'),
+    ]);
+
+    counts = {
+      marketplace: marketplaceRes.count ?? 0,
+      jobs: jobsRes.count ?? 0,
+      services: servicesRes.count ?? 0,
+    };
+
+    globalForCatCache.categoryCountsCache = {
+      counts,
+      expiresAt: Date.now() + 60 * 1000,
+    };
+  }
 
   const categories = [
     {
       category: 'Marketplace',
-      count: marketplaceRes.count ?? 0,
+      count: counts.marketplace,
       icon: ShoppingBag,
       slug: 'marketplace',
     },
     {
       category: 'Jobs',
-      count: jobsRes.count ?? 0,
+      count: counts.jobs,
       icon: Briefcase,
       slug: 'jobs',
     },
     {
       category: 'Services',
-      count: servicesRes.count ?? 0,
+      count: counts.services,
       icon: Wrench,
       slug: 'services',
     },
