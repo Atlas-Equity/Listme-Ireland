@@ -1074,7 +1074,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       You have no active listings
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                      Reach buyers across Ireland with 0% success fees.
+                      Reach verified buyers across all 26 Irish counties.
                     </p>
                     <Link
                       href="/sell"

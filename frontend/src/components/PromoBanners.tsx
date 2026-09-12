@@ -6,12 +6,12 @@ export default function PromoBanners() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6 sm:my-8">
       
-      {/* Banner 1: Success Fees */}
+      {/* Banner 1: Selling on ListMe */}
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 p-6 flex flex-col justify-between min-h-[200px] sm:min-h-[220px] group shadow-xs hover:shadow-md transition-shadow">
         <div className="relative z-10 w-full sm:w-3/4">
           <p className="text-primary font-bold text-xs uppercase tracking-wider mb-1">Selling on ListMe</p>
           <h2 className="text-gray-900 dark:text-white font-black text-xl sm:text-2xl leading-tight mb-4">
-            Success Fees?<br/>Gone. Profit?<br/>Yours.
+            Sell Local.<br/>Fast Payouts.<br/>Real Buyers.
           </h2>
           <Link
             href="/sell"

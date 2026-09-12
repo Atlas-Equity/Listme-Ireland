@@ -327,8 +327,8 @@ export default function SellPage() {
               <Package className="w-7 h-7 text-primary" />
               Start a Listing
             </h1>
-            <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">
-              0% Success Fees
+            <span className="text-xs font-bold px-3 py-1 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700 rounded-full">
+              Direct Payouts
             </span>
           </div>
 
@@ -864,7 +864,7 @@ export default function SellPage() {
                     <span>Direct Client Booking &amp; Quotes</span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Clients can message you directly for quotes or bookings. ListMe charges 0% commission on your jobs.
+                    Clients can message you directly for quotes or bookings with direct client agreements.
                   </p>
                   <div className="pt-2 text-xs font-semibold text-gray-500">
                     Model: <span className="text-gray-900 dark:text-white font-bold">{pricingModel} ({serviceRate})</span>

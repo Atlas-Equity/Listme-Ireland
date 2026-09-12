@@ -52,8 +52,8 @@ interface SupportTicket {
 
 const FAQ_DATA = [
   {
-    q: 'How does ListMe guarantee 0% success fees?',
-    a: 'ListMe never takes a percentage commission or final value fee from your completed sales. Sellers keep 100% of their earnings. We only offer optional visual listing upgrades and verified business storefront plans.',
+    q: 'How do ListMe marketplace fees and payouts work?',
+    a: 'All platform fees and payouts are transparently handled through Stripe Connect directly to your linked bank account. You can view the full fee schedule anytime in our marketplace fee breakdown.',
     link: '/fees',
     linkLabel: 'View Marketplace Fees'
   },
@@ -436,7 +436,7 @@ export default function HelpCentrePage() {
             ListMe Help Centre
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-3xl mt-2 leading-relaxed">
-            Instant help resources, buyer protection guides, 0% fees breakdown, and verified Discord-style support tickets. All dispute communications are resolved securely inside your account dashboard.
+            Instant help resources, buyer protection guides, marketplace fees breakdown, and verified Discord-style support tickets. All dispute communications are resolved securely inside your account dashboard.
           </p>
           <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
             <span>Official Support Desk</span>
@@ -458,7 +458,7 @@ export default function HelpCentrePage() {
                 {[
                   { id: 'tickets', label: '1. Support Tickets (Live Thread)', icon: MessageSquare },
                   { id: 'protection', label: '2. Buyer Protection & Escrow', icon: ShieldCheck },
-                  { id: 'fees', label: '3. Selling & 0% Success Fees', icon: Package },
+                  { id: 'fees', label: '3. Selling & Marketplace Fees', icon: Package },
                   { id: 'security', label: '4. Account, Cards & PIN Security', icon: CreditCard },
                   { id: 'storefronts', label: '5. Business Pages & Marketplace', icon: Building2 },
                   { id: 'faqs', label: '6. Frequently Asked Questions', icon: HelpCircle },
@@ -509,7 +509,7 @@ export default function HelpCentrePage() {
                 </li>
                 <li>
                   <Link href="/fees" className="text-gray-600 dark:text-gray-400 hover:text-primary flex items-center justify-between">
-                    <span>0% Success Fee Structure</span>
+                    <span>Marketplace Fee Structure</span>
                     <ExternalLink className="w-3 h-3 text-gray-400" />
                   </Link>
                 </li>
@@ -1019,18 +1019,18 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            {/* SECTION 3: SELLING & 0% FEES */}
+            {/* SECTION 3: SELLING & MARKETPLACE FEES */}
             <section id="fees" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
                   <Package className="w-5 h-5 text-primary" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Zero Commission Policy</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Marketplace Selling</span>
                 </div>
                 <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-                  3. Selling on ListMe &amp; 0% Success Fees
+                  3. Selling on ListMe &amp; Marketplace Fees
                 </h2>
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                  Unlike traditional platforms that deduct 10% to 15% from your final sale value, ListMe operates with 0% success fees. Sellers receive 100% of their sale proceeds automatically through Stripe Connect bank payouts.
+                  ListMe provides simple, transparent fee structures for all Irish sellers. All transactions and platform fees are processed securely via Stripe Connect directly to your linked bank account.
                 </p>
 
                 <div className="space-y-2 mb-5">

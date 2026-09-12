@@ -43,7 +43,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       facebook: 'https://facebook.com/listmeie',
       instagram: 'https://instagram.com/listme.ie',
       plan: 'Official Platform Storefront',
-      announcement: 'Welcome to ListMe Ireland! Ireland’s next-generation platform for items, jobs, and services with 0% seller success fees.',
+      announcement: 'Welcome to ListMe Ireland! Ireland’s next-generation platform for items, jobs, and services across all 26 counties.',
       opening_hours: 'Mon - Sun: 24/7 Platform Access',
       created_at: new Date(2023, 0, 1).toISOString(),
       avatarUrl: '/clover-logo.png', // Official clover logo

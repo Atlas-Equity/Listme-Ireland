@@ -182,7 +182,7 @@ export default function BusinessPageClient({
                     </span>
                     <span>•</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> 0% Success Fees
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Direct Stripe Payouts
                     </span>
                   </div>
                 </div>
@@ -433,7 +433,7 @@ export default function BusinessPageClient({
                       Welcome to ListMe Ireland
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed">
-                      ListMe is Ireland's modern, transparent online marketplace dedicated to fair trade across all 26 counties. Our platform connects Irish buyers and sellers with zero seller commissions, guaranteed buyer protection, and direct verified identity standards.
+                      ListMe is Ireland's modern, transparent online marketplace dedicated to fair trade across all 26 counties. Our platform connects Irish buyers and sellers with guaranteed buyer protection, direct Stripe payouts, and verified identity standards.
                     </p>
                   </div>
 
@@ -441,10 +441,10 @@ export default function BusinessPageClient({
                     <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900">
                       <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white mb-1">
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        <span>0% Success Fees</span>
+                        <span>Direct Bank Payouts</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                        Sellers keep 100% of their sale earnings. We never charge percentage commissions or final value fees.
+                        Sellers receive fast, automated Stripe Connect bank transfers with transparent, low marketplace rates.
                       </p>
                     </div>
 

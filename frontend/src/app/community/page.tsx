@@ -38,16 +38,16 @@ export default async function CommunityPage() {
       date: 'September 2026',
       title: 'Terms of Service & Privacy Policy Updates',
       tag: 'Policy Update',
-      summary: 'Updated platform policies for all registered members covering Irish consumer rights, 0% seller fees, and verified safe accounts.',
+      summary: 'Updated platform policies for all registered members covering Irish consumer rights, marketplace seller fees, and verified safe accounts.',
       link: '/terms',
       linkLabel: 'Read policy',
     },
     {
       id: 'ann-2',
       date: 'September 2026',
-      title: '0% Success Fees on all Irish listings',
+      title: 'Marketplace Fees Schedule & Direct Payouts',
       tag: 'Platform Policy',
-      summary: 'ListMe does not charge sales commissions or success fees. Keep 100% of your earnings when selling across all 26 counties.',
+      summary: 'ListMe offers transparent and competitive rates for sellers across all 26 counties with secure Stripe Connect payouts.',
       link: '/fees',
       linkLabel: 'View fee details',
     },
@@ -235,7 +235,7 @@ export default async function CommunityPage() {
                   Need Assistance? Visit the Help Centre
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Browse FAQs about buying, selling with 0% fees, Buyer Protection coverage, or submit a support ticket directly to our team.
+                  Browse FAQs about buying, selling and marketplace fees, Buyer Protection coverage, or submit a support ticket directly to our team.
                 </p>
               </div>
 

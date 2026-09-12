@@ -45,12 +45,12 @@ export default function MarketplaceFeesPage() {
             </h1>
 
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-3 leading-relaxed">
-              Find out what fees you may see when you buy or sell on Listme. We&apos;ve eliminated success fees for casual sellers so you keep 100% of your sale price.
+              Find out what fees you may see when you buy or sell on Listme. Review transparent platform fees, payment processing, and seller options.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-bold">
               <span className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> 0% Success Fees for Casual Sellers
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Transparent Low Platform Fees
               </span>
               <span className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Buyer Protection Coverage up to €5,000
@@ -89,7 +89,7 @@ export default function MarketplaceFeesPage() {
               For Sellers
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              To make it easier and cheaper to sell your things, we&apos;ve removed success fees for casual sellers on Marketplace. Transaction fees, optional extras and withdrawal fees still apply.
+              To make it simple to sell your things on Listme Marketplace, transaction fees, optional extras and withdrawal fees are clearly presented upfront.
             </p>
           </div>
 
@@ -463,7 +463,7 @@ export default function MarketplaceFeesPage() {
               For Buyers
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
-              With no success fees on casual items, you&apos;ll find more things to buy. A Service Fee now applies. This Service Fee helps us keep the lights on and allows us to provide a safe, supported environment for Irish buyers and sellers.
+              A standard platform Service Fee helps us keep the lights on and allows us to provide a safe, supported environment for Irish buyers and sellers.
             </p>
           </div>
 
@@ -564,9 +564,9 @@ export default function MarketplaceFeesPage() {
                   <td className="py-2.5 px-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">Free</td>
                 </tr>
                 <tr>
-                  <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">Success fee (casual sellers)</td>
+                  <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">Platform transaction fee (casual sellers)</td>
                   <td className="py-2.5 px-4">Seller</td>
-                  <td className="py-2.5 px-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">Free</td>
+                  <td className="py-2.5 px-4 text-right font-mono">Standard Processing Rate</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">Success fee (in-trade sellers)</td>

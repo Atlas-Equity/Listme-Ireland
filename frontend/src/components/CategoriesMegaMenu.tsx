@@ -312,7 +312,7 @@ export default function CategoriesMegaMenu() {
           <div className="p-3 bg-gray-50 dark:bg-zinc-900/60 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-6">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>All 26 Irish counties supported with 0% success fees on standard listings.</span>
+              <span>All 26 Irish counties supported with verified local trade &amp; fast payouts.</span>
             </div>
             <Link
               href="/sell"
