@@ -15,7 +15,7 @@ export default async function Home() {
     <div className="w-full bg-white dark:bg-black min-h-screen">
       <Hero />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <PromoBanners />
 
         {/* Cool Auctions Section */}
@@ -65,10 +65,6 @@ export default async function Home() {
             </div>
           </>
         )}
-      </div>
-      
-      {/* Bottom spacer */}
-      <div className="h-16 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-zinc-800">
       </div>
     </div>
   );
