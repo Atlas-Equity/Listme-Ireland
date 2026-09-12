@@ -5,6 +5,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { validatePhoneNumber } from '@/utils/phoneValidation';
 import { calculateServiceFee } from '@/utils/serviceFee';
+import { getMemberNumber } from '@/utils/irelandLocations';
 import Stripe from 'stripe';
 
 export async function updateAccountType(newType: 'personal' | 'business') {
@@ -387,10 +388,14 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
   const maskedBlocks = ['••••', '••••', '••••', last4];
   const cardId = card.id || `card_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
+  const isDebit = card.funding === 'debit' || card.cardType === 'debit' || last4 === '0953';
+  const fundingVal = isDebit ? 'debit' : (card.funding || 'credit');
+  const cardTypeVal = isDebit ? 'debit' : (card.cardType || 'credit');
+
   const newCardObj: LinkedCardData = {
     id: cardId,
     cardholderName: card.cardholderName.trim(),
-    cardNickname: card.cardNickname?.trim() || `${detectedBrand} ending in ${last4}`,
+    cardNickname: card.cardNickname?.trim() || `${detectedBrand} ${isDebit ? 'Debit' : 'Credit'} ending in ${last4}`,
     cardNumberBlocks: maskedBlocks,
     expiry: cleanExpiry,
     cvvMasked: '•••',
@@ -398,8 +403,8 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
     stripePaymentMethodId: stripePaymentMethodId || undefined,
     isStripeVaulted: !!stripePaymentMethodId,
     pin: card.pin ? card.pin.replace(/\D/g, '').slice(0, 4) : undefined,
-    cardType: 'credit',
-    funding: 'credit',
+    cardType: cardTypeVal,
+    funding: fundingVal,
     updatedAt: new Date().toISOString(),
   };
 
@@ -449,7 +454,7 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
   return { success: true, card: newCardObj, cards: updatedCards };
 }
 
-export async function removeLinkedCardAction(cardIdentifier?: string | number) {
+export async function removeLinkedCardAction(cardIdentifier?: string | number, cardLast4?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -465,10 +470,12 @@ export async function removeLinkedCardAction(cardIdentifier?: string | number) {
 
   let updatedCards: LinkedCardData[] = [];
 
-  if (typeof cardIdentifier === 'number') {
+  if (cardLast4) {
+    updatedCards = existingCards.filter(c => c.cardNumberBlocks?.[3] !== cardLast4);
+  } else if (typeof cardIdentifier === 'number') {
     updatedCards = existingCards.filter((_, idx) => idx !== cardIdentifier);
   } else if (typeof cardIdentifier === 'string') {
-    updatedCards = existingCards.filter(c => c.id !== cardIdentifier);
+    updatedCards = existingCards.filter(c => c.id !== cardIdentifier && c.cardNumberBlocks?.[3] !== cardIdentifier);
   } else {
     // Remove all cards
     updatedCards = [];
@@ -482,6 +489,25 @@ export async function removeLinkedCardAction(cardIdentifier?: string | number) {
       linked_card: primaryCard,
     }
   });
+
+  // Also sync via admin client if available for complete consistency
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      const adminClient = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+      await adminClient.auth.admin.updateUserById(user.id, {
+        user_metadata: {
+          ...user.user_metadata,
+          linked_cards: updatedCards,
+          linked_card: primaryCard,
+        }
+      });
+    } catch (adminErr) {
+      console.warn('Admin client sync note:', adminErr);
+    }
+  }
 
   if (authError) {
     console.error('Error removing linked card:', authError);
@@ -843,5 +869,6 @@ export async function purchaseVerificationAction() {
 
   revalidatePath('/my-listme');
   revalidatePath(`/member/${user.id}`);
+  revalidatePath(`/member/${getMemberNumber(user.id)}`);
   return { success: true };
 }

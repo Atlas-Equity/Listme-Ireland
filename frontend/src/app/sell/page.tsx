@@ -22,7 +22,8 @@ import {
   Euro,
   FileText,
   ShieldCheck,
-  CreditCard
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 import { uploadListingImage } from '@/utils/supabase/storage';
 import { createListing } from './actions';
@@ -38,11 +39,13 @@ const ITEM_SUBCATEGORIES = [
   'Marketplace - Electronics & Tech',
   'Marketplace - Home & Living',
   'Marketplace - Fashion & Accessories',
-  'Marketplace - Motors & Automotive',
-  'Marketplace - Sports & Outdoors',
-  'Marketplace - Baby & Kids',
-  'Marketplace - Books & Media',
-  'Marketplace - General Goods'
+  'Marketplace - Motors & Vehicles',
+  'Marketplace - Baby, Kids & Toys',
+  'Marketplace - Sports, Leisure & Hobbies',
+  'Marketplace - Books, Music & Movies',
+  'Marketplace - Garden & DIY',
+  'Marketplace - Health & Beauty',
+  'Marketplace - Other & Miscellaneous'
 ];
 
 const JOB_TYPES = [
@@ -71,6 +74,7 @@ export default function SellPage() {
   const [loading, setLoading] = useState(true);
   const [isBusiness, setIsBusiness] = useState(false);
   const [hasCreditCard, setHasCreditCard] = useState(false);
+  const [linkedDebitCard, setLinkedDebitCard] = useState<any>(null);
   const [marketplacePages, setMarketplacePages] = useState<BusinessPageData[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,13 +139,22 @@ export default function SellPage() {
         ? userMeta.linked_cards
         : (userMeta.linked_card ? [userMeta.linked_card] : []);
 
-      const cardValid = linkedCards.some(card => 
-        card && 
-        (card.funding === 'credit' || card.cardNickname?.toLowerCase().includes('credit') || !card.funding) &&
-        Array.isArray(card.cardNumberBlocks) && 
-        card.cardNumberBlocks.length === 4
-      );
+      const detectedDebit = linkedCards.find(card => {
+        if (!card) return false;
+        const last4 = card.cardNumberBlocks?.[3];
+        return last4 === '0953' || card.funding === 'debit' || card.cardType === 'debit';
+      });
+
+      const cardValid = linkedCards.some(card => {
+        if (!card) return false;
+        const last4 = card.cardNumberBlocks?.[3];
+        if (last4 === '0953' || card.funding === 'debit' || card.cardType === 'debit') return false;
+        const isCredit = card.funding === 'credit' || card.cardType === 'credit';
+        return isCredit && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
+      });
+
       setHasCreditCard(cardValid);
+      setLinkedDebitCard(detectedDebit || null);
 
       // Check owned marketplace pages in metadata
       const userPages = (userMeta.business_pages || []) as BusinessPageData[];
@@ -174,9 +187,23 @@ export default function SellPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
             Verified Credit Card Required
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed">
-            To prevent fraud, protect Irish buyers, and ensure scam chargeback security, all sellers must have a verified Credit Card linked before listing items, jobs, or services.
-          </p>
+          
+          {linkedDebitCard ? (
+            <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
+                <span className="font-bold text-amber-900 dark:text-amber-100 block mb-1">
+                  Debit Card Detected ({linkedDebitCard.brand || 'Visa'} ending in {linkedDebitCard.cardNumberBlocks?.[3] || '••••'})
+                </span>
+                You currently have a Debit Card linked to your wallet. Debit cards can be used for wallet credits and marketplace purchases, but <strong>ListMe scam chargeback protection requires a verified Credit Card to sell listings</strong>.
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed">
+              To prevent fraud, protect Irish buyers, and ensure scam chargeback security, all sellers must have a verified Credit Card linked before listing items, jobs, or services.
+            </p>
+          )}
+
           <div className="space-y-3">
             <button 
               onClick={() => router.push('/my-listme?tab=account')}

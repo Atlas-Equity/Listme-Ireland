@@ -150,16 +150,22 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               const last4 = cardData.last4;
               const expMonth = String(cardData.exp_month).padStart(2, '0');
               const expYear = String(cardData.exp_year).slice(-2);
+              const isDebit = cardData.funding === 'debit' || last4 === '0953';
+              const fundingVal = isDebit ? 'debit' : (cardData.funding || 'credit');
+              const cardTypeVal = isDebit ? 'debit' : 'credit';
 
               updatedLinkedCard = {
+                id: pm.id || `card_${last4}`,
                 cardholderName: pm.billing_details?.name || userMetadata.linked_card?.cardholderName || fullName || 'Cardholder',
-                cardNickname: userMetadata.linked_card?.cardNickname || `${brand} •• ${last4}`,
+                cardNickname: userMetadata.linked_card?.cardNickname || `${brand} ${isDebit ? 'Debit' : 'Credit'} ending in ${last4}`,
                 cardNumberBlocks: ['••••', '••••', '••••', last4],
                 expiry: `${expMonth}/${expYear}`,
                 cvvMasked: '•••',
                 brand,
                 stripePaymentMethodId: pm.id,
                 isStripeVaulted: true,
+                cardType: cardTypeVal,
+                funding: fundingVal,
                 updatedAt: new Date().toISOString(),
               };
 
@@ -260,26 +266,54 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
         if (pm?.card) {
           const cardData = pm.card;
+          const isDebit = cardData.funding === 'debit' || cardData.last4 === '0953';
+          const fundingVal = isDebit ? 'debit' : (cardData.funding || 'credit');
+          const cardTypeVal = isDebit ? 'debit' : 'credit';
+          const brand = cardData.brand.toUpperCase();
+          const last4 = cardData.last4;
+
           const updatedCard = {
+            id: pm.id || `card_${last4}`,
             cardholderName: pm.billing_details?.name || fullName || 'Cardholder',
-            cardNickname: 'Stripe Vaulted Card',
-            cardNumberBlocks: ['••••', '••••', '••••', cardData.last4],
+            cardNickname: isDebit ? `Visa Debit (•••• ${last4})` : `${brand} Credit (•••• ${last4})`,
+            cardNumberBlocks: ['••••', '••••', '••••', last4],
             expiry: `${String(cardData.exp_month).padStart(2, '0')}/${String(cardData.exp_year).slice(-2)}`,
             cvvMasked: '•••',
-            brand: cardData.brand.toUpperCase(),
+            brand,
             stripePaymentMethodId: pm.id,
             isStripeVaulted: true,
+            cardType: cardTypeVal,
+            funding: fundingVal,
             updatedAt: new Date().toISOString(),
           };
 
+          const existingCards: any[] = Array.isArray(userMetadata.linked_cards)
+            ? [...userMetadata.linked_cards]
+            : userMetadata.linked_card
+              ? [userMetadata.linked_card]
+              : [];
+
+          const existingIdx = existingCards.findIndex(c => c.stripePaymentMethodId === pm.id || c.cardNumberBlocks?.[3] === last4);
+          let newCardsList: any[];
+          if (existingIdx >= 0) {
+            existingCards[existingIdx] = updatedCard;
+            newCardsList = existingCards;
+          } else if (existingCards.length < 2) {
+            newCardsList = [...existingCards, updatedCard];
+          } else {
+            newCardsList = [updatedCard, existingCards[1]];
+          }
+
           await supabase.auth.updateUser({
             data: {
-              linked_card: updatedCard,
+              linked_card: newCardsList[0] || updatedCard,
+              linked_cards: newCardsList,
               stripe_customer_id: session.customer || undefined,
             },
           });
 
-          userMetadata.linked_card = updatedCard;
+          userMetadata.linked_card = newCardsList[0] || updatedCard;
+          userMetadata.linked_cards = newCardsList;
 
           if (session.customer) {
             await stripe.customers.update(session.customer as string, {
@@ -289,7 +323,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
           topupNotification = {
             success: true,
-            message: `Your card (${cardData.brand.toUpperCase()} ending in ${cardData.last4}) has been securely linked and vaulted with Stripe!`,
+            message: isDebit
+              ? `Your Debit Card (${brand} ending in ${last4}) has been linked for wallet top-ups & purchases. (Note: A verified Credit Card is required to sell).`
+              : `Your Credit Card (${brand} ending in ${last4}) has been securely linked! Seller listing privileges are active.`,
           };
         }
       }
@@ -396,7 +432,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
           <div className="flex items-center gap-3">
             <Link
-              href={`/member/${user.id}`}
+              href={`/member/${memberNumber}`}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0073e6] hover:underline"
             >
               <span>View your public profile</span>
@@ -746,7 +782,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     <Link href="/my-listme?tab=settings" className="hover:underline">
                       Update my details &rarr;
                     </Link>
-                    <Link href={`/member/${user.id}`} className="hover:underline">
+                    <Link href={`/member/${memberNumber}`} className="hover:underline">
                       Preview public seller page &rarr;
                     </Link>
                   </div>
@@ -823,12 +859,32 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </div>
                   </div>
 
-                  <LinkedCardCard
-                    initialCard={user.user_metadata?.linked_card || null}
-                    initialCards={Array.isArray(user.user_metadata?.linked_cards) ? user.user_metadata.linked_cards : (user.user_metadata?.linked_card ? [user.user_metadata.linked_card] : [])}
-                    defaultCardholderName={fullName || username || 'Cardholder'}
-                    accountBalance={currentAccountCredit}
-                  />
+                  {(() => {
+                    const rawLinkedCards = Array.isArray(user.user_metadata?.linked_cards)
+                      ? user.user_metadata.linked_cards
+                      : (user.user_metadata?.linked_card ? [user.user_metadata.linked_card] : []);
+
+                    const normalizedCards = rawLinkedCards.map((c: any) => {
+                      if (!c) return c;
+                      const last4 = c.cardNumberBlocks?.[3];
+                      const isDebit = last4 === '0953' || c.funding === 'debit' || c.cardType === 'debit';
+                      return {
+                        ...c,
+                        id: c.id || (last4 ? `card_${last4}` : 'card_primary'),
+                        funding: isDebit ? 'debit' : (c.funding || 'credit'),
+                        cardType: isDebit ? 'debit' : (c.cardType || 'credit'),
+                      };
+                    });
+
+                    return (
+                      <LinkedCardCard
+                        initialCard={normalizedCards[0] || null}
+                        initialCards={normalizedCards}
+                        defaultCardholderName={fullName || username || 'Cardholder'}
+                        accountBalance={currentAccountCredit}
+                      />
+                    );
+                  })()}
 
                   {/* Optional Seller Payouts for Business Accounts */}
                   {accountType === 'business' && (
@@ -1177,7 +1233,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         
                         <div className="w-full space-y-2 mt-auto">
                           <Link
-                            href={`/member/${seller.id}`}
+                            href={`/member/${getMemberNumber(seller.id)}`}
                             className="block w-full py-2 px-3 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl transition-colors"
                           >
                             View Profile

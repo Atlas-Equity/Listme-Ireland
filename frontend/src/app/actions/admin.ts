@@ -4,6 +4,7 @@ import { createClient as createServerClient } from '@/utils/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { isAdmin, ADMIN_EMAILS } from '@/utils/admin';
+import { getMemberNumber } from '@/utils/irelandLocations';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -57,6 +58,7 @@ export async function assignAdminRoleAction(targetUserId: string) {
     }
 
     revalidatePath(`/member/${targetUserId}`);
+    revalidatePath(`/member/${getMemberNumber(targetUserId)}`);
     return { success: true, message: 'Admin role granted successfully.' };
   } catch (err: any) {
     return { error: err.message || 'Failed to assign admin role.' };
@@ -93,6 +95,7 @@ export async function revokeAdminRoleAction(targetUserId: string) {
     }
 
     revalidatePath(`/member/${targetUserId}`);
+    revalidatePath(`/member/${getMemberNumber(targetUserId)}`);
     return { success: true, message: 'Admin role revoked.' };
   } catch (err: any) {
     return { error: err.message || 'Failed to revoke admin role.' };
@@ -144,6 +147,7 @@ export async function grantFreeVerifiedAction(targetUserId: string, reason: stri
     }
 
     revalidatePath(`/member/${targetUserId}`);
+    revalidatePath(`/member/${getMemberNumber(targetUserId)}`);
     revalidatePath('/');
     return { success: true, message: 'Free Verified Badge granted to user!' };
   } catch (err: any) {
@@ -178,6 +182,7 @@ export async function revokeVerifiedAction(targetUserId: string) {
     } catch {}
 
     revalidatePath(`/member/${targetUserId}`);
+    revalidatePath(`/member/${getMemberNumber(targetUserId)}`);
     return { success: true, message: 'Verified badge revoked.' };
   } catch (err: any) {
     return { error: err.message || 'Failed to revoke verification.' };
@@ -231,6 +236,7 @@ export async function banUserAccountAction(targetUserId: string, durationHours: 
     } catch {}
 
     revalidatePath(`/member/${targetUserId}`);
+    revalidatePath(`/member/${getMemberNumber(targetUserId)}`);
     revalidatePath('/');
     return { 
       success: true, 
@@ -271,6 +277,7 @@ export async function unbanUserAccountAction(targetUserId: string) {
     }
 
     revalidatePath(`/member/${targetUserId}`);
+    revalidatePath(`/member/${getMemberNumber(targetUserId)}`);
     return { success: true, message: 'Account unbanned. Access restored.' };
   } catch (err: any) {
     return { error: err.message || 'Failed to unban user account.' };

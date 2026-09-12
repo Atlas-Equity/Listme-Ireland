@@ -14,7 +14,9 @@ import {
   Loader2,
   Edit3,
   Star,
-  Check
+  Check,
+  AlertTriangle,
+  ShieldAlert
 } from 'lucide-react';
 import { loadStripe, Stripe, StripeCardElement } from '@stripe/stripe-js';
 import { 
@@ -48,6 +50,20 @@ export default function LinkedCardCard({
   const initialCardsList: LinkedCardData[] = initialCards.length > 0 
     ? initialCards 
     : (initialCard ? [initialCard] : []);
+
+  const isCardDebit = (c?: LinkedCardData | null) => {
+    if (!c) return false;
+    const last4 = c.cardNumberBlocks?.[3];
+    if (last4 === '0953') return true;
+    if (c.funding === 'debit' || c.cardType === 'debit') return true;
+    return false;
+  };
+
+  const isCardCredit = (c?: LinkedCardData | null) => {
+    if (!c) return false;
+    if (isCardDebit(c)) return false;
+    return c.funding === 'credit' || c.cardType === 'credit';
+  };
 
   const [cards, setCards] = useState<LinkedCardData[]>(initialCardsList);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
@@ -290,12 +306,14 @@ export default function LinkedCardCard({
     const targetCard = cards[targetIndex];
     if (!targetCard) return;
 
-    if (!window.confirm(`Are you sure you want to unlink ${targetCard.cardNickname || 'this credit card'}?`)) {
+    const cardKind = isCardDebit(targetCard) ? 'Debit Card' : 'Credit Card';
+    const last4 = targetCard.cardNumberBlocks?.[3] || '••••';
+    if (!window.confirm(`Are you sure you want to unlink ${targetCard.cardNickname || cardKind} (ending in ${last4})?`)) {
       return;
     }
 
     try {
-      const res = await removeLinkedCardAction(targetCard.id || targetIndex);
+      const res = await removeLinkedCardAction(targetCard.id || targetIndex, last4);
       const remaining = res.cards || cards.filter((_, idx) => idx !== targetIndex);
       setCards(remaining);
       setSelectedCardIndex(0);
@@ -310,7 +328,7 @@ export default function LinkedCardCard({
         }
       } catch {}
 
-      setSuccessToast('Credit card unlinked from wallet.');
+      setSuccessToast(`${cardKind} unlinked from wallet.`);
       setTimeout(() => setSuccessToast(null), 3000);
     } catch (err) {
       console.error('Error removing card:', err);
@@ -483,9 +501,19 @@ export default function LinkedCardCard({
           <span className="text-xs font-bold text-gray-900 dark:text-white">
             Wallet Cards ({cards.length}/2 Linked)
           </span>
-          <span className="text-[11px] text-gray-500 dark:text-gray-400">
-            • Credit card required to sell listings
-          </span>
+          {cards.some(isCardCredit) ? (
+            <span className="text-[11px] text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
+              • <ShieldCheck className="w-3.5 h-3.5 inline" /> Credit Card Linked (Seller Verified)
+            </span>
+          ) : cards.length > 0 ? (
+            <span className="text-[11px] text-amber-500 dark:text-amber-400 font-semibold flex items-center gap-1">
+              • <AlertTriangle className="w-3.5 h-3.5 inline" /> Credit Card required to sell listings
+            </span>
+          ) : (
+            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+              • Credit card required to sell listings
+            </span>
+          )}
         </div>
 
         {canAddSecondCard && (
@@ -541,17 +569,34 @@ export default function LinkedCardCard({
                 <span className="px-2.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
                   <Star className="w-3 h-3 fill-emerald-400" /> Primary Card
                 </span>
+                {isCardDebit(cards[0]) ? (
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400">
+                    Buying &amp; Top-Ups Only
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                    Seller Active
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* EMV Chip */}
+            {/* EMV Chip & Card Type Badge */}
             <div className="my-4 flex items-center justify-between">
               <div className="w-10 h-7 rounded-md bg-amber-400 border border-amber-300 flex items-center justify-center">
                 <div className="w-8 h-5 border border-amber-800/40 grid grid-cols-2 grid-rows-2"></div>
               </div>
-              <span className="text-xs font-mono font-bold uppercase text-zinc-400">
-                Verified Credit Card
-              </span>
+              {isCardDebit(cards[0]) ? (
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                  Verified Debit Card
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  Verified Credit Card
+                </span>
+              )}
             </div>
 
             {/* Masked Card Number */}
@@ -574,6 +619,16 @@ export default function LinkedCardCard({
                 </span>
               </div>
             </div>
+
+            {/* Debit Card Warning Banner if applicable */}
+            {isCardDebit(cards[0]) && (
+              <div className="mt-3 p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/50 flex items-start gap-2 text-xs text-amber-200">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <strong className="text-amber-300">Debit Card:</strong> Usable for account credit top-ups and marketplace purchases. Scam prevention policy strictly requires linking a <strong>Credit Card</strong> to publish seller listings.
+                </div>
+              </div>
+            )}
 
             {/* Action Bar */}
             <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
@@ -645,17 +700,34 @@ export default function LinkedCardCard({
                 <span className="px-2.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-zinc-300">
                   Secondary Card
                 </span>
+                {isCardDebit(cards[1]) ? (
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400">
+                    Buying &amp; Top-Ups Only
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                    Seller Active
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* EMV Chip */}
+            {/* EMV Chip & Card Type Badge */}
             <div className="my-4 flex items-center justify-between">
               <div className="w-10 h-7 rounded-md bg-amber-400 border border-amber-300 flex items-center justify-center">
                 <div className="w-8 h-5 border border-amber-800/40 grid grid-cols-2 grid-rows-2"></div>
               </div>
-              <span className="text-xs font-mono font-bold uppercase text-zinc-400">
-                Verified Credit Card
-              </span>
+              {isCardDebit(cards[1]) ? (
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                  Verified Debit Card
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  Verified Credit Card
+                </span>
+              )}
             </div>
 
             {/* Masked Card Number */}
@@ -678,6 +750,16 @@ export default function LinkedCardCard({
                 </span>
               </div>
             </div>
+
+            {/* Debit Card Warning Banner if applicable */}
+            {isCardDebit(cards[1]) && (
+              <div className="mt-3 p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/50 flex items-start gap-2 text-xs text-amber-200">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-relaxed">
+                  <strong className="text-amber-300">Debit Card:</strong> Usable for account credit top-ups and marketplace purchases. Scam prevention policy strictly requires linking a <strong>Credit Card</strong> to publish seller listings.
+                </div>
+              </div>
+            )}
 
             {/* Action Bar */}
             <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
@@ -705,9 +787,13 @@ export default function LinkedCardCard({
             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 mb-3">
               <Plus className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-white mb-1">Add Second Credit Card</h4>
+            <h4 className="text-base font-bold text-white mb-1">
+              {cards.length === 1 && isCardDebit(cards[0]) ? 'Add Required Credit Card' : 'Add Second Card'}
+            </h4>
             <p className="text-xs text-zinc-400 max-w-xs mb-4">
-              Store a backup credit card (max 2 cards) to switch funding sources easily without re-typing.
+              {cards.length === 1 && isCardDebit(cards[0])
+                ? 'Link a verified Credit Card to unlock seller listing privileges while keeping your debit card for wallet top-ups.'
+                : 'Store a backup card (max 2 cards) to switch funding sources easily without re-typing.'}
             </p>
             <button
               type="button"
@@ -716,7 +802,7 @@ export default function LinkedCardCard({
               className="px-4 py-2 rounded-xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
-              <span>Link Second Card</span>
+              <span>{cards.length === 1 && isCardDebit(cards[0]) ? 'Link Credit Card to Sell' : 'Link Second Card'}</span>
             </button>
           </div>
         )}

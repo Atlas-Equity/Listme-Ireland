@@ -13,7 +13,7 @@ import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import MakeOfferButton from '@/components/MakeOfferButton';
 import ServiceFeeModal from '@/components/ServiceFeeModal';
 import DeleteListingButton from '@/components/DeleteListingButton';
-import { getCoreLocation } from '@/utils/irelandLocations';
+import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
@@ -340,7 +340,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             {/* Seller Mini Profile */}
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
               <Link 
-                href={`/member/${listing.seller_id}`}
+                href={`/member/${getMemberNumber(listing.seller_id)}`}
                 className="flex items-center group hover:opacity-90 transition-opacity"
               >
                 <div className="w-12 h-12 rounded-full overflow-hidden border border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
@@ -383,7 +383,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           
           <div className="w-full max-w-[600px]">
             <div className="flex flex-col items-center mb-6">
-              <Link href={`/member/${listing.seller_id}`} className="group flex flex-col items-center">
+              <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="group flex flex-col items-center">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
                   {sellerAvatarUrl ? (
                     <Image
@@ -424,7 +424,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <Link href={`/member/${listing.seller_id}`} className="border-t border-gray-200 dark:border-[#333] py-4 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
+            <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="border-t border-gray-200 dark:border-[#333] py-4 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
               View seller's other listings
               <ChevronRight className="w-5 h-5" />
             </Link>
