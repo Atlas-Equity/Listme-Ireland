@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { purchaseVerificationAction } from './actions';
-import { Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
 export default function VerifyAccountButton() {
@@ -49,11 +49,7 @@ export default function VerifyAccountButton() {
         disabled={loading}
         className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
       >
-        {loading ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        ) : (
-          <Sparkles className="w-3.5 h-3.5" />
-        )}
+        {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
         <span>Get Verified for €19.99 (One-Time)</span>
       </button>
 

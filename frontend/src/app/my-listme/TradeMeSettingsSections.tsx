@@ -21,10 +21,21 @@ export default function TradeMeSettingsSections() {
   const [searchHistoryDeleted, setSearchHistoryDeleted] = useState(false);
   const [recentlyViewedCleared, setRecentlyViewedCleared] = useState(false);
   
-  // Blacklist modal state
+  // Blocked users list state (strictly REAL data only - zero fake mock accounts)
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistInput, setBlacklistInput] = useState('');
-  const [blacklistedUsers, setBlacklistedUsers] = useState<string[]>(['suspicious_trader_99']);
+  const [blacklistedUsers, setBlacklistedUsers] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('listme_blocked_users');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
   const [blacklistSuccess, setBlacklistSuccess] = useState<string | null>(null);
 
   // Privacy
@@ -50,15 +61,23 @@ export default function TradeMeSettingsSections() {
     e.preventDefault();
     const clean = blacklistInput.trim().replace(/^@/, '');
     if (clean && !blacklistedUsers.includes(clean)) {
-      setBlacklistedUsers([...blacklistedUsers, clean]);
+      const updated = [...blacklistedUsers, clean];
+      setBlacklistedUsers(updated);
+      try {
+        localStorage.setItem('listme_blocked_users', JSON.stringify(updated));
+      } catch {}
       setBlacklistInput('');
-      setBlacklistSuccess(`User @${clean} added to your private blacklist.`);
+      setBlacklistSuccess(`User @${clean} added to your blocked list.`);
       setTimeout(() => setBlacklistSuccess(null), 3000);
     }
   };
 
   const handleRemoveBlacklist = (username: string) => {
-    setBlacklistedUsers(blacklistedUsers.filter(u => u !== username));
+    const updated = blacklistedUsers.filter(u => u !== username);
+    setBlacklistedUsers(updated);
+    try {
+      localStorage.setItem('listme_blocked_users', JSON.stringify(updated));
+    } catch {}
   };
 
   return (
