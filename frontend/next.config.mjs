@@ -80,9 +80,6 @@ const nextConfig = {
       },
     ],
   },
-  turbopack: {
-    root: '/home/sahleyis/Documents/Listme',
-  },
   async headers() {
     return [
       {
