@@ -210,7 +210,42 @@ export default function HelpCentrePage() {
 
   // Active tickets list depending on view scope
   const displayTickets = (isAdminUser && ticketViewScope === 'admin_all') ? adminAllTickets : tickets;
-  const activeTicket = displayTickets.find(t => t.id === activeTicketId) || displayTickets[0] || null;
+
+  // Status Filter and Search Query States
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Open' | 'In Review' | 'Resolved' | 'Closed'>('All');
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [mobileTicketTab, setMobileTicketTab] = useState<'sidebar' | 'thread'>('thread');
+
+  // Exact breakdown counts for each status
+  const counts = {
+    All: displayTickets.length,
+    Open: displayTickets.filter(t => t.status === 'Open').length,
+    'In Review': displayTickets.filter(t => t.status === 'In Review').length,
+    Resolved: displayTickets.filter(t => t.status === 'Resolved').length,
+    Closed: displayTickets.filter(t => t.status === 'Closed').length,
+  };
+
+  const filteredTickets = displayTickets.filter(t => {
+    const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
+    const q = ticketSearchQuery.toLowerCase().trim();
+    const matchesQuery = !q || 
+      t.id.toLowerCase().includes(q) || 
+      t.subject.toLowerCase().includes(q) || 
+      t.category.toLowerCase().includes(q) || 
+      (t.userDisplayName && t.userDisplayName.toLowerCase().includes(q)) || 
+      (t.userEmail && t.userEmail.toLowerCase().includes(q));
+    return matchesStatus && matchesQuery;
+  });
+
+  const activeTicket = displayTickets.find(t => t.id === activeTicketId) || filteredTickets[0] || displayTickets[0] || null;
+
+  const handleSelectStatusFilter = (filter: 'All' | 'Open' | 'In Review' | 'Resolved' | 'Closed') => {
+    setStatusFilter(filter);
+    const matching = displayTickets.filter(t => filter === 'All' || t.status === filter);
+    if (matching.length > 0 && (!activeTicketId || !matching.some(t => t.id === activeTicketId))) {
+      setActiveTicketId(matching[0].id);
+    }
+  };
 
   // Scroll ONLY the message list container without ever scrolling the parent browser window!
   useEffect(() => {
@@ -503,8 +538,10 @@ export default function HelpCentrePage() {
                 
                 {/* Tickets Top Bar */}
                 <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-zinc-900/40">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-zinc-800 text-white flex items-center justify-center shrink-0">
+                      <MessageSquare className="w-4 h-4" />
+                    </div>
                     <div>
                       <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span>Direct Support Ticket Thread</span>
@@ -521,19 +558,45 @@ export default function HelpCentrePage() {
                   </div>
 
                   <div className="flex items-center gap-2 self-end sm:self-auto">
-                    {activeTicket && activeTicket.status !== 'Resolved' && activeTicket.status !== 'Closed' && (
-                      <button
-                        type="button"
-                        onClick={() => handleCloseTicket(activeTicket.id)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                      >
-                        Mark as Resolved
-                      </button>
+                    {isAdminUser && (
+                      <div className="flex items-center bg-zinc-200 dark:bg-zinc-800 p-0.5 rounded-lg text-xs font-bold mr-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTicketViewScope('admin_all');
+                            setStatusFilter('All');
+                            if (adminAllTickets[0]) setActiveTicketId(adminAllTickets[0].id);
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${
+                            ticketViewScope === 'admin_all'
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                          }`}
+                        >
+                          All Channels ({adminAllTickets.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTicketViewScope('my');
+                            setStatusFilter('All');
+                            if (tickets[0]) setActiveTicketId(tickets[0].id);
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${
+                            ticketViewScope === 'my'
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                          }`}
+                        >
+                          My Tickets ({tickets.length})
+                        </button>
+                      </div>
                     )}
+
                     <button
                       type="button"
                       onClick={() => setShowNewTicketModal(true)}
-                      className="px-3 py-1.5 rounded-lg bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>New Ticket</span>
@@ -541,66 +604,7 @@ export default function HelpCentrePage() {
                   </div>
                 </div>
 
-                {/* Admin Mode Scope Switcher */}
-                {isAdminUser && (
-                  <div className="px-4 py-2.5 bg-zinc-900 text-white border-b border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2 font-bold">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <span>Admin View: Support Text Channels</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => { setTicketViewScope('admin_all'); if (adminAllTickets[0]) setActiveTicketId(adminAllTickets[0].id); }}
-                        className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                          ticketViewScope === 'admin_all'
-                            ? 'bg-primary text-white'
-                            : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                        }`}
-                      >
-                        All User Channels ({adminAllTickets.length})
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => { setTicketViewScope('my'); if (tickets[0]) setActiveTicketId(tickets[0].id); }}
-                        className={`px-3 py-1 rounded-md text-xs font-bold transition-colors cursor-pointer ${
-                          ticketViewScope === 'my'
-                            ? 'bg-primary text-white'
-                            : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                        }`}
-                      >
-                        My Tickets ({tickets.length})
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Ticket Selector Tabs */}
-                {displayTickets.length > 0 && (
-                  <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2 overflow-x-auto bg-gray-50/30 dark:bg-zinc-900/20">
-                    <span className="text-[10px] font-bold uppercase text-gray-400 shrink-0">
-                      {ticketViewScope === 'admin_all' ? 'Channels:' : 'Your Tickets:'}
-                    </span>
-                    {displayTickets.map(t => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setActiveTicketId(t.id)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-colors ${
-                          t.id === activeTicket?.id
-                            ? 'bg-zinc-800 text-white font-bold border border-zinc-700'
-                            : 'bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-zinc-700'
-                        }`}
-                      >
-                        #{t.id} {ticketViewScope === 'admin_all' && t.userDisplayName ? `(${t.userDisplayName})` : ''} - {t.subject}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* If no tickets exist, show honest empty state */}
+                {/* If no tickets exist at all, show honest empty state */}
                 {displayTickets.length === 0 ? (
                   <div className="p-8 sm:p-12 text-center bg-white dark:bg-[#151515]">
                     <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 flex items-center justify-center mx-auto mb-3">
@@ -626,146 +630,348 @@ export default function HelpCentrePage() {
                     )}
                   </div>
                 ) : (
-                  <>
-                    {/* Active Ticket Details & Header Info */}
-                    {activeTicket && (
-                      <div className="p-3.5 px-4 bg-gray-50 dark:bg-zinc-900/60 border-b border-gray-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                            <Hash className="w-3.5 h-3.5 text-gray-400" />
-                            {activeTicket.subject}
+                  /* Two-Pane Ticket Layout: Sidebar (Left) + Active Ticket Thread (Right) */
+                  <div className="flex flex-col md:flex-row min-h-[580px]">
+                    
+                    {/* LEFT SIDEBAR: Ticket Channels & Status Breakdown Counts */}
+                    <div className={`w-full md:w-80 lg:w-80 shrink-0 border-b md:border-b-0 md:border-r border-gray-200 dark:border-zinc-800 flex flex-col bg-gray-50/70 dark:bg-[#151515] ${
+                      mobileTicketTab === 'thread' ? 'hidden md:flex' : 'flex'
+                    }`}>
+                      
+                      {/* 1. Status Breakdown Counts ("a section of how many of each then u can get specific like resolved, in review, open or closed") */}
+                      <div className="p-3 border-b border-gray-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Ticket Status
                           </span>
-                          {ticketViewScope === 'admin_all' && activeTicket.userEmail && (
-                            <span className="px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px]">
-                              User: {activeTicket.userDisplayName || activeTicket.userEmail}
-                            </span>
-                          )}
-                          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700">
-                            {activeTicket.category}
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 font-bold">
+                            {counts.All} Total
                           </span>
-                          {activeTicket.referenceId && (
-                            <span className="text-gray-500 font-mono text-[11px]">
-                              Ref: {activeTicket.referenceId}
-                            </span>
-                          )}
                         </div>
 
-                        {/* Status Tags & Admin Status Controls */}
-                        <div className="flex items-center gap-2">
-                          {isAdminUser && ticketViewScope === 'admin_all' ? (
-                            <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                              {(['Open', 'In Review', 'Resolved', 'Closed'] as const).map((st) => (
-                                <button
-                                  key={st}
-                                  type="button"
-                                  onClick={() => handleAdminChangeStatus(st)}
-                                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
-                                    activeTicket.status === st
-                                      ? 'bg-primary text-white'
-                                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                                  }`}
-                                >
-                                  {st}
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700">
-                              <span className={`w-1.5 h-1.5 rounded-full ${activeTicket.status === 'Resolved' || activeTicket.status === 'Closed' ? 'bg-gray-400' : 'bg-emerald-500'}`}></span>
-                              {activeTicket.status}
-                            </span>
-                          )}
-                          <span className="text-gray-400 text-[11px]">
-                            Created {activeTicket.createdAt}
-                          </span>
+                        {/* 5 Status Filter Buttons */}
+                        <div className="grid grid-cols-5 gap-1 text-center">
+                          {[
+                            { key: 'All' as const, label: 'All', count: counts.All, color: 'bg-zinc-400 dark:bg-zinc-400' },
+                            { key: 'Open' as const, label: 'Open', count: counts.Open, color: 'bg-emerald-500' },
+                            { key: 'In Review' as const, label: 'Review', count: counts['In Review'], color: 'bg-amber-500' },
+                            { key: 'Resolved' as const, label: 'Resolved', count: counts.Resolved, color: 'bg-blue-500' },
+                            { key: 'Closed' as const, label: 'Closed', count: counts.Closed, color: 'bg-zinc-500' },
+                          ].map((item) => {
+                            const isSelected = statusFilter === item.key;
+                            return (
+                              <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => handleSelectStatusFilter(item.key)}
+                                className={`py-1.5 px-1 rounded-lg text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-xs'
+                                    : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700/60 border border-gray-200 dark:border-zinc-700/70'
+                                }`}
+                              >
+                                <span className="text-[9px] font-bold uppercase tracking-tight flex items-center gap-1">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${item.color}`}></span>
+                                  {item.label}
+                                </span>
+                                <span className="text-xs font-black mt-0.5 leading-none">
+                                  {item.count}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
-                    )}
 
-                    {/* Discord Message Log Area (Scoped scroll container - no window scroll) */}
-                    <div 
-                      ref={messagesContainerRef}
-                      className="p-4 sm:p-6 space-y-4 max-h-[420px] overflow-y-auto bg-white dark:bg-[#151515]"
-                    >
-                      {activeTicket?.messages.map((msg) => (
-                        <div 
-                          key={msg.id} 
-                          className={`flex gap-3 text-xs leading-relaxed ${
-                            msg.sender === 'system' 
-                              ? 'p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-400' 
-                              : ''
-                          }`}
-                        >
-                          {/* Profile Picture of User on their messages */}
-                          {msg.sender === 'user' ? (
-                            msg.senderAvatar || userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url ? (
-                              <img
-                                src={msg.senderAvatar || userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url}
-                                alt={msg.senderName}
-                                className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200 dark:border-zinc-700"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-zinc-700">
-                                {(msg.senderName || 'U').charAt(0).toUpperCase()}
-                              </div>
-                            )
-                          ) : msg.sender === 'support' ? (
-                            <div className="w-8 h-8 rounded-full bg-zinc-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 border border-zinc-600">
-                              STAFF
-                            </div>
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold text-[10px] shrink-0">
-                              SYS
-                            </div>
+                      {/* 2. Fast Filter / Search Box */}
+                      <div className="p-2.5 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+                          <input
+                            type="text"
+                            value={ticketSearchQuery}
+                            onChange={(e) => setTicketSearchQuery(e.target.value)}
+                            placeholder="Filter by ID, subject, or user..."
+                            className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          {ticketSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setTicketSearchQuery('')}
+                              className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           )}
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="font-bold text-gray-900 dark:text-white">
-                                {msg.senderName}
-                              </span>
-                              {msg.sender === 'support' && (
-                                <span className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-[9px] font-bold uppercase">
-                                  Verified Staff
-                                </span>
-                              )}
-                              <span className="text-[10px] text-gray-400">
-                                {msg.timestamp}
-                              </span>
-                            </div>
-                            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">
-                              {msg.content}
-                            </p>
-                          </div>
                         </div>
-                      ))}
+                      </div>
+
+                      {/* 3. Channels List */}
+                      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-zinc-800/70 max-h-[500px]">
+                        {filteredTickets.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-gray-400">
+                            <p className="font-semibold text-gray-600 dark:text-gray-300">
+                              No {statusFilter !== 'All' ? `"${statusFilter}"` : ''} tickets found
+                            </p>
+                            {(statusFilter !== 'All' || ticketSearchQuery) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStatusFilter('All');
+                                  setTicketSearchQuery('');
+                                }}
+                                className="mt-2 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                              >
+                                Reset filters ({counts.All} total)
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          filteredTickets.map((t) => {
+                            const isSelected = t.id === activeTicket?.id;
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => {
+                                  setActiveTicketId(t.id);
+                                  setMobileTicketTab('thread');
+                                }}
+                                className={`w-full text-left p-3.5 transition-colors cursor-pointer flex flex-col gap-1.5 ${
+                                  isSelected
+                                    ? 'bg-white dark:bg-[#1e1e1e] border-l-4 border-l-primary shadow-xs'
+                                    : 'hover:bg-gray-100/70 dark:hover:bg-zinc-800/40 bg-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-mono font-bold text-xs text-gray-900 dark:text-white truncate">
+                                    #{t.id}
+                                  </span>
+                                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider shrink-0 ${
+                                    t.status === 'Open'
+                                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80'
+                                      : t.status === 'In Review'
+                                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80'
+                                      : t.status === 'Resolved'
+                                      ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80'
+                                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700'
+                                  }`}>
+                                    {t.status}
+                                  </span>
+                                </div>
+
+                                <p className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1">
+                                  {t.subject}
+                                </p>
+
+                                <div className="flex items-center justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                                  <span className="truncate max-w-[140px] font-medium">
+                                    {ticketViewScope === 'admin_all' && t.userDisplayName
+                                      ? `User: ${t.userDisplayName}`
+                                      : t.category}
+                                  </span>
+                                  <span className="shrink-0 text-[10px] font-mono">
+                                    {t.createdAt}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+
                     </div>
 
-                    {/* Reply Bar */}
-                    {activeTicket && activeTicket.status !== 'Resolved' && activeTicket.status !== 'Closed' ? (
-                      <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#1a1a1a] flex gap-2">
-                        <input
-                          type="text"
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder={`Reply in #${activeTicket.id}...`}
-                          className="flex-1 px-4 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                        />
-                        <button
-                          type="submit"
-                          disabled={!replyText.trim()}
-                          className="px-4 py-2.5 bg-primary hover:bg-green-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          <span>Send</span>
-                          <Send className="w-3.5 h-3.5" />
-                        </button>
-                      </form>
-                    ) : (
-                      <div className="p-3 text-center border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#1a1a1a] text-xs text-gray-500">
-                        This ticket is resolved. Open a new ticket if you have an additional inquiry.
-                      </div>
-                    )}
-                  </>
+                    {/* RIGHT PANE: Active Ticket Chat & Controls */}
+                    <div className={`flex-1 flex flex-col min-w-0 bg-white dark:bg-[#181818] ${
+                      mobileTicketTab === 'sidebar' ? 'hidden md:flex' : 'flex'
+                    }`}>
+                      {activeTicket ? (
+                        <>
+                          {/* Active Ticket Header */}
+                          <div className="p-3.5 px-4 bg-gray-50/80 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {/* Mobile Back Button */}
+                              <button
+                                type="button"
+                                onClick={() => setMobileTicketTab('sidebar')}
+                                className="md:hidden px-2 py-1 rounded-md bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-bold mr-1"
+                              >
+                                &larr; Tickets ({counts.All})
+                              </button>
+
+                              <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 truncate">
+                                <Hash className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                <span className="truncate">{activeTicket.subject}</span>
+                              </span>
+
+                              {ticketViewScope === 'admin_all' && (
+                                <span className="px-2 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px] shrink-0">
+                                  User: {activeTicket.userDisplayName || activeTicket.userEmail}
+                                </span>
+                              )}
+
+                              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700 shrink-0">
+                                {activeTicket.category}
+                              </span>
+
+                              {activeTicket.referenceId && (
+                                <span className="hidden lg:inline text-gray-500 font-mono text-[11px] shrink-0">
+                                  Ref: {activeTicket.referenceId}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Status Switcher (Admin) or Status Badge + Mark as Resolved (User) */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isAdminUser && ticketViewScope === 'admin_all' ? (
+                                <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                  {(['Open', 'In Review', 'Resolved', 'Closed'] as const).map((st) => (
+                                    <button
+                                      key={st}
+                                      type="button"
+                                      onClick={() => handleAdminChangeStatus(st)}
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                                        activeTicket.status === st
+                                          ? 'bg-primary text-white shadow-xs'
+                                          : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                                      }`}
+                                    >
+                                      {st}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${
+                                    activeTicket.status === 'Open'
+                                      ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                      : activeTicket.status === 'In Review'
+                                      ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                      : activeTicket.status === 'Resolved'
+                                      ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700'
+                                  }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                      activeTicket.status === 'Open' ? 'bg-emerald-500' :
+                                      activeTicket.status === 'In Review' ? 'bg-amber-500' :
+                                      activeTicket.status === 'Resolved' ? 'bg-blue-500' : 'bg-gray-400'
+                                    }`}></span>
+                                    {activeTicket.status}
+                                  </span>
+
+                                  {activeTicket.status !== 'Resolved' && activeTicket.status !== 'Closed' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCloseTicket(activeTicket.id)}
+                                      className="px-2.5 py-1 rounded-lg border border-gray-300 dark:border-zinc-700 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                    >
+                                      Mark as Resolved
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              <span className="text-gray-400 text-[11px] font-mono hidden sm:inline">
+                                {activeTicket.createdAt}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Message Stream */}
+                          <div
+                            ref={messagesContainerRef}
+                            className="flex-1 p-4 sm:p-6 space-y-4 max-h-[440px] overflow-y-auto bg-white dark:bg-[#151515]"
+                          >
+                            {activeTicket.messages.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`flex gap-3 text-xs leading-relaxed ${
+                                  msg.sender === 'system'
+                                    ? 'p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-gray-400'
+                                    : ''
+                                }`}
+                              >
+                                {/* Profile Picture of User on their messages */}
+                                {msg.sender === 'user' ? (
+                                  msg.senderAvatar || userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url ? (
+                                    <img
+                                      src={msg.senderAvatar || userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url}
+                                      alt={msg.senderName}
+                                      className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200 dark:border-zinc-700"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-zinc-700">
+                                      {(msg.senderName || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                  )
+                                ) : msg.sender === 'support' ? (
+                                  <div className="w-8 h-8 rounded-full bg-zinc-700 text-white flex items-center justify-center font-bold text-[10px] shrink-0 border border-zinc-600">
+                                    STAFF
+                                  </div>
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                    SYS
+                                  </div>
+                                )}
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="font-bold text-gray-900 dark:text-white">
+                                      {msg.senderName}
+                                    </span>
+                                    {msg.sender === 'support' && (
+                                      <span className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-[9px] font-bold uppercase">
+                                        Verified Staff
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-gray-400">
+                                      {msg.timestamp}
+                                    </span>
+                                  </div>
+                                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">
+                                    {msg.content}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Reply Form */}
+                          {activeTicket.status !== 'Resolved' && activeTicket.status !== 'Closed' ? (
+                            <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#1a1a1a] flex gap-2">
+                              <input
+                                type="text"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder={`Reply in #${activeTicket.id}...`}
+                                className="flex-1 px-4 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!replyText.trim()}
+                                className="px-4 py-2.5 bg-primary hover:bg-green-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 shadow-xs"
+                              >
+                                <span>Send</span>
+                                <Send className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="p-3 text-center border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#1a1a1a] text-xs text-gray-500">
+                              This ticket is marked as {activeTicket.status}. Open a new ticket if you have an additional inquiry.
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400">
+                          <MessageSquare className="w-8 h-8 mb-2 opacity-40" />
+                          <p className="font-bold text-sm text-gray-600 dark:text-gray-300">No ticket selected</p>
+                          <p className="text-xs text-gray-400 mt-1">Select a ticket from the sidebar to view thread</p>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
                 )}
 
               </div>
