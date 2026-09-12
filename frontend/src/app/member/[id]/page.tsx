@@ -7,15 +7,8 @@ import {
   MapPin, 
   Calendar, 
   ShieldCheck, 
-  CheckCircle2, 
   Package, 
   MessageSquare, 
-  ChevronRight, 
-  Share2,
-  ExternalLink,
-  ThumbsUp,
-  Archive,
-  Store,
   Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -39,7 +32,7 @@ interface MemberPageProps {
 export default async function MemberProfilePage({ params, searchParams }: MemberPageProps) {
   const { id } = await params;
   const sParams = await searchParams;
-  const activeTab = (typeof sParams?.tab === 'string' ? sParams.tab : 'listings').toLowerCase();
+  const activeTab = (typeof sParams?.tab === 'string' ? sParams.tab : 'listings').toLowerCase() === 'feedback' ? 'feedback' : 'listings';
 
   const cookieStore = await cookies();
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
@@ -97,7 +90,6 @@ export default async function MemberProfilePage({ params, searchParams }: Member
           account_type: matched.user_metadata?.account_type || 'personal',
           created_at: matched.created_at,
           is_verified: matched.user_metadata?.is_verified,
-          bio: matched.user_metadata?.bio,
           location: matched.user_metadata?.location,
         };
       }
@@ -113,10 +105,12 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const sellerId = profile.id;
   const isOwnProfile = Boolean(currentUser && currentUser.id === sellerId);
 
-  // 4. Retrieve complete real user metadata (bio, avatar, verified, location)
+  // 4. Retrieve complete real user metadata (avatar, verified, location, email)
   let targetUserMeta: any = {};
-  if (isOwnProfile && currentUser?.user_metadata) {
-    targetUserMeta = currentUser.user_metadata;
+  let targetUserEmail: string = profile.email || '';
+  if (isOwnProfile && currentUser) {
+    targetUserMeta = currentUser.user_metadata || {};
+    targetUserEmail = currentUser.email || targetUserEmail;
   } else if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
     try {
       const adminClient = createSupabaseClient(
@@ -124,17 +118,28 @@ export default async function MemberProfilePage({ params, searchParams }: Member
         process.env.SUPABASE_SERVICE_ROLE_KEY
       );
       const { data: { user: authUser } } = await adminClient.auth.admin.getUserById(sellerId);
-      if (authUser?.user_metadata) {
-        targetUserMeta = authUser.user_metadata;
+      if (authUser) {
+        targetUserMeta = authUser.user_metadata || {};
+        targetUserEmail = authUser.email || targetUserEmail;
       }
     } catch {}
   }
 
   // Check ban status & admin status of target user
   const banStatus = isAccountBanned(profile);
-  const targetIsAdmin = Boolean(profile.role === 'admin' || profile.is_admin);
+  const targetIsAdmin = Boolean(
+    isAdmin({
+      ...profile,
+      email: targetUserEmail,
+      user_metadata: targetUserMeta,
+    }) ||
+    profile.role === 'admin' ||
+    profile.is_admin ||
+    targetUserMeta.role === 'admin' ||
+    targetUserMeta.is_admin
+  );
 
-  // 5. Concurrently fetch all listings, reviews, and favourite status
+  // 5. Concurrently fetch all active listings, reviews, and favourite status
   const now = new Date();
   const [allListingsResult, reviewsResult, favouriteResult] = await Promise.all([
     supabase
@@ -156,16 +161,12 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const activeListings = rawListings.filter(l => 
     l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
   );
-  const closedListings = rawListings.filter(l => 
-    l.status === 'closed' || (l.expires_at && new Date(l.expires_at) < now)
-  );
   const reviews = reviewsResult.data || [];
   const isFavourited = !!favouriteResult.data;
 
   // Derive identity and metadata
   const avatarUrl = profile.avatar_url || targetUserMeta.avatar_url || '';
   const displayName = targetUserMeta.full_name || profile.username || targetUserMeta.username || 'Member';
-  const bio = targetUserMeta.bio || profile.bio || '';
   const rawLocation = targetUserMeta.location || profile.location || (rawListings[0]?.location) || 'Dublin';
   const coreLocation = getCoreLocation(rawLocation);
   const accountType = (profile.account_type || targetUserMeta.account_type || 'personal').toLowerCase();
@@ -251,7 +252,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                 </div>
 
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
                       {displayName}
                     </h1>
@@ -265,8 +266,13 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                         }
                       />
                     )}
+                    {targetIsAdmin && (
+                      <span className="text-xs font-bold text-amber-500 dark:text-amber-400">
+                        ListMe Staff
+                      </span>
+                    )}
                     {accountType === 'business' && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
                         Business Account
                       </span>
                     )}
@@ -313,20 +319,8 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               </div>
             </div>
 
-            {/* Member Bio (if set by user) */}
-            {bio && (
-              <div className="pt-4 pb-2 text-sm text-gray-700 dark:text-gray-300">
-                <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
-                  About Member
-                </p>
-                <p className="italic leading-relaxed font-medium">
-                  &ldquo;{bio}&rdquo;
-                </p>
-              </div>
-            )}
-
             {/* Middle Row: TradeMe Meta Information Table */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 text-sm">
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-100 dark:border-zinc-800/80">
                 <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
                   <MapPin className="w-5 h-5" />
@@ -379,25 +373,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               }`}
             >
               <Package className="w-4 h-4" />
-              <span>Active Listings</span>
-              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold">
-                {activeListings.length}
-              </span>
-            </Link>
-
-            <Link
-              href={`/member/${memberNumber}?tab=closed`}
-              className={`py-4 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'closed'
-                  ? 'border-primary text-primary dark:text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <Archive className="w-4 h-4" />
-              <span>Closed / Past Listings</span>
-              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold">
-                {closedListings.length}
-              </span>
+              <span>Active Listings ({activeListings.length})</span>
             </Link>
 
             <Link
@@ -409,10 +385,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               }`}
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Feedback &amp; Reviews</span>
-              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-200 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold">
-                {totalReviews}
-              </span>
+              <span>Feedback &amp; Reviews ({totalReviews})</span>
             </Link>
           </div>
         </div>
@@ -442,19 +415,9 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                   No active listings right now
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-4">
-                  {closedListings.length > 0 
-                    ? `${displayName} has ${closedListings.length} previous listing${closedListings.length > 1 ? 's' : ''} in their archive.`
-                    : `${displayName} currently doesn't have any active items listed.`}
+                  {displayName} currently doesn&apos;t have any active items listed.
                 </p>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
-                  {closedListings.length > 0 && (
-                    <Link
-                      href={`/member/${memberNumber}?tab=closed`}
-                      className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-xs font-bold text-gray-800 dark:text-white transition-colors"
-                    >
-                      View Past Listings ({closedListings.length})
-                    </Link>
-                  )}
                   {isOwnProfile ? (
                     <Link
                       href="/sell"
@@ -488,53 +451,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
           </div>
         )}
 
-        {/* TAB 2: Closed / Past Listings */}
-        {activeTab === 'closed' && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Closed &amp; Past Listings ({closedListings.length})
-              </h2>
-            </div>
-
-            {closedListings.length === 0 ? (
-              <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-sm">
-                <Archive className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                  No closed listings found
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                  Completed, expired, or sold listings for {displayName} will appear here.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
-                {closedListings.map((listing) => (
-                  <div key={listing.id} className="relative group">
-                    <div className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-md bg-zinc-900/90 border border-zinc-700 text-[10px] font-bold text-zinc-300 uppercase tracking-wider shadow-sm">
-                      Closed
-                    </div>
-                    <div className="opacity-80 hover:opacity-100 transition-opacity">
-                      <ListingCard
-                        id={listing.id}
-                        title={listing.title}
-                        price={listing.price}
-                        priceType={listing.price_type}
-                        condition={listing.condition}
-                        images={listing.images}
-                        createdAt={listing.created_at}
-                        location={listing.location || coreLocation}
-                        closesAt={listing.expires_at || listing.ends_at}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: Feedback & Reviews */}
+        {/* TAB 2: Feedback & Reviews */}
         {activeTab === 'feedback' && (
           <div className="space-y-6">
             {/* Feedback Breakdown Stats */}
@@ -589,7 +506,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                     <div key={rev.id} className="py-4 first:pt-0 last:pb-0 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-gray-200 text-xs font-bold">
+                          <span className="text-xs font-bold text-gray-900 dark:text-white">
                             Score: {rev.rating} / 5
                           </span>
                         </div>
