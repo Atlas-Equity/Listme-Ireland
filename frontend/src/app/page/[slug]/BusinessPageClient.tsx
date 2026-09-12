@@ -257,7 +257,7 @@ export default function BusinessPageClient({
                 <h3 className="text-base font-black text-gray-900 dark:text-white">
                   About
                 </h3>
-                <span className="text-[11px] font-bold text-primary px-2 py-0.5 rounded-md bg-primary/10">
+                <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
                   {isMarketplace ? 'Marketplace' : 'Service'}
                 </span>
               </div>
