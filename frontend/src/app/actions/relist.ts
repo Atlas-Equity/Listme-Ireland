@@ -89,21 +89,19 @@ export async function deleteListingAction(listingId: string) {
     return { error: 'You are not authorized to delete this listing.' };
   }
 
-  // 1. Delete associated bids to prevent foreign key constraint violations
+  // 1. Cascade delete associated child rows across all referencing tables
   try {
-    await db.from('bids').delete().eq('listing_id', listingId);
+    await Promise.allSettled([
+      db.from('wishlists').delete().eq('listing_id', listingId),
+      db.from('bids').delete().eq('listing_id', listingId),
+      db.from('reviews').delete().eq('listing_id', listingId),
+      db.from('watchlist').delete().eq('listing_id', listingId),
+    ]);
   } catch (err) {
-    console.warn('Could not delete bids for listing:', err);
+    console.warn('Cascade delete note for listing:', err);
   }
 
-  // 2. Delete associated watchlist entries if any
-  try {
-    await db.from('watchlist').delete().eq('listing_id', listingId);
-  } catch (err) {
-    console.warn('Could not delete watchlist for listing:', err);
-  }
-
-  // 3. Delete the listing
+  // 2. Delete the listing itself
   const { error: deleteErr } = await db
     .from('listings')
     .delete()
@@ -114,6 +112,7 @@ export async function deleteListingAction(listingId: string) {
   }
 
   revalidatePath('/my-listme');
+  revalidatePath(`/listing/${listingId}`);
   revalidatePath('/');
   revalidatePath('/marketplace');
   revalidatePath('/services');

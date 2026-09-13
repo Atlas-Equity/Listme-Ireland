@@ -299,8 +299,8 @@ export default function BusinessPageClient({
                   <span>Based in <strong>{businessPage.county}, Ireland</strong></span>
                 </div>
 
-                {/* Phone (Hidden on official ListMe storefront) */}
-                {businessPage.phone && !isListMeOfficial && (
+                {/* Phone */}
+                {businessPage.phone && (
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="font-mono font-semibold">{businessPage.phone}</span>

@@ -7,8 +7,9 @@ import { cookies } from 'next/headers';
 import BusinessPageClient from './BusinessPageClient';
 import { isAdmin } from '@/utils/admin';
 
-// Cache business storefront pages for 60s
-export const revalidate = 60;
+// Always serve the freshest business page data so edits reflect instantly
+export const dynamic = 'force-dynamic';
+
 
 interface BusinessPageViewProps {
   params: Promise<{ slug: string }>;
@@ -29,56 +30,67 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   let sellerId: string | null = null;
   let isOwner = false;
 
-  // 1. Official Platform Storefront for ListMe
+  // 1. Search for REAL business pages created/edited by registered users
+  // Step A: Check current user's business pages first
+  if (user?.user_metadata?.business_pages) {
+    const found = (user.user_metadata.business_pages as BusinessPageData[]).find(
+      (p) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
+    );
+    if (found) {
+      businessPage = found;
+      sellerId = user.id;
+      isOwner = true;
+    }
+  }
+
+  // Step B: Search across all registered business pages
+  if (!businessPage) {
+    const allPages = await getAllRegisteredBusinessPages();
+    const matched = allPages.find(
+      (p: BusinessPageData) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
+    );
+    if (matched) {
+      businessPage = matched;
+      sellerId = matched.owner_id || null;
+      isOwner = Boolean(user && user.id === matched.owner_id);
+    }
+  }
+
+  // Step C: If cleanSlug is 'listme', merge with official platform defaults
   if (cleanSlug === 'listme') {
-    businessPage = {
+    const officialDefaults: BusinessPageData = {
       name: 'ListMe',
       slug: 'listme',
       tagline: 'Official platform storefront for ListMe Ireland — verified marketplace listings, announcements, safety guidelines, and direct community support.',
-      category: 'Official Platform',
+      category: 'Retail & Local Storefront',
       business_type: 'marketplace',
       county: 'Dublin',
-      phone: '', // Phone removed as requested
+      phone: '',
       email: 'support@listme.ie',
       website: 'https://listme.ie',
       facebook: 'https://www.facebook.com/profile.php?id=61594336620072',
       plan: 'Official Platform Storefront',
       announcement: 'Welcome to ListMe Ireland! Ireland’s next-generation platform for items, jobs, and services across all 26 counties.',
-      opening_hours: 'Mon - Sun: 24/7 Platform Access',
+      opening_hours: 'Open 24 Hours / 7 Days',
       created_at: new Date(2023, 0, 1).toISOString(),
       avatarUrl: '/ListMeBanner.png',
       coverUrl: '/ListMeBanner.png',
     };
 
+    if (businessPage) {
+      // User's custom edits override the default values
+      businessPage = {
+        ...officialDefaults,
+        ...businessPage,
+        avatarUrl: businessPage.avatarUrl || officialDefaults.avatarUrl,
+        coverUrl: businessPage.coverUrl || officialDefaults.coverUrl,
+      };
+    } else {
+      businessPage = officialDefaults;
+    }
+
     if (userIsAdmin) {
       isOwner = true;
-    }
-  } else {
-    // 2. Search for REAL business pages created by actual registered users
-
-    // Step A: Check current user's business pages
-    if (user?.user_metadata?.business_pages) {
-      const found = (user.user_metadata.business_pages as BusinessPageData[]).find(
-        (p) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
-      );
-      if (found) {
-        businessPage = found;
-        sellerId = user.id;
-        isOwner = true;
-      }
-    }
-
-    // Step B: If not current user, search across all registered business pages (served instantly from cache)
-    if (!businessPage) {
-      const allPages = await getAllRegisteredBusinessPages();
-      const matched = allPages.find(
-        (p: BusinessPageData) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
-      );
-      if (matched) {
-        businessPage = matched;
-        sellerId = matched.owner_id || null;
-        isOwner = Boolean(user && user.id === matched.owner_id);
-      }
     }
   }
 
