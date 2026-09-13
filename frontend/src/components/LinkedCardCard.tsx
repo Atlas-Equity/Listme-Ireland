@@ -379,8 +379,8 @@ export default function LinkedCardCard({
     setTopUpError(null);
 
     const finalAmt = customTopUp ? parseFloat(customTopUp) : parseFloat(topUpAmount);
-    if (isNaN(finalAmt) || finalAmt <= 0) {
-      setTopUpError('Please enter a valid top-up amount.');
+    if (isNaN(finalAmt) || finalAmt < 1) {
+      setTopUpError('Minimum top-up amount is €1.00.');
       return;
     }
 
@@ -886,11 +886,16 @@ export default function LinkedCardCard({
 
           {/* Quick Amount Buttons */}
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-              Select Preset Amount
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Select Preset Amount
+              </label>
+              <span className="text-[11px] text-primary font-medium">
+                0% fee on first €50.00
+              </span>
+            </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {['25', '50', '100', '250', '500', '1000'].map((amt) => (
+              {['1', '5', '10', '25', '50', '100'].map((amt) => (
                 <button
                   key={amt}
                   type="button"

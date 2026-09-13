@@ -20,10 +20,12 @@ import {
   Clock,
   Megaphone,
   Camera,
+  Upload,
   Edit2
 } from 'lucide-react';
 import { COUNTIES } from '@/utils/irelandLocations';
 import { createOrUpdateBusinessPage, BusinessPageData } from '@/app/actions/businessPages';
+import { uploadAvatarAction } from '@/app/my-listme/actions';
 
 const BIZ_CATEGORIES = [
   'Services & Trades',
@@ -87,10 +89,12 @@ export default function CreateBusinessPageModal({
   );
   const [announcement, setAnnouncement] = useState(initialData?.announcement || '');
   const [avatarUrl, setAvatarUrl] = useState(initialData?.avatarUrl || '');
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [website, setWebsite] = useState(initialData?.website || '');
-  const [facebook, setFacebook] = useState(initialData?.facebook || '');
-  const [instagram, setInstagram] = useState(initialData?.instagram || '');
+  const OFFICIAL_FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61594336620072';
+  const [facebook, setFacebook] = useState(initialData?.facebook || OFFICIAL_FACEBOOK_URL);
   const [linkedin, setLinkedin] = useState(initialData?.linkedin || '');
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,6 +103,32 @@ export default function CreateBusinessPageModal({
       val = '+353 ' + val.replace(/^\+?353\s?/, '');
     }
     setPhone(val);
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarUrl(previewUrl);
+
+    setIsUploadingImage(true);
+    setErrorMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const res = await uploadAvatarAction(formData);
+      if (res.error || !res.publicUrl) {
+        setErrorMessage(res.error || 'Failed to upload image. Please try again.');
+      } else {
+        setAvatarUrl(res.publicUrl);
+      }
+    } catch {
+      setErrorMessage('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleNameChange = (val: string) => {
@@ -142,7 +172,6 @@ export default function CreateBusinessPageModal({
         email,
         website,
         facebook,
-        instagram,
         linkedin,
       };
 
@@ -299,17 +328,35 @@ export default function CreateBusinessPageModal({
                     ) : (
                       <Camera className="w-6 h-6 text-gray-400" />
                     )}
+                    {isUploadingImage && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-white animate-spin" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-2">
                     <input
-                      type="url"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="Paste image URL (e.g. https://... logo or avatar)"
-                      className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs outline-none focus:ring-2 focus:ring-primary"
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      className="hidden"
                     />
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                      Displays in your page profile header and public business badge.
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-900 dark:text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                    >
+                      {isUploadingImage ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 text-primary" />
+                      )}
+                      <span>{isUploadingImage ? 'Uploading Image...' : avatarUrl ? 'Change Image' : 'Upload Image'}</span>
+                    </button>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Upload your business logo or photo. Direct upload (JPG, PNG, WebP).
                     </p>
                   </div>
                 </div>
@@ -494,28 +541,31 @@ export default function CreateBusinessPageModal({
                 <span className="block text-xs font-bold text-gray-900 dark:text-white">
                   Social Links
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input
-                    type="url"
-                    value={facebook}
-                    onChange={(e) => setFacebook(e.target.value)}
-                    placeholder="Facebook URL"
-                    className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <input
-                    type="url"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    placeholder="Instagram URL"
-                    className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <input
-                    type="url"
-                    value={linkedin}
-                    onChange={(e) => setLinkedin(e.target.value)}
-                    placeholder="LinkedIn URL"
-                    className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Facebook Page URL
+                    </label>
+                    <input
+                      type="url"
+                      value={facebook}
+                      onChange={(e) => setFacebook(e.target.value)}
+                      placeholder="https://www.facebook.com/..."
+                      className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary font-mono text-[11px]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      LinkedIn URL
+                    </label>
+                    <input
+                      type="url"
+                      value={linkedin}
+                      onChange={(e) => setLinkedin(e.target.value)}
+                      placeholder="https://linkedin.com/company/..."
+                      className="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary font-mono text-[11px]"
+                    />
+                  </div>
                 </div>
               </div>
 

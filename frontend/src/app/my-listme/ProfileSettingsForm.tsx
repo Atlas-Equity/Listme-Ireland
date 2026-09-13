@@ -28,7 +28,22 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
   const [username, setUsername] = useState(initialData.username);
   const [fullName, setFullName] = useState(initialData.fullName);
   const [location, setLocation] = useState(getCoreLocation(initialData.location) || 'Dublin');
-  const [phone, setPhone] = useState(initialData.phone);
+  const initialPhoneFormatted = initialData.phone
+    ? (initialData.phone.startsWith('+353 ')
+        ? initialData.phone
+        : initialData.phone.startsWith('+353')
+        ? `+353 ${initialData.phone.replace(/^\+353/, '').trim()}`
+        : `+353 ${initialData.phone.replace(/^\+?\d{1,3}\s?/, '').trim()}`)
+    : '+353 ';
+  const [phone, setPhone] = useState(initialPhoneFormatted);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (!val.startsWith('+353 ')) {
+      val = '+353 ' + val.replace(/^\+?353\s?/, '');
+    }
+    setPhone(val);
+  };
   
   // Avatar state
   const [avatarUrl, setAvatarUrl] = useState(initialData.avatarUrl);
@@ -445,10 +460,10 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
                 type="tel"
                 required={accountType === 'business'}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="e.g. +353 87 123 4567"
-                className={`w-full pl-10 pr-10 py-2.5 rounded-lg border ${
-                  phone.trim() && !validatePhoneNumber(phone).isValid
+                onChange={handlePhoneChange}
+                placeholder="+353 87 123 4567"
+                className={`w-full pl-10 pr-10 py-2.5 rounded-lg border font-mono ${
+                  phone.trim() && phone.trim() !== '+353' && !validatePhoneNumber(phone, 'IE').isValid
                     ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400'
                     : 'border-gray-300 dark:border-zinc-700 focus:ring-primary'
                 } bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 text-sm`}
@@ -463,9 +478,12 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
                 ) : null}
               </div>
             </div>
-            {phone.trim() && !validatePhoneNumber(phone).isValid && (
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+              Prefix +353 is permanently locked to Ireland.
+            </p>
+            {phone.trim() && phone.trim() !== '+353' && !validatePhoneNumber(phone, 'IE').isValid && (
               <p className="text-xs text-red-500 mt-1">
-                {validatePhoneNumber(phone).error || 'Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).'}
+                {validatePhoneNumber(phone, 'IE').error || 'Please enter a valid Irish phone number (e.g. +353 87 123 4567).'}
               </p>
             )}
             {phone.trim() && validatePhoneNumber(phone).isValid && phone.trim() !== (initialData.phone || '').trim() && (

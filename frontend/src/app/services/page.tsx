@@ -1,47 +1,28 @@
 import React from 'react';
-import PageLayout from '@/components/PageLayout';
-import { mockServices } from '@/lib/mockData';
+import { createClient } from '@/utils/supabase/server';
+import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
+import ServicesClient from './ServicesClient';
 
-export const dynamic = 'force-static';
+export const revalidate = 15;
 
-const servicesFilters = [
-  {
-    title: 'Category',
-    options: [
-      { label: 'Building & Trades', value: 'trades' },
-      { label: 'Cleaning', value: 'cleaning' },
-      { label: 'Landscaping & Gardening', value: 'landscaping' },
-      { label: 'Automotive Services', value: 'automotive' },
-      { label: 'Health & Beauty', value: 'health' },
-      { label: 'Events & Catering', value: 'events' },
-      { label: 'Moving & Storage', value: 'moving' },
-    ]
-  },
-  {
-    title: 'Rating',
-    options: [
-      { label: 'Score 4 & Up', value: '4_plus' },
-      { label: 'Score 3 & Up', value: '3_plus' },
-      { label: 'Unrated (New)', value: 'new' },
-    ]
-  },
-  {
-    title: 'Availability',
-    options: [
-      { label: 'Available Now', value: 'now' },
-      { label: 'Available This Week', value: 'this_week' },
-      { label: 'Emergency Callout 24/7', value: 'emergency' },
-    ]
-  }
-];
+export default async function ServicesPage() {
+  const supabase = await createClient();
 
-export default function ServicesPage() {
+  const [businessPages, listingsResult] = await Promise.all([
+    getAllRegisteredBusinessPages(),
+    supabase
+      .from('listings')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, description, category')
+      .eq('status', 'active')
+      .or('category.ilike.%service%,category.ilike.%trade%,condition.eq.Service')
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+
   return (
-    <PageLayout
-      title="Services"
-      description="Hire trusted local professionals for any job."
-      filterGroups={servicesFilters}
-      listings={mockServices}
+    <ServicesClient
+      initialBusinessPages={businessPages}
+      initialListings={listingsResult.data || []}
     />
   );
 }

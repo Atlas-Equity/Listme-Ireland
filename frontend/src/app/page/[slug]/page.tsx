@@ -1,7 +1,8 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { BusinessPageData } from '@/app/actions/businessPages';
+import { BusinessPageData, getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
+
 import { cookies } from 'next/headers';
 import BusinessPageClient from './BusinessPageClient';
 import { isAdmin } from '@/utils/admin';
@@ -39,15 +40,14 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       county: 'Dublin',
       phone: '', // Phone removed as requested
       email: 'support@listme.ie',
-      website: 'https://listme.ie', // Website set to listme.ie
-      facebook: 'https://facebook.com/listmeie',
-      instagram: 'https://instagram.com/listme.ie',
+      website: 'https://listme.ie',
+      facebook: 'https://www.facebook.com/profile.php?id=61594336620072',
       plan: 'Official Platform Storefront',
       announcement: 'Welcome to ListMe Ireland! Ireland’s next-generation platform for items, jobs, and services across all 26 counties.',
       opening_hours: 'Mon - Sun: 24/7 Platform Access',
       created_at: new Date(2023, 0, 1).toISOString(),
-      avatarUrl: '/clover-logo.png', // Official clover logo
-      coverUrl: '/ListMeBanner.png', // Official banner
+      avatarUrl: '/ListMeBanner.png',
+      coverUrl: '/ListMeBanner.png',
     };
 
     if (userIsAdmin) {
@@ -68,34 +68,16 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       }
     }
 
-    // Step B: If not current user, search across all registered users in Supabase Auth
+    // Step B: If not current user, search across all registered business pages (served instantly from cache)
     if (!businessPage) {
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      if (serviceKey && url) {
-        try {
-          const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-          const adminClient = createSupabaseClient(url, serviceKey, {
-            auth: { persistSession: false, autoRefreshToken: false },
-          });
-          const { data: usersData } = await adminClient.auth.admin.listUsers({ perPage: 100 });
-          for (const u of usersData?.users || []) {
-            const pages = u.user_metadata?.business_pages as BusinessPageData[];
-            if (Array.isArray(pages)) {
-              const matched = pages.find(
-                (p) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
-              );
-              if (matched) {
-                businessPage = matched;
-                sellerId = u.id;
-                isOwner = Boolean(user && user.id === u.id);
-                break;
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error finding business page across users:', err);
-        }
+      const allPages = await getAllRegisteredBusinessPages();
+      const matched = allPages.find(
+        (p: BusinessPageData) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
+      );
+      if (matched) {
+        businessPage = matched;
+        sellerId = matched.owner_id || null;
+        isOwner = Boolean(user && user.id === matched.owner_id);
       }
     }
   }

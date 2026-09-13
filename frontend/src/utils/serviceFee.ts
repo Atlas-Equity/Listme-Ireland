@@ -2,10 +2,9 @@
  * Listme Service Fee Calculation Utility
  * 
  * Fee Tiers:
- * - €0.00 – €20.00: 4% fee
- * - €20.01 – €100.00: 3.5% fee
- * - €100.01 – €250.00: 3% fee
- * - €250.01+: 3% fee
+ * - €0.00 – €50.00: 0% fee (Completely fee-free!)
+ * - €50.01 – €150.00: 3.5% fee
+ * - €150.01+: 3% fee
  */
 
 export interface ServiceFeeResult {
@@ -24,24 +23,21 @@ export function calculateServiceFee(price: number | string): ServiceFeeResult {
 
   const cleanPrice = Math.max(0, numericPrice);
 
-  let percentage = 3.0;
-  let tierLabel = '€250.01+ (3%)';
+  let percentage = 0.0;
+  let tierLabel = '€0.00 – €50.00 (0% Fee Free)';
 
-  if (cleanPrice <= 20) {
-    percentage = 4.0;
-    tierLabel = '€0.00 – €20.00 (4%)';
-  } else if (cleanPrice <= 100) {
+  if (cleanPrice <= 50) {
+    percentage = 0.0;
+    tierLabel = '€0.00 – €50.00 (0% Fee Free)';
+  } else if (cleanPrice <= 150) {
     percentage = 3.5;
-    tierLabel = '€20.01 – €100.00 (3.5%)';
-  } else if (cleanPrice <= 250) {
-    percentage = 3.0;
-    tierLabel = '€100.01 – €250.00 (3%)';
+    tierLabel = '€50.01 – €150.00 (3.5%)';
   } else {
     percentage = 3.0;
-    tierLabel = '€250.01+ (3%)';
+    tierLabel = '€150.01+ (3%)';
   }
 
-  const fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
+  const fee = cleanPrice <= 50 ? 0 : Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
   const total = Math.round((cleanPrice + fee) * 100) / 100;
 
   return {
@@ -55,8 +51,8 @@ export function calculateServiceFee(price: number | string): ServiceFeeResult {
 }
 
 export const SERVICE_FEE_TIERS = [
-  { range: '€0.00 – €20.00', feePercent: '4%', example: 'e.g. €15.00 purchase = €0.60 fee' },
-  { range: '€20.01 – €100.00', feePercent: '3.5%', example: 'e.g. €50.00 purchase = €1.75 fee' },
-  { range: '€100.01 – €250.00', feePercent: '3%', example: 'e.g. €200.00 purchase = €6.00 fee' },
-  { range: '€250.01+', feePercent: '3%', example: 'e.g. €700.00 purchase = €21.00 fee' },
+  { range: '€0.00 – €50.00', feePercent: '0%', example: 'First €50 is completely fee-free (€0.00 fee)' },
+  { range: '€50.01 – €150.00', feePercent: '3.5%', example: 'e.g. €80.00 purchase = €2.80 fee' },
+  { range: '€150.01+', feePercent: '3%', example: 'e.g. €250.00 purchase = €7.50 fee' },
 ];
+

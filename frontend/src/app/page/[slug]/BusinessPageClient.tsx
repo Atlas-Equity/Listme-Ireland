@@ -336,7 +336,7 @@ export default function BusinessPageClient({
               </div>
 
               {/* Social Links Row */}
-              {(businessPage.facebook || businessPage.instagram || businessPage.linkedin) && (
+              {(businessPage.facebook || businessPage.linkedin) && (
                 <div className="pt-3 border-t border-gray-100 dark:border-zinc-800/80">
                   <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
                     Social Channels
@@ -352,18 +352,6 @@ export default function BusinessPageClient({
                       >
                         <span className="font-black text-[#1877F2]">f</span>
                         <span>Facebook</span>
-                      </a>
-                    )}
-
-                    {businessPage.instagram && (
-                      <a
-                        href={businessPage.instagram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-                      >
-                        <span className="font-bold text-[#E4405F]">IG</span>
-                        <span>Instagram</span>
                       </a>
                     )}
 

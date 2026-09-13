@@ -9,6 +9,7 @@ import VerifiedBadge from './VerifiedBadge';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function Header() {
+  console.time('Header');
   const cookieStore = await cookies();
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
 
@@ -27,21 +28,40 @@ export default async function Header() {
       isBusiness = user.user_metadata?.account_type === 'business';
       isVerified = Boolean(user.user_metadata?.is_verified);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('account_type, avatar_url, created_at, is_verified')
-        .eq('id', user.id)
-        .maybeSingle();
+      // Check header cache first to avoid sequential DB query
+      const headerCache = (globalThis as any).__headerUserCache ?? new Map<string, any>();
+      (globalThis as any).__headerUserCache = headerCache;
+      const cached = headerCache.get(user.id);
 
-      if (profile) {
-        if (profile.account_type) isBusiness = profile.account_type === 'business';
-        if (profile.avatar_url) avatarUrl = profile.avatar_url;
-        const createdAt = profile.created_at || user.created_at;
-        const isOneYearOld = createdAt ? Date.now() - new Date(createdAt).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
-        isVerified = Boolean(isOneYearOld || profile.is_verified || user.user_metadata?.is_verified);
+      if (cached && Date.now() < cached.expiresAt) {
+        isBusiness = cached.isBusiness;
+        avatarUrl = cached.avatarUrl;
+        isVerified = cached.isVerified;
+      } else {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('account_type, avatar_url, created_at, is_verified')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          if (profile.account_type) isBusiness = profile.account_type === 'business';
+          if (profile.avatar_url) avatarUrl = profile.avatar_url;
+          const createdAt = profile.created_at || user.created_at;
+          const isOneYearOld = createdAt ? Date.now() - new Date(createdAt).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
+          isVerified = Boolean(isOneYearOld || profile.is_verified || user.user_metadata?.is_verified);
+        }
+
+        headerCache.set(user.id, {
+          isBusiness,
+          avatarUrl,
+          isVerified,
+          expiresAt: Date.now() + 60 * 1000,
+        });
       }
     }
   }
+
 
   return (
     <header className="sticky top-0 z-50 w-full flex flex-col">

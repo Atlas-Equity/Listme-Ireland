@@ -13,6 +13,7 @@ const globalForCatCache = globalThis as unknown as {
 };
 
 export default async function TrendingCategories() {
+  console.time('TrendingCategories');
   let counts = globalForCatCache.categoryCountsCache?.counts;
   const isExpired = !globalForCatCache.categoryCountsCache || Date.now() > globalForCatCache.categoryCountsCache.expiresAt;
 
@@ -56,6 +57,8 @@ export default async function TrendingCategories() {
       slug: 'services',
     },
   ];
+
+  console.timeEnd('TrendingCategories');
 
   return (
     <div className="mb-8 mt-8 sm:mt-12">

@@ -32,7 +32,13 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       // Ignore localStorage errors
     }
 
-    // Server synchronization
+    // Server synchronization - only if user is logged in with auth cookie
+    const hasAuthCookie = typeof document !== 'undefined' && document.cookie.includes('-auth-token');
+    if (!hasAuthCookie) {
+      setIsLoading(false);
+      return;
+    }
+
     getWatchlistIdsAction().then((serverIds) => {
       if (Array.isArray(serverIds)) {
         setWatchlistIds((prev) => {

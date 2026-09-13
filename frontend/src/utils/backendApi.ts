@@ -1,3 +1,4 @@
+import '@/utils/dnsOptimizer';
 import { createClient as createStatelessClient } from '@supabase/supabase-js';
 
 export interface ListingCardData {
@@ -91,9 +92,9 @@ function normalizeListing(item: any): ListingCardData {
  * High-speed home page listings loader.
  * Serves from global in-memory cache in <1ms, or runs a single consolidated Supabase query.
  */
-export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; auctions: ListingCardData[] }> {
+export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; auctions: ListingCardData[]; closingSoon: ListingCardData[] }> {
   const cacheKey = 'home_listings';
-  const cached = getCached<{ latest: ListingCardData[]; auctions: ListingCardData[] }>(cacheKey);
+  const cached = getCached<{ latest: ListingCardData[]; auctions: ListingCardData[]; closingSoon: ListingCardData[] }>(cacheKey);
   if (cached) {
     return cached;
   }
@@ -111,9 +112,18 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
 
       if (res.ok) {
         const data = await res.json();
+        const all = (data.all || data.latest || []).map(normalizeListing);
+        const nowMs = Date.now();
+        const closingSoon = all.filter((l: ListingCardData) => {
+          const end = l.expires_at || l.ends_at;
+          if (!end) return false;
+          const diff = new Date(end).getTime() - nowMs;
+          return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+        });
         const result = {
           latest: (data.latest || []).map(normalizeListing),
           auctions: (data.auctions || []).map(normalizeListing),
+          closingSoon,
         };
         setCached(cacheKey, result, 30);
         return result;
@@ -125,13 +135,13 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
     }
   }
 
-  // 2. Direct Supabase query: fetch top 20 active listings in a single round-trip
+  // 2. Direct Supabase query: fetch top 30 active listings in a single round-trip
   const { data: listingsData } = await publicSupabase
     .from('listings')
     .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(30);
 
   const allListings = (listingsData || []).map(normalizeListing);
 
@@ -141,9 +151,18 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
 
   const latest = allListings.slice(0, 4);
 
+  const nowMs = Date.now();
+  const closingSoon = allListings.filter(l => {
+    const end = l.expires_at || l.ends_at;
+    if (!end) return false;
+    const diff = new Date(end).getTime() - nowMs;
+    return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+  });
+
   const result = {
     latest,
     auctions,
+    closingSoon,
   };
 
   setCached(cacheKey, result, 30);

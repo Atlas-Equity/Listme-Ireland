@@ -1,49 +1,32 @@
 import React from 'react';
-import PageLayout from '@/components/PageLayout';
-import { mockJobs } from '@/lib/mockData';
+import { createClient } from '@/utils/supabase/server';
+import { getAllRegisteredBusinessPages, getCachedJobCandidates } from '@/app/actions/businessPages';
+import JobsClient from './JobsClient';
 
-export const dynamic = 'force-static';
+export const revalidate = 30;
 
-const jobsFilters = [
-  {
-    title: 'Industry',
-    options: [
-      { label: 'IT & Software', value: 'it' },
-      { label: 'Construction & Architecture', value: 'construction' },
-      { label: 'Healthcare & Medical', value: 'healthcare' },
-      { label: 'Retail & FMCG', value: 'retail' },
-      { label: 'Hospitality & Tourism', value: 'hospitality' },
-      { label: 'Accounting & Finance', value: 'accounting' },
-      { label: 'Education & Training', value: 'education' },
-    ]
-  },
-  {
-    title: 'Work Type',
-    options: [
-      { label: 'Full time', value: 'full_time' },
-      { label: 'Part time', value: 'part_time' },
-      { label: 'Contract/Temp', value: 'contract' },
-      { label: 'Casual', value: 'casual' },
-    ]
-  },
-  {
-    title: 'Salary Range',
-    options: [
-      { label: '€30k - €50k', value: '30_50' },
-      { label: '€50k - €80k', value: '50_80' },
-      { label: '€80k - €120k', value: '80_120' },
-      { label: '€120k+', value: '120_plus' },
-    ]
-  }
-];
+export default async function JobsPage() {
+  const supabase = await createClient();
 
-export default function JobsPage() {
+  // Fetch registered business pages, candidates, and job listings in parallel
+  const [businessPages, candidates, jobListingsResult] = await Promise.all([
+    getAllRegisteredBusinessPages(),
+    getCachedJobCandidates(),
+    supabase
+      .from('listings')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, description, category')
+      .eq('status', 'active')
+      .or('category.ilike.%job%,category.ilike.%employment%,category.ilike.%work%')
+      .order('created_at', { ascending: false })
+      .limit(30),
+  ]);
+
   return (
-    <PageLayout
-      title="Jobs"
-      description="Find your next career move with thousands of jobs available."
-      filterGroups={jobsFilters}
-      listings={mockJobs}
+    <JobsClient
+      initialHiringBusinesses={businessPages}
+      initialJobCandidates={candidates}
+      initialJobListings={jobListingsResult.data || []}
     />
   );
 }
+

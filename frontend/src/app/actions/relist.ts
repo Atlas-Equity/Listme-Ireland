@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -65,7 +66,13 @@ export async function deleteListingAction(listingId: string) {
     return { error: 'You must be logged in to delete this listing.' };
   }
 
-  const { data: listing, error: fetchErr } = await supabase
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const db = (serviceKey && supabaseUrl) 
+    ? createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+    : supabase;
+
+  const { data: listing, error: fetchErr } = await db
     .from('listings')
     .select('id, seller_id, title')
     .eq('id', listingId)
@@ -75,11 +82,29 @@ export async function deleteListingAction(listingId: string) {
     return { error: 'Listing not found.' };
   }
 
-  if (listing.seller_id !== user.id) {
+  const isOwner = listing.seller_id === user.id;
+  const isAdmin = user.user_metadata?.role === 'admin' || user.email === 'qrmooney@outlook.com';
+
+  if (!isOwner && !isAdmin) {
     return { error: 'You are not authorized to delete this listing.' };
   }
 
-  const { error: deleteErr } = await supabase
+  // 1. Delete associated bids to prevent foreign key constraint violations
+  try {
+    await db.from('bids').delete().eq('listing_id', listingId);
+  } catch (err) {
+    console.warn('Could not delete bids for listing:', err);
+  }
+
+  // 2. Delete associated watchlist entries if any
+  try {
+    await db.from('watchlist').delete().eq('listing_id', listingId);
+  } catch (err) {
+    console.warn('Could not delete watchlist for listing:', err);
+  }
+
+  // 3. Delete the listing
+  const { error: deleteErr } = await db
     .from('listings')
     .delete()
     .eq('id', listingId);
@@ -90,6 +115,8 @@ export async function deleteListingAction(listingId: string) {
 
   revalidatePath('/my-listme');
   revalidatePath('/');
+  revalidatePath('/marketplace');
+  revalidatePath('/services');
   return { success: true, message: `Listing "${listing.title}" deleted.` };
 }
 

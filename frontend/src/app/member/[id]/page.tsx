@@ -21,8 +21,13 @@ import MemberAdminActions from '@/components/MemberAdminActions';
 import { isAdmin, isAccountBanned } from '@/utils/admin';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// Always serve real-time dynamic profile data without stale cache
-export const dynamic = 'force-dynamic';
+// Cache member profile data for 30 seconds
+export const revalidate = 30;
+
+declare global {
+  var __allProfilesCache: { profiles: any[]; expiresAt: number } | undefined;
+  var __userMetaCache: Map<string, { meta: any; email: string; expiresAt: number }> | undefined;
+}
 
 interface MemberPageProps {
   params: Promise<{ id: string }>;
@@ -51,9 +56,17 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const currentUser = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null;
   const currentUserIsAdmin = isAdmin(currentUser);
 
-  // 3. Resolve profile by member number or username
+  // 3. Resolve profile by member number or username using cached profiles
   let profile: any = null;
-  const { data: allProfiles } = await supabase.from('profiles').select('*');
+  let allProfiles = globalThis.__allProfilesCache?.profiles;
+  if (!allProfiles || Date.now() > (globalThis.__allProfilesCache?.expiresAt || 0)) {
+    const { data } = await supabase.from('profiles').select('*');
+    allProfiles = data || [];
+    globalThis.__allProfilesCache = {
+      profiles: allProfiles,
+      expiresAt: Date.now() + 60 * 1000,
+    };
+  }
 
   if (allProfiles && allProfiles.length > 0) {
     // Attempt 1: Match by deterministic member number
@@ -105,24 +118,38 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const sellerId = profile.id;
   const isOwnProfile = Boolean(currentUser && currentUser.id === sellerId);
 
-  // 4. Retrieve complete real user metadata (avatar, verified, location, email)
+  // 4. Retrieve complete real user metadata (avatar, verified, location, email) with in-memory caching
   let targetUserMeta: any = {};
   let targetUserEmail: string = profile.email || '';
   if (isOwnProfile && currentUser) {
     targetUserMeta = currentUser.user_metadata || {};
     targetUserEmail = currentUser.email || targetUserEmail;
-  } else if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    try {
-      const adminClient = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-      const { data: { user: authUser } } = await adminClient.auth.admin.getUserById(sellerId);
-      if (authUser) {
-        targetUserMeta = authUser.user_metadata || {};
-        targetUserEmail = authUser.email || targetUserEmail;
-      }
-    } catch {}
+  } else {
+    const metaCache = globalThis.__userMetaCache ?? new Map<string, { meta: any; email: string; expiresAt: number }>();
+    globalThis.__userMetaCache = metaCache;
+    const cachedMeta = metaCache.get(sellerId);
+
+    if (cachedMeta && Date.now() < cachedMeta.expiresAt) {
+      targetUserMeta = cachedMeta.meta;
+      targetUserEmail = cachedMeta.email;
+    } else if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        const adminClient = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+        const { data: { user: authUser } } = await adminClient.auth.admin.getUserById(sellerId);
+        if (authUser) {
+          targetUserMeta = authUser.user_metadata || {};
+          targetUserEmail = authUser.email || targetUserEmail;
+          metaCache.set(sellerId, {
+            meta: targetUserMeta,
+            email: targetUserEmail,
+            expiresAt: Date.now() + 60 * 1000,
+          });
+        }
+      } catch {}
+    }
   }
 
   // Check ban status & admin status of target user
@@ -167,6 +194,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   // Derive identity and metadata
   const avatarUrl = profile.avatar_url || targetUserMeta.avatar_url || '';
   const displayName = targetUserMeta.full_name || profile.username || targetUserMeta.username || 'Member';
+  const username = targetUserMeta.username || profile.username || (displayName !== 'Member' ? displayName : '');
   const rawLocation = targetUserMeta.location || profile.location || (rawListings[0]?.location) || 'Dublin';
   const coreLocation = getCoreLocation(rawLocation);
   const accountType = (profile.account_type || targetUserMeta.account_type || 'personal').toLowerCase();
@@ -278,9 +306,17 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm font-mono font-bold text-gray-500 dark:text-gray-400 mt-1">
-                    Member #{memberNumber}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {username && (
+                      <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                        @{username}
+                      </span>
+                    )}
+                    {username && <span className="text-gray-400 dark:text-zinc-600 text-xs">•</span>}
+                    <span className="text-xs sm:text-sm font-mono font-bold text-gray-500 dark:text-gray-400">
+                      Member #{memberNumber}
+                    </span>
+                  </div>
 
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-sm font-bold text-gray-900 dark:text-white">

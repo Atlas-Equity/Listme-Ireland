@@ -45,6 +45,15 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isAuction = listing.price_type?.toLowerCase() === 'auction';
   const isOwnListing = Boolean(user && user.id === listing.seller_id);
 
+  // Cache seller profile & reviews to prevent duplicate fetches across listings
+  const sellerCache = (globalThis as any).__sellerProfileCache ?? new Map<string, any>();
+  (globalThis as any).__sellerProfileCache = sellerCache;
+  const cachedSeller = sellerCache.get(listing.seller_id);
+
+  const reviewsCache = (globalThis as any).__sellerReviewsCache ?? new Map<string, any>();
+  (globalThis as any).__sellerReviewsCache = reviewsCache;
+  const cachedReviews = reviewsCache.get(listing.seller_id);
+
   // Parallel Phase 2: Fetch seller, reviews, bids, watchlist, and favourite status concurrently
   const [
     sellerResult,
@@ -53,8 +62,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     watchlistResult,
     favouriteResult
   ] = await Promise.all([
-    supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url, created_at, is_verified').eq('id', listing.seller_id).maybeSingle(),
-    supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id),
+    cachedSeller && Date.now() < cachedSeller.expiresAt
+      ? Promise.resolve({ data: cachedSeller.data })
+      : supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url, created_at, is_verified').eq('id', listing.seller_id).maybeSingle().then(res => {
+          if (res.data) sellerCache.set(listing.seller_id, { data: res.data, expiresAt: Date.now() + 60 * 1000 });
+          return res;
+        }),
+    cachedReviews && Date.now() < cachedReviews.expiresAt
+      ? Promise.resolve({ data: cachedReviews.data })
+      : supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id).then(res => {
+          if (res.data) reviewsCache.set(listing.seller_id, { data: res.data, expiresAt: Date.now() + 60 * 1000 });
+          return res;
+        }),
     isAuction 
       ? supabase.from('bids').select('amount', { count: 'exact' }).eq('listing_id', id).order('amount', { ascending: false }).limit(1)
       : Promise.resolve({ data: null, count: 0 }),
@@ -65,6 +84,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       ? supabase.from('favourite_sellers').select('id').eq('user_id', user.id).eq('seller_id', listing.seller_id).maybeSingle()
       : Promise.resolve({ data: null })
   ]);
+
 
   const seller = sellerResult.data;
   const reviews = reviewsResult.data;
@@ -95,7 +115,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
   // Calculate feedback metrics
   const totalReviews = reviews?.length || 0;
-  const positiveReviews = reviews?.filter(r => r.rating >= 4).length || 0;
+  const positiveReviews = reviews?.filter((r: any) => r.rating >= 4).length || 0;
   const feedbackPercentage = totalReviews > 0 
     ? Math.round((positiveReviews / totalReviews) * 100) 
     : 0;

@@ -1,10 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import dns from 'node:dns'
+import '@/utils/dnsOptimizer';
 
-try {
-  dns.setDefaultResultOrder('ipv4first')
-} catch (e) {}
 
 export async function createClient() {
   const cookieStore = await cookies()

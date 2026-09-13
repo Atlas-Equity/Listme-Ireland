@@ -1,45 +1,27 @@
 import React from 'react';
-import PageLayout from '@/components/PageLayout';
-import { mockMarketplace } from '@/lib/mockData';
+import { createClient } from '@/utils/supabase/server';
+import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
+import MarketplaceClient from './MarketplaceClient';
 
-const marketplaceFilters = [
-  {
-    title: 'Category',
-    options: [
-      { label: 'Antiques & Collectables', value: 'antiques' },
-      { label: 'Art', value: 'art' },
-      { label: 'Baby Gear', value: 'baby' },
-      { label: 'Books', value: 'books' },
-      { label: 'Building & Renovation', value: 'building' },
-      { label: 'Clothing & Fashion', value: 'clothing' },
-      { label: 'Computers', value: 'computers' },
-      { label: 'Electronics', value: 'electronics' },
-      { label: 'Home & Living', value: 'home' },
-    ]
-  },
-  {
-    title: 'Condition',
-    options: [
-      { label: 'New', value: 'new' },
-      { label: 'Used', value: 'used' },
-    ]
-  },
-  {
-    title: 'Buying Format',
-    options: [
-      { label: 'Auction', value: 'auction' },
-      { label: 'Buy Now', value: 'buynow' },
-    ]
-  }
-];
+export const revalidate = 15;
 
-export default function MarketplacePage() {
+export default async function MarketplacePage() {
+  const supabase = await createClient();
+
+  const [businessPages, listingsResult] = await Promise.all([
+    getAllRegisteredBusinessPages(),
+    supabase
+      .from('listings')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, description, category')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+
   return (
-    <PageLayout
-      title="Marketplace (Items)"
-      description="Buy and sell new and used items across thousands of categories."
-      filterGroups={marketplaceFilters}
-      listings={mockMarketplace}
+    <MarketplaceClient
+      initialStores={businessPages}
+      initialListings={listingsResult.data || []}
     />
   );
 }
