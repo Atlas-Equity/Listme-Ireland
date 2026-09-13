@@ -501,20 +501,16 @@ export default function MarketplaceFeesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 font-mono">
                   <tr>
-                    <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€0 – €20.00</td>
-                    <td className="py-2.5 px-4 text-right">Free <span className="text-xs text-gray-400 font-sans">(or scaled 4% online rate)</span></td>
+                    <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€10.00 – €50.00</td>
+                    <td className="py-2.5 px-4 text-right"><span className="text-xs text-gray-400 font-sans">4% fee</span></td>
                   </tr>
                   <tr>
-                    <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€20.01 – €100.00</td>
-                    <td className="py-2.5 px-4 text-right">€0.99 <span className="text-xs text-gray-400 font-sans">(or 3.5%)</span></td>
-                  </tr>
-                  <tr>
-                    <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€100.01 – €250.00</td>
-                    <td className="py-2.5 px-4 text-right">€1.99 <span className="text-xs text-gray-400 font-sans">(or 3%)</span></td>
+                    <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€50.01 – €250.00</td>
+                    <td className="py-2.5 px-4 text-right"><span className="text-xs text-gray-400 font-sans">3.5% fee</span></td>
                   </tr>
                   <tr>
                     <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€250.01+</td>
-                    <td className="py-2.5 px-4 text-right">€4.99 <span className="text-xs text-gray-400 font-sans">(or 3%)</span></td>
+                    <td className="py-2.5 px-4 text-right"><span className="text-xs text-gray-400 font-sans">4% fee</span></td>
                   </tr>
                 </tbody>
               </table>

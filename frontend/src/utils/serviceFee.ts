@@ -2,9 +2,9 @@
  * Listme Service Fee Calculation Utility
  * 
  * Fee Tiers:
- * - €0.00 – €50.00: 0% fee (Completely fee-free!)
- * - €50.01 – €150.00: 3.5% fee
- * - €150.01+: 3% fee
+ * - 4% for €10 – €50 (all purchases up to €50 incur 4%)
+ * - 3.5% for €50.01 – €250
+ * - 4% for €250+
  */
 
 export interface ServiceFeeResult {
@@ -23,21 +23,21 @@ export function calculateServiceFee(price: number | string): ServiceFeeResult {
 
   const cleanPrice = Math.max(0, numericPrice);
 
-  let percentage = 0.0;
-  let tierLabel = '€0.00 – €50.00 (0% Fee Free)';
+  let percentage = 4.0;
+  let tierLabel = '€10 – €50 (4%)';
 
   if (cleanPrice <= 50) {
-    percentage = 0.0;
-    tierLabel = '€0.00 – €50.00 (0% Fee Free)';
-  } else if (cleanPrice <= 150) {
+    percentage = 4.0;
+    tierLabel = '€10 – €50 (4%)';
+  } else if (cleanPrice <= 250) {
     percentage = 3.5;
-    tierLabel = '€50.01 – €150.00 (3.5%)';
+    tierLabel = '€50.01 – €250.00 (3.5%)';
   } else {
-    percentage = 3.0;
-    tierLabel = '€150.01+ (3%)';
+    percentage = 4.0;
+    tierLabel = '€250.01+ (4%)';
   }
 
-  const fee = cleanPrice <= 50 ? 0 : Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
+  const fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
   const total = Math.round((cleanPrice + fee) * 100) / 100;
 
   return {
@@ -51,8 +51,7 @@ export function calculateServiceFee(price: number | string): ServiceFeeResult {
 }
 
 export const SERVICE_FEE_TIERS = [
-  { range: '€0.00 – €50.00', feePercent: '0%', example: 'First €50 is completely fee-free (€0.00 fee)' },
-  { range: '€50.01 – €150.00', feePercent: '3.5%', example: 'e.g. €80.00 purchase = €2.80 fee' },
-  { range: '€150.01+', feePercent: '3%', example: 'e.g. €250.00 purchase = €7.50 fee' },
+  { range: '€10 – €50', feePercent: '4%', example: 'e.g. €25.00 purchase = €1.00 fee' },
+  { range: '€50.01 – €250', feePercent: '3.5%', example: 'e.g. €100.00 purchase = €3.50 fee' },
+  { range: '€250.01+', feePercent: '4%', example: 'e.g. €300.00 purchase = €12.00 fee' },
 ];
-
