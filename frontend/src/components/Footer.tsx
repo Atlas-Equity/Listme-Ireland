@@ -52,6 +52,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link href="/help" className="hover:text-gray-900 dark:hover:text-white transition-colors">Help</Link></li>
               <li><Link href="/buyer-protection" className="hover:text-gray-900 dark:hover:text-white transition-colors">Buyer Protection</Link></li>
+              <li><Link href="/safety" className="hover:text-gray-900 dark:hover:text-white transition-colors">Scam Prevention &amp; Advice</Link></li>
               <li><Link href="/community" className="hover:text-gray-900 dark:hover:text-white transition-colors">Community Hub</Link></li>
             </ul>
           </div>
@@ -89,6 +90,7 @@ export default function Footer() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
+            <Link href="/safety" className="hover:text-gray-900 dark:hover:text-white transition-colors">Scam prevention</Link>
             <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy policy</Link>
             <Link href="/terms" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms & conditions</Link>
           </div>
