@@ -428,9 +428,6 @@ export default function LinkedCardCard({
         if (data.instant) {
           const newBal = typeof data.newCredit === 'number' ? data.newCredit : currentCredit + finalAmt;
           setCurrentCredit(newBal);
-          try {
-            localStorage.setItem('listme_account_credit', newBal.toString());
-          } catch {}
 
           setTopUpSuccess(true);
           setCustomTopUp('');
@@ -466,9 +463,6 @@ export default function LinkedCardCard({
 
         const newBal = typeof fallbackRes.newCredit === 'number' ? fallbackRes.newCredit : currentCredit + finalAmt;
         setCurrentCredit(newBal);
-        try {
-          localStorage.setItem('listme_account_credit', newBal.toString());
-        } catch {}
 
         setTopUpSuccess(true);
         setCustomTopUp('');
