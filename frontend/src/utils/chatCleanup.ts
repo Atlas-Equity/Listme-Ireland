@@ -48,7 +48,21 @@ export async function purgeInactiveChats(): Promise<{
       return { deletedConversations: 0, deletedMessages: 0, cutoff };
     }
 
-    const inactiveIds = inactiveConversations.map((c) => c.id);
+    // Check if any of these inactive conversations contain public listing questions
+    const { data: qMsgs } = await adminClient
+      .from('messages')
+      .select('conversation_id')
+      .in('conversation_id', inactiveConversations.map((c) => c.id))
+      .like('content', 'QUESTION:%');
+
+    const preservedConvIds = new Set((qMsgs || []).map((m) => m.conversation_id));
+    const inactiveIds = inactiveConversations
+      .map((c) => c.id)
+      .filter((id) => !preservedConvIds.has(id));
+
+    if (inactiveIds.length === 0) {
+      return { deletedConversations: 0, deletedMessages: 0, cutoff };
+    }
 
     // 2. Delete all messages & call logs belonging to these inactive conversations
     const { count: msgCount, error: msgErr } = await adminClient

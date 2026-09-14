@@ -13,6 +13,7 @@ interface MakeOfferModalProps {
   askingPrice: number;
   isOpen: boolean;
   onClose: () => void;
+  isAuction?: boolean;
 }
 
 export default function MakeOfferModal({
@@ -22,6 +23,7 @@ export default function MakeOfferModal({
   askingPrice,
   isOpen,
   onClose,
+  isAuction = false,
 }: MakeOfferModalProps) {
   const router = useRouter();
   const [offerAmount, setOfferAmount] = useState<string>('');
@@ -32,7 +34,7 @@ export default function MakeOfferModal({
   if (!isOpen) return null;
 
   const handlePreset = (percentage: number) => {
-    const discounted = askingPrice * (1 - percentage / 100);
+    const discounted = isAuction ? askingPrice * (1 + percentage / 100) : askingPrice * (1 - percentage / 100);
     setOfferAmount(discounted.toFixed(2));
     setError(null);
   };
@@ -46,7 +48,7 @@ export default function MakeOfferModal({
       return;
     }
 
-    if (amountNum >= askingPrice) {
+    if (!isAuction && amountNum >= askingPrice) {
       setError('Your offer should be lower than the asking price. Consider using Buy Now instead.');
       return;
     }
@@ -165,7 +167,7 @@ export default function MakeOfferModal({
                 type="number"
                 step="0.50"
                 min="1"
-                max={askingPrice}
+                {...(!isAuction ? { max: askingPrice } : {})}
                 value={offerAmount}
                 onChange={(e) => {
                   setOfferAmount(e.target.value);

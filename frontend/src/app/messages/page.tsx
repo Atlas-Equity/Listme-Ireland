@@ -19,6 +19,8 @@ import {
   Phone,
   PhoneMissed,
   PhoneOff,
+  HelpCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { createClient as createBrowserSupabase } from '@/utils/supabase/client';
@@ -46,6 +48,24 @@ function parseOffer(content: string): OfferPayload | null {
   if (!content || !content.startsWith('OFFER:')) return null;
   try {
     return JSON.parse(content.slice(6));
+  } catch {
+    return null;
+  }
+}
+
+function parseQuestion(content: string): any | null {
+  if (!content || !content.startsWith('QUESTION:')) return null;
+  try {
+    return JSON.parse(content.slice(9));
+  } catch {
+    return null;
+  }
+}
+
+function parseAnswer(content: string): any | null {
+  if (!content || !content.startsWith('ANSWER:')) return null;
+  try {
+    return JSON.parse(content.slice(7));
   } catch {
     return null;
   }
@@ -84,6 +104,22 @@ function formatLastMessageSnippet(lastMessage?: string | null): string {
       return `Offer: €${data.amount.toFixed(2)}`;
     } catch {
       return 'Offer received';
+    }
+  }
+  if (lastMessage.startsWith('QUESTION:')) {
+    try {
+      const data = JSON.parse(lastMessage.slice(9));
+      return `Listing Question: "${data.question?.slice(0, 35) || ''}..."`;
+    } catch {
+      return 'Public Listing Question';
+    }
+  }
+  if (lastMessage.startsWith('ANSWER:')) {
+    try {
+      const data = JSON.parse(lastMessage.slice(7));
+      return `Answer: "${data.text?.slice(0, 35) || ''}..."`;
+    } catch {
+      return 'Answered listing question';
     }
   }
   return lastMessage;
@@ -788,15 +824,16 @@ function MessagesContent() {
 
                               {/* Action buttons for seller if pending */}
                               {isPending && isSeller && (
-                                <div className="flex items-center gap-2 pt-2.5 border-t border-amber-200 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 pt-2 border-t border-amber-200 dark:border-amber-800/40">
                                   <button
+                                    type="button"
                                     onClick={() => handleRespondOffer(msg.id, offerData.id, 'accepted')}
-                                    className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                                    className="flex-1 py-2 px-3 bg-primary hover:opacity-90 text-white text-xs font-bold rounded-xl shadow-xs transition-opacity"
                                   >
-                                    <Check className="w-3.5 h-3.5" />
-                                    Accept (€{offerData.amount.toFixed(2)})
+                                    Accept Offer
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => handleRespondOffer(msg.id, offerData.id, 'declined')}
                                     className="py-2 px-3 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-xl transition-colors"
                                   >
@@ -817,6 +854,60 @@ function MessagesContent() {
                                   Offer accepted! You can now arrange payment and collection through this chat.
                                 </p>
                               )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const questionData = parseQuestion(msg.content);
+                      const answerData = parseAnswer(msg.content);
+
+                      if (questionData) {
+                        return (
+                          <div key={msg.id} className="flex flex-col items-center my-4 px-2 animate-in fade-in duration-200">
+                            <div className="p-4 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 max-w-md w-full space-y-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1.5 bg-primary/20 text-primary rounded-lg">
+                                    <HelpCircle className="w-4 h-4" />
+                                  </div>
+                                  <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                                    Public Listing Question
+                                  </span>
+                                </div>
+                                <Link
+                                  href={`/listing/${questionData.listingId}#questions-and-answers`}
+                                  className="text-[11px] text-primary hover:underline font-semibold"
+                                >
+                                  View on listing →
+                                </Link>
+                              </div>
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                &ldquo;{questionData.question}&rdquo;
+                              </p>
+                              {questionData.answer ? (
+                                <div className="p-2.5 rounded-xl bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300">
+                                  <span className="font-bold text-primary mr-1.5">Answer:</span>
+                                  {questionData.answer.text}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                  This question is posted publicly on your listing for all buyers to see.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (answerData) {
+                        return (
+                          <div key={msg.id} className="flex flex-col items-center my-3 px-2 animate-in fade-in duration-200">
+                            <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 max-w-md w-full text-xs text-emerald-950 dark:text-emerald-100 flex items-start gap-2.5">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-bold">Public Answer posted to listing:</span> &ldquo;{answerData.text}&rdquo;
+                              </div>
                             </div>
                           </div>
                         );

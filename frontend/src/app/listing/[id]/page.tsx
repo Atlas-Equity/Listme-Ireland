@@ -13,6 +13,8 @@ import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import MakeOfferButton from '@/components/MakeOfferButton';
 import ServiceFeeModal from '@/components/ServiceFeeModal';
 import DeleteListingButton from '@/components/DeleteListingButton';
+import ListingQuestionsSection from '@/components/ListingQuestionsSection';
+import { getListingQuestions } from '@/app/actions/listingQuestions';
 import { Metadata } from 'next';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
@@ -114,7 +116,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     reviewsResult,
     bidsResult,
     watchlistResult,
-    favouriteResult
+    favouriteResult,
+    initialQuestions
   ] = await Promise.all([
     cachedSeller && Date.now() < cachedSeller.expiresAt
       ? Promise.resolve({ data: cachedSeller.data })
@@ -136,8 +139,15 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       : Promise.resolve({ data: null }),
     user && !isOwnListing
       ? supabase.from('favourite_sellers').select('id').eq('user_id', user.id).eq('seller_id', listing.seller_id).maybeSingle()
-      : Promise.resolve({ data: null })
+      : Promise.resolve({ data: null }),
+    getListingQuestions(id),
   ]);
+
+  const currentUser = user ? {
+    id: user.id,
+    username: user.user_metadata?.username || user.email?.split('@')[0] || 'User',
+    avatarUrl: user.user_metadata?.avatar_url,
+  } : null;
 
 
   const seller = sellerResult.data;
@@ -272,7 +282,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     </tr>
                   </tbody>
                 </table>
-                <a href="#" className="text-[#0073e6] hover:underline">Learn more about shipping & delivery options.</a>
+                <Link href="/shipping" className="text-[#0073e6] hover:underline">
+                  Learn more about shipping &amp; delivery options.
+                </Link>
               </div>
 
               {/* Payment */}
@@ -300,6 +312,17 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     </ul>
                   </div>
                 )}
+              </div>
+
+              {/* TradeMe-Style Questions & Answers Section */}
+              <div className="pt-4">
+                <ListingQuestionsSection
+                  listingId={listing.id}
+                  sellerId={listing.seller_id}
+                  isOwnListing={isOwnListing}
+                  currentUser={currentUser}
+                  initialQuestions={initialQuestions}
+                />
               </div>
 
             </div>
@@ -378,6 +401,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                           />
                         </div>
                       )}
+                      <MakeOfferButton
+                        listingId={listing.id}
+                        sellerId={listing.seller_id}
+                        listingTitle={listing.title}
+                        askingPrice={buyNowPrice || currentPrice}
+                        isAuction={true}
+                      />
                     </div>
                   ) : (
                     <div className="space-y-3">
