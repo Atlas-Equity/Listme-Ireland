@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { setUsername, checkUsernameAvailability } from './actions';
-import { AtSign, CheckCircle2, AlertCircle, Loader2, Sparkles, Shield } from 'lucide-react';
+import { AtSign, CheckCircle2, AlertCircle, Loader2, Shield } from 'lucide-react';
 
 interface SetupUsernameFormProps {
   initialEmail?: string;
@@ -127,8 +127,7 @@ export default function SetupUsernameForm({
           />
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-primary dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-primary dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
           <span>Almost done! One final step</span>
         </div>
 

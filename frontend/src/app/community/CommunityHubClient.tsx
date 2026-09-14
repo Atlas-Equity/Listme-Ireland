@@ -19,8 +19,7 @@ import {
   ExternalLink,
   ShieldAlert,
   FileText,
-  Clock,
-  Sparkles
+  Clock
 } from 'lucide-react';
 import { BusinessPageData } from '@/app/actions/businessPages';
 
