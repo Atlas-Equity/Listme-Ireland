@@ -27,8 +27,10 @@ import {
   AlertCircle,
   Store,
   Briefcase,
-  Clock
+  Clock,
+  Users
 } from 'lucide-react';
+import BusinessInviteNotificationCard from '@/components/BusinessInviteNotificationCard';
 import Stripe from 'stripe';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -104,6 +106,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const location = userMetadata.location || 'Dublin';
   const phone = userMetadata.phone || '';
   const userBusinessPages = (userMetadata.business_pages || []) as any[];
+  const assignedBusinessPages = (userMetadata.assigned_business_pages || []) as any[];
+  const pendingBusinessInvites = ((userMetadata.business_invites || []) as any[]).filter((i: any) => i.status === 'pending');
+  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length;
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
@@ -608,9 +613,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     <Bell className="w-4 h-4" />
                     <span>Notifications</span>
                   </div>
-                  {closedCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 dark:bg-zinc-700 text-white text-[10px] font-bold">
-                      {closedCount}
+                  {totalNotificationsCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white leading-none">
+                      {totalNotificationsCount}
                     </span>
                   )}
                 </Link>
@@ -1092,7 +1097,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                        {closedListings.length} Active {closedListings.length === 1 ? 'Alert' : 'Alerts'}
+                        {totalNotificationsCount} Active {totalNotificationsCount === 1 ? 'Alert' : 'Alerts'}
                       </span>
                       {closedListings.length > 0 && (
                         <ClearAllNotificationsButton listingIds={closedListings.map((l: any) => l.id)} />
@@ -1100,6 +1105,21 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </div>
                   </div>
                 </div>
+
+                {/* Business Team Invitations Section */}
+                {pendingBusinessInvites.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white">
+                        Business Team Invitations ({pendingBusinessInvites.length})
+                      </h3>
+                    </div>
+                    {pendingBusinessInvites.map((invite: any) => (
+                      <BusinessInviteNotificationCard key={invite.id} invite={invite} />
+                    ))}
+                  </div>
+                )}
 
                 {/* If closed unsold listings exist, render 1-click relist cards */}
                 {closedListings.length > 0 ? (
@@ -1126,7 +1146,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       ))}
                     </div>
                   </div>
-                ) : (
+                ) : pendingBusinessInvites.length === 0 ? (
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     
@@ -1150,7 +1170,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       Browse Marketplace &rarr;
                     </Link>
                   </div>
-                )}
+                ) : null}
 
               </div>
             )}
@@ -1277,7 +1297,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       You have no active listings
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
-                      Reach verified buyers across all 26 Irish counties.
+                      Reach verified buyers across all 32 Irish counties.
                     </p>
                     <Link
                       href="/sell"
@@ -1453,7 +1473,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                               <div>
                                 <h4 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-1.5">
                                   {page.name}
-                                  <Check className="w-3.5 h-3.5 text-primary" />
+                                  {(page.is_verified || page.slug === 'listme') && (
+                                    <Check className="w-3.5 h-3.5 text-primary" />
+                                  )}
                                 </h4>
                                 <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
                                   /page/{page.slug}
@@ -1533,6 +1555,62 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     ))}
                   </div>
                 )}
+
+                {/* Team & Staff Assigned Business Pages */}
+                {assignedBusinessPages.length > 0 && (
+                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Users className="w-5 h-5 text-primary" />
+                        <span>Team &amp; Staff Business Pages</span>
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Business pages where you are an authorized staff team member.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {assignedBusinessPages.map((ap: any) => (
+                        <div
+                          key={ap.slug}
+                          className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black flex items-center justify-center">
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-sm text-gray-900 dark:text-white">
+                                  {ap.name}
+                                </h4>
+                                <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                  /page/{ap.slug}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                              Staff Member
+                            </span>
+                          </div>
+
+                          <div className="pt-4 mt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                            <span className="text-[11px] text-gray-400">
+                              Joined {ap.joined_at ? format(new Date(ap.joined_at), 'dd MMM yyyy') : 'Recently'}
+                            </span>
+                            <Link
+                              href={`/page/${ap.slug}`}
+                              className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                            >
+                              <span>Open Business Page</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1550,7 +1628,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </p>
                 </div>
 
-                {/* Personal Information & Core County Form (Strictly locked to 26 counties, photo compressor, no bio) */}
+                {/* Personal Information & Core County Form (Strictly locked to 32 counties, photo compressor, no bio) */}
                 <ProfileSettingsForm initialData={settingsInitialData} accountType={accountType} />
 
                 {/* General Settings, Search History, and Private Blacklist */}

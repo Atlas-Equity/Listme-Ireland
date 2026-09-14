@@ -102,7 +102,7 @@ export default function SellPage() {
   const [priceType, setPriceType] = useState('Fixed Price');
   const [price, setPrice] = useState('');
   const [buyNowPrice, setBuyNowPrice] = useState('');
-  const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash', 'stripe', 'revolut']);
+  const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash', 'stripe']);
 
   // Job-specific State
   const [companyName, setCompanyName] = useState('');
@@ -672,7 +672,7 @@ export default function SellPage() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  Listings are locked to Republic of Ireland core counties.
+                  All 32 Irish counties supported.
                 </p>
               </div>
 
@@ -841,7 +841,6 @@ export default function SellPage() {
                     <div className="space-y-2.5">
                       {[
                         { id: 'cash', name: 'Euro in Hand / Cash on Collection' },
-                        { id: 'revolut', name: 'Revolut In-App Transfer' },
                         { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)' },
                       ].map(({ id: method, name }) => (
                         <label key={method} className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 dark:border-zinc-700 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800/80 transition-colors">

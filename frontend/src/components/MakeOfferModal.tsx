@@ -198,7 +198,7 @@ export default function MakeOfferModal({
               rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. Can collect today with cash, or pay instantly via Revolut."
+              placeholder="e.g. Can collect today with cash, or pay securely via card."
               className="w-full p-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             />
           </div>

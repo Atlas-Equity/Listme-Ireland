@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, MapPin, Store, ExternalLink, Tag, Plus, Clock } from 'lucide-react';
+import { Search, MapPin, Store, ExternalLink, Tag, Plus, Clock, Check } from 'lucide-react';
 import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
@@ -36,7 +36,7 @@ export default function MarketplaceClient({
 
   // Filter marketplace store pages (not services)
   const filteredStores = useMemo(() => {
-    return initialStores.filter((store) => {
+    const list = initialStores.filter((store) => {
       const isMarketplace = store.business_type === 'marketplace' || !store.business_type;
       const matchesCounty = selectedCounty === 'All' || store.county?.toLowerCase() === selectedCounty.toLowerCase();
       const q = searchQuery.toLowerCase().trim();
@@ -46,6 +46,14 @@ export default function MarketplaceClient({
         (store.category && store.category.toLowerCase().includes(q));
 
       return isMarketplace && matchesCounty && matchesSearch;
+    });
+
+    return list.sort((a, b) => {
+      const isA = a.slug?.toLowerCase() === 'listme' || a.name?.toLowerCase() === 'listme';
+      const isB = b.slug?.toLowerCase() === 'listme' || b.name?.toLowerCase() === 'listme';
+      if (isA && !isB) return -1;
+      if (!isA && isB) return 1;
+      return 0;
     });
   }, [initialStores, searchQuery, selectedCounty]);
 
@@ -184,8 +192,19 @@ export default function MarketplaceClient({
                         <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
                           {store.name}
                         </h3>
-                        <span className="text-[11px] text-primary font-semibold">
-                          Storefront
+                        {(store.is_verified || store.slug === 'listme') && (
+                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold" title="Verified Business">
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </span>
+                        )}
+                        <span className="text-[11px] font-semibold">
+                          {store.slug === 'listme' ? (
+                            <span className="text-primary font-bold">Official Platform</span>
+                          ) : store.is_verified ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Storefront</span>
+                          ) : (
+                            <span className="text-gray-500">Storefront</span>
+                          )}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
@@ -267,7 +286,7 @@ export default function MarketplaceClient({
               <span>Active Marketplace Listings</span>
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Verified listings from sellers across all 26 counties.
+              Verified listings from sellers across all 32 counties.
             </p>
           </div>
           <span className="text-xs font-mono font-medium text-gray-500 dark:text-gray-400">

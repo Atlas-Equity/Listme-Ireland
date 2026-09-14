@@ -113,23 +113,9 @@ export default function MarketplaceFeesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
                   <tr>
-                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">NexyPay</td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
-                      Automatically included on listings for items up to €25,000
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-semibold">
-                      2.19% <span className="text-xs text-gray-400 font-sans block">(1.89% Top Sellers)</span>
-                    </td>
-                  </tr>
-                  <tr>
                     <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">Stripe</td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-300">Seller can choose to offer</td>
                     <td className="py-3 px-4 text-right font-mono font-semibold">1.4% + €0.25 per transaction</td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">Revolut</td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-300">Seller can choose to offer</td>
-                    <td className="py-3 px-4 text-right font-mono font-semibold">1.3% + €0.20 per transaction</td>
                   </tr>
                   <tr>
                     <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">Cash in hand</td>
@@ -138,17 +124,6 @@ export default function MarketplaceFeesPage() {
                   </tr>
                 </tbody>
               </table>
-            </div>
-
-            {/* Bank Transfer Notice */}
-            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 space-y-1 text-xs">
-              <p className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                Bank transfer is no longer a payment option.
-              </p>
-              <p className="text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-                Unfortunately, scams involving bank transfer are on the rise. To move towards a safer Marketplace, we have removed bank transfer as a payment option.
-              </p>
             </div>
           </div>
 
@@ -470,7 +445,7 @@ export default function MarketplaceFeesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
               <span className="font-bold text-gray-900 dark:text-white block mb-0.5">Who it applies to:</span>
-              <span className="text-gray-500 dark:text-gray-400">Buyers will see this fee when purchasing from a casual seller and paying with NexyPay or online card.</span>
+              <span className="text-gray-500 dark:text-gray-400">Buyers will see this fee when purchasing from a casual seller and paying with online card.</span>
             </div>
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800">
               <span className="font-bold text-gray-900 dark:text-white block mb-0.5">How it is calculated:</span>
@@ -590,19 +565,9 @@ export default function MarketplaceFeesPage() {
                   <td className="py-2.5 px-4 text-right font-mono">€0.10 – €3.95+</td>
                 </tr>
                 <tr>
-                  <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">NexyPay fee</td>
-                  <td className="py-2.5 px-4">Seller</td>
-                  <td className="py-2.5 px-4 text-right font-mono">2.19% (1.89% for Top Sellers)</td>
-                </tr>
-                <tr>
                   <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">Stripe fee</td>
                   <td className="py-2.5 px-4">Seller</td>
                   <td className="py-2.5 px-4 text-right font-mono">1.4% + €0.25 per transaction</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">Revolut fee</td>
-                  <td className="py-2.5 px-4">Seller</td>
-                  <td className="py-2.5 px-4 text-right font-mono">1.3% + €0.20 per transaction</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-4 font-semibold text-gray-900 dark:text-white">Cash in hand</td>

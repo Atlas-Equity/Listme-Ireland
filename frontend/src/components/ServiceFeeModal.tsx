@@ -23,8 +23,11 @@ export default function ServiceFeeModal({
   const numericBuyNow = buyNowPrice !== undefined && buyNowPrice !== null ? Number(buyNowPrice) : null;
   const isMixed = isAuction && numericBuyNow !== null && numericBuyNow > 0;
 
-  const primaryFeeCalc = calculateServiceFee(price);
-  const buyNowFeeCalc = numericBuyNow ? calculateServiceFee(numericBuyNow) : null;
+  const primaryStandardCalc = calculateServiceFee(price, false);
+  const primaryCreditCalc = calculateServiceFee(price, true);
+
+  const buyNowStandardCalc = numericBuyNow ? calculateServiceFee(numericBuyNow, false) : null;
+  const buyNowCreditCalc = numericBuyNow ? calculateServiceFee(numericBuyNow, true) : null;
 
   return (
     <>
@@ -36,15 +39,17 @@ export default function ServiceFeeModal({
         title="View Service Fee breakdown"
       >
         <Info className="w-4 h-4 mr-1.5 shrink-0 text-[#0073e6]" />
-        {isMixed && buyNowFeeCalc ? (
+        {isMixed && buyNowStandardCalc ? (
           <span className="leading-snug">
-            Auction Fee: <span className="font-semibold">€{primaryFeeCalc.fee.toFixed(2)} ({primaryFeeCalc.percentageFormatted})</span>
+            Auction Fee: <span className="font-semibold">€{primaryStandardCalc.fee.toFixed(2)}</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium text-[11px]"> (from €{primaryCreditCalc.fee.toFixed(2)} with credit)</span>
             <span className="mx-1.5 text-gray-400 dark:text-zinc-600">•</span>
-            Buy Now Fee: <span className="font-semibold">€{buyNowFeeCalc.fee.toFixed(2)} ({buyNowFeeCalc.percentageFormatted})</span>
+            Buy Now Fee: <span className="font-semibold">€{buyNowStandardCalc.fee.toFixed(2)}</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium text-[11px]"> (from €{buyNowCreditCalc!.fee.toFixed(2)} with credit)</span>
           </span>
         ) : (
           <span>
-            €{primaryFeeCalc.fee.toFixed(2)} ({primaryFeeCalc.percentageFormatted}) Service Fee applies
+            €{primaryStandardCalc.fee.toFixed(2)} Standard Fee <span className="text-emerald-600 dark:text-emerald-400 font-medium">(&euro;{primaryCreditCalc.fee.toFixed(2)} with credit)</span>
           </span>
         )}
       </button>
@@ -64,7 +69,7 @@ export default function ServiceFeeModal({
                   What is the Service Fee?
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Transparent marketplace pricing & buyer protection
+                  Transparent marketplace pricing &amp; buyer protection
                 </p>
               </div>
               <button
@@ -97,9 +102,9 @@ export default function ServiceFeeModal({
                   <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80">
                     {SERVICE_FEE_TIERS.map((tier) => {
                       const isCurrentTier = 
-                        (tier.range === '€10 – €50' && primaryFeeCalc.price <= 50) ||
-                        (tier.range === '€50.01 – €250' && primaryFeeCalc.price > 50 && primaryFeeCalc.price <= 250) ||
-                        (tier.range === '€250.01+' && primaryFeeCalc.price > 250);
+                        (tier.range === '€10 – €50' && primaryStandardCalc.price <= 50) ||
+                        (tier.range === '€50.01 – €250' && primaryStandardCalc.price > 50 && primaryStandardCalc.price <= 250) ||
+                        (tier.range === '€250.01+' && primaryStandardCalc.price > 250);
 
                       const basePct = parseFloat(tier.feePercent);
                       const creditPct = Math.max(0, basePct - 0.5);
@@ -138,60 +143,99 @@ export default function ServiceFeeModal({
                 </div>
               </div>
 
-              {/* Specific Item Breakdown */}
-              {isMixed && buyNowFeeCalc ? (
+              {/* Specific Item Breakdown with Standard and With Credit */}
+              {isMixed && buyNowStandardCalc && buyNowCreditCalc ? (
                 <div className="space-y-3">
                   {/* Auction Fee Breakdown */}
-                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2">
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       Auction Fee Breakdown (Current Bid)
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                       <span>Current Bid:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">€{primaryFeeCalc.price.toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">€{primaryStandardCalc.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>Service Fee ({primaryFeeCalc.percentageFormatted}):</span>
-                      <span className="font-semibold text-primary dark:text-blue-400">+€{primaryFeeCalc.fee.toFixed(2)}</span>
+                      <span>Service Fee (Standard {primaryStandardCalc.percentageFormatted}):</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">+€{primaryStandardCalc.fee.toFixed(2)}</span>
                     </div>
-                    <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between text-xs font-bold text-gray-900 dark:text-white">
-                      <span>Est. Total:</span>
-                      <span className="text-sm text-primary dark:text-blue-400">€{primaryFeeCalc.total.toFixed(2)}</span>
+                    <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                      <span className="flex items-center gap-1 font-medium">
+                        <span>Service Fee (With Credit {primaryCreditCalc.percentageFormatted}):</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">-0.5% off</span>
+                      </span>
+                      <span className="font-bold font-mono">+€{primaryCreditCalc.fee.toFixed(2)}</span>
+                    </div>
+                    <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 block">Est. Total (Standard):</span>
+                        <span className="font-bold text-gray-900 dark:text-white font-mono">€{primaryStandardCalc.total.toFixed(2)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block font-bold">Est. Total (With Credit):</span>
+                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">€{primaryCreditCalc.total.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Buy Now Fee Breakdown */}
-                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2">
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       Buy Now Fee Breakdown
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                       <span>Buy Now Price:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">€{buyNowFeeCalc.price.toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">€{buyNowStandardCalc.price.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>Service Fee ({buyNowFeeCalc.percentageFormatted}):</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">+€{buyNowFeeCalc.fee.toFixed(2)}</span>
+                      <span>Service Fee (Standard {buyNowStandardCalc.percentageFormatted}):</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">+€{buyNowStandardCalc.fee.toFixed(2)}</span>
                     </div>
-                    <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between text-xs font-bold text-gray-900 dark:text-white">
-                      <span>Est. Total:</span>
-                      <span className="text-sm text-emerald-600 dark:text-emerald-400">€{buyNowFeeCalc.total.toFixed(2)}</span>
+                    <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                      <span className="flex items-center gap-1 font-medium">
+                        <span>Service Fee (With Credit {buyNowCreditCalc.percentageFormatted}):</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">-0.5% off</span>
+                      </span>
+                      <span className="font-bold font-mono">+€{buyNowCreditCalc.fee.toFixed(2)}</span>
+                    </div>
+                    <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 block">Est. Total (Standard):</span>
+                        <span className="font-bold text-gray-900 dark:text-white font-mono">€{buyNowStandardCalc.total.toFixed(2)}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block font-bold">Est. Total (With Credit):</span>
+                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">€{buyNowCreditCalc.total.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2">
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                   <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                     <span>{isAuction ? 'Current Bid:' : 'Item Purchase Price:'}</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">€{primaryFeeCalc.price.toFixed(2)}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">€{primaryStandardCalc.price.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                    <span>Calculated Service Fee ({primaryFeeCalc.percentageFormatted}):</span>
-                    <span className="font-semibold text-primary dark:text-green-400">+€{primaryFeeCalc.fee.toFixed(2)}</span>
+                    <span>Service Fee (Standard {primaryStandardCalc.percentageFormatted}):</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">+€{primaryStandardCalc.fee.toFixed(2)}</span>
                   </div>
-                  <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between text-sm font-bold text-gray-900 dark:text-white">
-                    <span>Estimated Total (incl. Fee):</span>
-                    <span className="text-base text-primary dark:text-green-400">€{primaryFeeCalc.total.toFixed(2)}</span>
+                  <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                    <span className="flex items-center gap-1 font-medium">
+                      <span>Service Fee (With Credit {primaryCreditCalc.percentageFormatted}):</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">-0.5% off</span>
+                    </span>
+                    <span className="font-bold font-mono">+€{primaryCreditCalc.fee.toFixed(2)}</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 block">Estimated Total (Standard):</span>
+                      <span className="font-bold text-gray-900 dark:text-white font-mono">€{primaryStandardCalc.total.toFixed(2)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block font-bold">Estimated Total (With Credit):</span>
+                      <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">€{primaryCreditCalc.total.toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
               )}

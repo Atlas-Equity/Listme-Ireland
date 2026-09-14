@@ -119,7 +119,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       website: 'https://listme.ie',
       facebook: 'https://www.facebook.com/profile.php?id=61594336620072',
       plan: 'Official Platform Storefront',
-      announcement: 'Welcome to ListMe Ireland! Ireland’s next-generation platform for items, jobs, and services across all 26 counties.',
+      announcement: 'Welcome to ListMe Ireland! Ireland’s next-generation platform for items, jobs, and services across all 32 counties.',
       opening_hours: 'Open 24 Hours / 7 Days',
       created_at: new Date(2023, 0, 1).toISOString(),
       avatarUrl: '/ListMeBanner.png',
@@ -185,6 +185,16 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     },
   };
 
+  // Check if current user is an authorized team staff member of this page
+  const isTeamMember = Boolean(
+    user && businessPage && (
+      (businessPage.team_members || []).some((m: any) => 
+        (typeof m === 'string' && m === user.id) || (typeof m === 'object' && m?.user_id === user.id)
+      ) ||
+      (user.user_metadata?.assigned_business_pages as any[])?.some((ap: any) => ap.slug === cleanSlug)
+    )
+  );
+
   return (
     <>
       <script
@@ -196,6 +206,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
         listings={pageListings} 
         isOwner={isOwner}
         isAdmin={userIsAdmin}
+        isTeamMember={isTeamMember}
       />
     </>
   );

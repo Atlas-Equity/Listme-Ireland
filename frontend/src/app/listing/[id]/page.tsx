@@ -289,28 +289,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely with Visa, Mastercard, Apple Pay, Google Pay via Stripe.</p>
                 </div>
 
-                {(paymentOptions.includes('revolut') || paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
+                {(paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
                   <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40 space-y-2">
                     <div className="font-semibold text-xs text-gray-900 dark:text-white uppercase tracking-wider">Other Accepted Options</div>
                     <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-2">
-                      {paymentOptions.includes('revolut') && (
-                        <li className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-md bg-white flex items-center justify-center p-0.5 shrink-0 shadow-xs border border-gray-200 dark:border-zinc-700">
-                            <img 
-                              src="/revolut-logo.png" 
-                              alt="Revolut" 
-                              className="w-full h-full object-contain" 
-                            />
-                          </span>
-                          <span className="font-medium">Revolut Pay / Transfer</span>
-                        </li>
-                      )}
-                      {(paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
-                        <li className="flex items-center gap-2">
-                          <Banknote className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <span className="font-medium">Euro in Hand (Cash on Collection)</span>
-                        </li>
-                      )}
+                      <li className="flex items-center gap-2">
+                        <Banknote className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="font-medium">Euro in Hand (Cash on Collection)</span>
+                      </li>
                     </ul>
                   </div>
                 )}

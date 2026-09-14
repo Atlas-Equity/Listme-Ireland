@@ -77,7 +77,7 @@ const FAQ_DATA = [
   },
   {
     q: 'Why are phone numbers locked to +353 Republic of Ireland numbers?',
-    a: 'ListMe is dedicated exclusively to residents and legitimate traders across Ireland. Enforcing standard Irish telephone prefixes safeguards all 26 counties from international robo-callers and overseas fraud networks.',
+    a: 'ListMe is dedicated exclusively to residents and legitimate traders across Ireland. Enforcing standard Irish telephone prefixes safeguards all 32 counties from international robo-callers and overseas fraud networks.',
     link: '/privacy',
     linkLabel: 'Read Privacy & Verification'
   }

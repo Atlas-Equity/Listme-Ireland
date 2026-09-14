@@ -27,12 +27,14 @@ import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
+import BusinessTeamManagement from '@/components/BusinessTeamManagement';
 
 interface BusinessPageClientProps {
   businessPage: BusinessPageData;
   listings: any[];
   isOwner?: boolean;
   isAdmin?: boolean;
+  isTeamMember?: boolean;
 }
 
 export default function BusinessPageClient({
@@ -40,6 +42,7 @@ export default function BusinessPageClient({
   listings,
   isOwner = false,
   isAdmin = false,
+  isTeamMember = false,
 }: BusinessPageClientProps) {
   const isListMeOfficial = businessPage.slug === 'listme';
   const [activeTab, setActiveTab] = useState<'listings' | 'about'>(isListMeOfficial ? 'about' : 'listings');
@@ -61,26 +64,32 @@ export default function BusinessPageClient({
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-black py-4 sm:py-6">
       <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6">
         
-        {/* Owner / Admin Management Banner */}
-        {(isOwner || isAdmin) && (
+        {/* Owner / Admin / Team Member Management Banner */}
+        {(isOwner || isAdmin || isTeamMember) && (
           <div className="mb-4 p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-xs font-bold text-gray-900 dark:text-white">
-                  {isListMeOfficial ? 'Admin Mode: Managing Official ListMe Storefront' : 'You are viewing this page as the Owner'}
+                  {isListMeOfficial 
+                    ? 'Admin Mode: Managing Official ListMe Storefront' 
+                    : isOwner 
+                    ? 'You are viewing this page as the Owner' 
+                    : 'You are viewing this page as an authorized Team Staff Member'}
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   {isListMeOfficial 
                     ? 'You have administrator privileges to edit announcements, platform details, and storefront info.' 
-                    : 'You can edit opening hours, announcement, business model, or delete this page.'}
+                    : isOwner 
+                    ? 'You can edit opening hours, announcement, business model, manage team staff, or delete this page.' 
+                    : 'You have staff access to view announcements, storefront details, and inventory.'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <CreateBusinessPageModal initialData={businessPage} />
-              {!isListMeOfficial && (
+              {(isOwner || isAdmin) && <CreateBusinessPageModal initialData={businessPage} />}
+              {isOwner && !isListMeOfficial && (
                 <DeleteBusinessPageButton slug={businessPage.slug} pageName={businessPage.name} />
               )}
             </div>
@@ -124,10 +133,21 @@ export default function BusinessPageClient({
                 )}
               </span>
 
-              <span className="px-2.5 py-1 rounded-md bg-black/80 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Verified Platform</span>
-              </span>
+              {/* Top Right Verified Pill (ONLY IF ACTUALLY VERIFIED) */}
+              {(isListMeOfficial || businessPage.is_verified) ? (
+                <span className="px-2.5 py-1 rounded-md bg-black/80 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isListMeOfficial ? 'Verified Platform' : 'Verified Storefront'}</span>
+                </span>
+              ) : isOwner ? (
+                <Link
+                  href="/my-listme?tab=settings"
+                  className="px-2.5 py-1 rounded-md bg-black/70 hover:bg-black/90 text-amber-300 text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-colors"
+                  title="Subscribe to Business Verification for €4.99/mo"
+                >
+                  <span>Unverified Business • Get Verified (€4.99/mo)</span>
+                </Link>
+              ) : null}
             </div>
           </div>
 
@@ -167,9 +187,11 @@ export default function BusinessPageClient({
                     <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
                       {businessPage.name}
                     </h1>
-                    <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold" title="Verified Business">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
+                    {(isListMeOfficial || businessPage.is_verified) && (
+                      <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold" title="Verified Business">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
                   </div>
 
                   <p className="text-xs font-mono font-medium text-gray-500 dark:text-gray-400 mt-1">
@@ -188,9 +210,9 @@ export default function BusinessPageClient({
                 </div>
               </div>
 
-              {/* Action Buttons: Message button removed for official ListMe page */}
+              {/* Action Buttons: Message button only if enabled in settings */}
               <div className="flex items-center justify-center sm:justify-end gap-2.5 shrink-0">
-                {!isListMeOfficial && (
+                {!isListMeOfficial && businessPage.allow_direct_messaging && (
                   <Link
                     href="/messages"
                     className="px-6 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
@@ -388,6 +410,17 @@ export default function BusinessPageClient({
               </div>
             </div>
 
+            {/* Business Team & Staff Section (Owner & Authorized Staff) */}
+            {(isOwner || isAdmin || isTeamMember) && !isListMeOfficial && (
+              <BusinessTeamManagement
+                pageSlug={businessPage.slug}
+                isOwner={isOwner}
+                isAdmin={isAdmin}
+                teamMembers={businessPage.team_members}
+                pendingInvites={businessPage.pending_invites}
+              />
+            )}
+
           </div>
 
           {/* RIGHT COLUMN: Announcement Banner & Content */}
@@ -421,7 +454,7 @@ export default function BusinessPageClient({
                       Welcome to ListMe Ireland
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed">
-                      ListMe is Ireland's modern, transparent online marketplace dedicated to fair trade across all 26 counties. Our platform connects Irish buyers and sellers with guaranteed buyer protection, direct Stripe payouts, and verified identity standards.
+                      ListMe is Ireland's modern, transparent online marketplace dedicated to fair trade across all 32 counties. Our platform connects Irish buyers and sellers with guaranteed buyer protection, direct Stripe payouts, and verified identity standards.
                     </p>
                   </div>
 

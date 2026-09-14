@@ -51,7 +51,7 @@ export default function SafetyPage() {
     },
     {
       title: 'Never Send Money Overseas',
-      text: 'Most sellers on Listme.ie are located in Ireland. Listme approves certain international members and those members only ever use NexyPay. Never use a wire transfer or money transfer service to send funds overseas.',
+      text: 'Most sellers on Listme.ie are located in Ireland. Listme approves certain verified members who use secure card payments with Buyer Protection. Never use a wire transfer or money transfer service to send funds overseas.',
       icon: Globe2,
     },
     {

@@ -59,7 +59,7 @@ export default function CommunityHubClient({
       date: 'September 2026',
       title: 'Marketplace Fees Schedule & Direct Payouts',
       tag: 'Platform Policy',
-      summary: 'ListMe offers transparent and competitive rates for casual and commercial sellers across all 26 counties with secure Stripe Connect payouts.',
+      summary: 'ListMe offers transparent and competitive rates for casual and commercial sellers across all 32 counties with secure Stripe Connect payouts.',
       link: '/fees',
       linkLabel: 'View fee details',
     },
@@ -83,8 +83,15 @@ export default function CommunityHubClient({
     },
   ];
 
-  const featuredStores = businessPages
+  const featuredStores = [...businessPages]
     .filter((p) => p.business_type === 'marketplace' || p.category?.toLowerCase().includes('retail'))
+    .sort((a, b) => {
+      const isA = a.slug?.toLowerCase() === 'listme' || a.name?.toLowerCase() === 'listme';
+      const isB = b.slug?.toLowerCase() === 'listme' || b.name?.toLowerCase() === 'listme';
+      if (isA && !isB) return -1;
+      if (!isA && isB) return 1;
+      return 0;
+    })
     .slice(0, 3);
 
   const featuredServices = businessPages
@@ -275,8 +282,14 @@ export default function CommunityHubClient({
                             <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
                               {store.name}
                             </h3>
-                            <span className="text-[10px] text-primary font-semibold">
-                              Verified Storefront
+                            <span className="text-[10px] font-semibold">
+                              {store.slug === 'listme' ? (
+                                <span className="text-primary font-bold">Official Platform</span>
+                              ) : store.is_verified ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Storefront</span>
+                              ) : (
+                                <span className="text-gray-500">Storefront</span>
+                              )}
                             </span>
                           </div>
                         </div>
@@ -347,8 +360,12 @@ export default function CommunityHubClient({
                             <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
                               {svc.name}
                             </h3>
-                            <span className="text-[10px] text-primary font-semibold">
-                              Verified Trade
+                            <span className="text-[10px] font-semibold">
+                              {svc.is_verified ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Trade</span>
+                              ) : (
+                                <span className="text-gray-500">Service Provider</span>
+                              )}
                             </span>
                           </div>
                         </div>
@@ -419,7 +436,7 @@ export default function CommunityHubClient({
                     <span className="text-gray-900 dark:text-white group-hover:text-primary transition-colors">Buyer Protection Policy</span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                    Full purchase price coverage up to €5,000 for qualifying marketplace orders paid via card or NexyPay with 3-day dispute resolution.
+                    Full purchase price coverage up to €5,000 for qualifying marketplace orders paid via card or Stripe with 3-day dispute resolution.
                   </p>
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary mt-3 group-hover:underline">
                     Learn about coverage <ArrowRight className="w-3.5 h-3.5" />

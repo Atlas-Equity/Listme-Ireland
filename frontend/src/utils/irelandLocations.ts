@@ -238,6 +238,52 @@ export const IRELAND_LOCATIONS: Record<string, string[]> = {
     'Manorhamilton',
     'Other / All Leitrim',
   ],
+  // Northern Ireland (6 Counties)
+  'Antrim': [
+    'Belfast (North / West)',
+    'Lisburn',
+    'Ballymena',
+    'Antrim Town',
+    'Carrickfergus',
+    'Larne',
+    'Other / All Antrim',
+  ],
+  'Armagh': [
+    'Armagh City',
+    'Craigavon',
+    'Lurgan',
+    'Portadown',
+    'Other / All Armagh',
+  ],
+  'Derry / Londonderry': [
+    'Derry City',
+    'Coleraine',
+    'Limavady',
+    'Magherafelt',
+    'Other / All Derry',
+  ],
+  'Down': [
+    'Belfast (East / South)',
+    'Bangor',
+    'Newtownards',
+    'Newry',
+    'Downpatrick',
+    'Banbridge',
+    'Other / All Down',
+  ],
+  'Fermanagh': [
+    'Enniskillen',
+    'Lisnaskea',
+    'Irvinestown',
+    'Other / All Fermanagh',
+  ],
+  'Tyrone': [
+    'Omagh',
+    'Strabane',
+    'Dungannon',
+    'Cookstown',
+    'Other / All Tyrone',
+  ],
 };
 
 export const COUNTIES = Object.keys(IRELAND_LOCATIONS);
