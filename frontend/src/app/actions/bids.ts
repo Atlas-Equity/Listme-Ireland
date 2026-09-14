@@ -68,7 +68,7 @@ export async function placeBid(listingId: string, amount: number) {
     // 2. Fetch current listing
     const { data: listing, error: listingError } = await supabase
       .from('listings')
-      .select('price, seller_id, ends_at, price_type, buy_now_price, description')
+      .select('price, seller_id, ends_at, price_type, description')
       .eq('id', listingId)
       .single();
 
@@ -128,12 +128,9 @@ export async function placeBid(listingId: string, amount: number) {
 
     // If the bid reaches or exceeds the Buy Now price, remove Buy Now and push it purely to auction
     const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
-    const existingBuyNow = listing.buy_now_price 
-      ? Number(listing.buy_now_price) 
-      : (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
+    const existingBuyNow = buyNowMatch ? parseFloat(buyNowMatch[1]) : null;
 
     if (existingBuyNow !== null && amount >= existingBuyNow) {
-      updatePayload.buy_now_price = null;
       if (listing.description && buyNowMatch) {
         updatePayload.description = listing.description.replace(/\[Buy It Now:\s*€?[0-9.]+\]/gi, '').trim();
       }

@@ -129,31 +129,13 @@ export default function LinkedCardCard({
     }
   };
 
-  // Sync with localStorage on client mount if server didn't provide cards
+  // Ensure cards are strictly scoped to the logged-in user from the server props
   useEffect(() => {
-    if (initialCardsList.length === 0) {
-      try {
-        const storedCards = localStorage.getItem('listme_linked_cards');
-        if (storedCards) {
-          const parsed = JSON.parse(storedCards);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setCards(parsed);
-            return;
-          }
-        }
-        const storedSingle = localStorage.getItem('listme_linked_card');
-        if (storedSingle) {
-          const parsedSingle = JSON.parse(storedSingle);
-          if (parsedSingle && Array.isArray(parsedSingle.cardNumberBlocks)) {
-            setCards([parsedSingle]);
-          }
-        }
-      } catch {
-        // ignore parse error
-      }
-    } else {
-      setCards(initialCardsList);
-    }
+    try {
+      localStorage.removeItem('listme_linked_cards');
+      localStorage.removeItem('listme_linked_card');
+    } catch {}
+    setCards(initialCardsList);
   }, [initialCards, initialCard]);
 
   // Open modal to add card (either first or second card)
@@ -339,13 +321,6 @@ export default function LinkedCardCard({
         const updatedCards = res.cards || (isAddingSecondCard ? [...cards, newCardData] : [newCardData, ...cards.slice(1)]);
         setCards(updatedCards);
 
-        try {
-          localStorage.setItem('listme_linked_cards', JSON.stringify(updatedCards));
-          if (updatedCards[0]) {
-            localStorage.setItem('listme_linked_card', JSON.stringify(updatedCards[0]));
-          }
-        } catch {}
-
         setIsModalOpen(false);
         setSuccessToast(`${isDebitInput ? 'Debit' : 'Credit'} Card (${brand} ending in ${last4}) securely linked to your wallet!`);
         setTimeout(() => setSuccessToast(null), 3000);
@@ -378,16 +353,6 @@ export default function LinkedCardCard({
       setCards(remaining);
       setSelectedCardIndex(0);
 
-      try {
-        localStorage.setItem('listme_linked_cards', JSON.stringify(remaining));
-        if (remaining[0]) {
-          localStorage.setItem('listme_linked_card', JSON.stringify(remaining[0]));
-        } else {
-          localStorage.removeItem('listme_linked_card');
-          localStorage.removeItem('listme_linked_cards');
-        }
-      } catch {}
-
       setSuccessToast(`${cardKind} unlinked from wallet.`);
       setTimeout(() => setSuccessToast(null), 3000);
     } catch (err) {
@@ -405,10 +370,6 @@ export default function LinkedCardCard({
       if (res.cards) {
         setCards(res.cards);
         setSelectedCardIndex(0);
-        try {
-          localStorage.setItem('listme_linked_cards', JSON.stringify(res.cards));
-          localStorage.setItem('listme_linked_card', JSON.stringify(res.cards[0]));
-        } catch {}
         setSuccessToast(`${targetCard.cardNickname} is now your primary card.`);
         setTimeout(() => setSuccessToast(null), 3000);
       }
@@ -427,10 +388,6 @@ export default function LinkedCardCard({
 
     try {
       await saveLinkedCardAction(updated);
-      localStorage.setItem('listme_linked_cards', JSON.stringify(updatedList));
-      if (updatedList[0]) {
-        localStorage.setItem('listme_linked_card', JSON.stringify(updatedList[0]));
-      }
     } catch {}
   };
 
@@ -597,49 +554,51 @@ export default function LinkedCardCard({
         {cards[0] ? (
           <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700/80 p-6 sm:p-7 flex flex-col justify-between shadow-lg text-white select-none">
             {/* Header: Nickname & Primary Badge */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                {editingCardId === (cards[0].id || 'card_0') ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={editNicknameValue}
-                      onChange={(e) => setEditNicknameValue(e.target.value)}
-                      onBlur={() => handleSaveNickname(cards[0])}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname(cards[0])}
-                      autoFocus
-                      className="bg-zinc-800 text-white font-bold text-base px-2.5 py-1 rounded-lg border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => { setEditingCardId(cards[0].id || 'card_0'); setEditNicknameValue(cards[0].cardNickname); }}
-                    className="text-lg font-bold text-white hover:text-gray-300 flex items-center gap-2 group cursor-pointer text-left"
-                    title="Click to rename"
-                  >
-                    <span className="truncate">{cards[0].cardNickname}</span>
-                    <Edit3 className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
-                  </button>
-                )}
-                <p className="text-xs text-zinc-400 mt-1 font-medium">
-                  {cards[0].cardholderName}
-                </p>
-              </div>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {editingCardId === (cards[0].id || 'card_0') ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editNicknameValue}
+                        onChange={(e) => setEditNicknameValue(e.target.value)}
+                        onBlur={() => handleSaveNickname(cards[0])}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname(cards[0])}
+                        autoFocus
+                        className="bg-zinc-800 text-white font-bold text-base px-2.5 py-1 rounded-lg border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingCardId(cards[0].id || 'card_0'); setEditNicknameValue(cards[0].cardNickname); }}
+                      className="text-base sm:text-lg font-bold text-white hover:text-gray-300 flex items-center gap-2 group cursor-pointer text-left"
+                      title="Click to rename"
+                    >
+                      <span className="font-bold">{cards[0].cardNickname}</span>
+                      <Edit3 className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
+                    </button>
+                  )}
+                  <p className="text-xs text-zinc-400 mt-0.5 font-medium">
+                    {cards[0].cardholderName}
+                  </p>
+                </div>
 
-              <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <span className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 shadow-xs">
-                  <Star className="w-3 h-3 fill-emerald-400" /> Primary Card
-                </span>
-                {isCardDebit(cards[0]) ? (
-                  <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 shadow-xs">
-                    Buying &amp; Top-Ups Only
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <span className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                    <Star className="w-3 h-3 fill-emerald-400" /> Primary Card
                   </span>
-                ) : (
-                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 shadow-xs">
-                    Seller Active
-                  </span>
-                )}
+                  {isCardDebit(cards[0]) ? (
+                    <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 shadow-xs whitespace-nowrap">
+                      Buying &amp; Top-Ups Only
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 shadow-xs whitespace-nowrap">
+                      Seller Active
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -728,49 +687,51 @@ export default function LinkedCardCard({
         {cards[1] ? (
           <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700/80 p-6 sm:p-7 flex flex-col justify-between shadow-lg text-white select-none">
             {/* Header: Nickname & Actions */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                {editingCardId === (cards[1].id || 'card_1') ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={editNicknameValue}
-                      onChange={(e) => setEditNicknameValue(e.target.value)}
-                      onBlur={() => handleSaveNickname(cards[1])}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname(cards[1])}
-                      autoFocus
-                      className="bg-zinc-800 text-white font-bold text-base px-2.5 py-1 rounded-lg border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => { setEditingCardId(cards[1].id || 'card_1'); setEditNicknameValue(cards[1].cardNickname); }}
-                    className="text-lg font-bold text-white hover:text-gray-300 flex items-center gap-2 group cursor-pointer text-left"
-                    title="Click to rename"
-                  >
-                    <span className="truncate">{cards[1].cardNickname}</span>
-                    <Edit3 className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
-                  </button>
-                )}
-                <p className="text-xs text-zinc-400 mt-1 font-medium">
-                  {cards[1].cardholderName}
-                </p>
-              </div>
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {editingCardId === (cards[1].id || 'card_1') ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editNicknameValue}
+                        onChange={(e) => setEditNicknameValue(e.target.value)}
+                        onBlur={() => handleSaveNickname(cards[1])}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname(cards[1])}
+                        autoFocus
+                        className="bg-zinc-800 text-white font-bold text-base px-2.5 py-1 rounded-lg border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingCardId(cards[1].id || 'card_1'); setEditNicknameValue(cards[1].cardNickname); }}
+                      className="text-base sm:text-lg font-bold text-white hover:text-gray-300 flex items-center gap-2 group cursor-pointer text-left"
+                      title="Click to rename"
+                    >
+                      <span className="font-bold">{cards[1].cardNickname}</span>
+                      <Edit3 className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
+                    </button>
+                  )}
+                  <p className="text-xs text-zinc-400 mt-0.5 font-medium">
+                    {cards[1].cardholderName}
+                  </p>
+                </div>
 
-              <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <span className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700 text-[10px] font-bold text-zinc-300 shadow-xs">
-                  Secondary Card
-                </span>
-                {isCardDebit(cards[1]) ? (
-                  <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 shadow-xs">
-                    Buying &amp; Top-Ups Only
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <span className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700 text-[10px] font-bold text-zinc-300 shadow-xs whitespace-nowrap">
+                    Secondary Card
                   </span>
-                ) : (
-                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 shadow-xs">
-                    Seller Active
-                  </span>
-                )}
+                  {isCardDebit(cards[1]) ? (
+                    <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 shadow-xs whitespace-nowrap">
+                      Buying &amp; Top-Ups Only
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 shadow-xs whitespace-nowrap">
+                      Seller Active
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

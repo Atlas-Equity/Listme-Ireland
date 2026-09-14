@@ -77,7 +77,7 @@ export default function CommunityHubClient({
       date: 'September 2026',
       title: 'Verified Accounts & Scam Chargeback Protection',
       tag: 'Trust & Safety',
-      summary: 'Accounts active for 1 year are verified for free, or get immediate verification for €19.99. All sellers require a linked credit card.',
+      summary: 'Accounts active for 1 year are verified for free, or get immediate verification for €4.99/month. All sellers require a linked credit card.',
       link: '/buyer-protection',
       linkLabel: 'Buyer Protection guide',
     },

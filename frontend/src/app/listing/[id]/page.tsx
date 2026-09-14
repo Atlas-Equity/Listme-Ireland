@@ -533,17 +533,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="border-t border-gray-200 dark:border-[#333] py-4 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
-              View seller's other listings
-              <ChevronRight className="w-5 h-5" />
+            <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="border-t border-gray-200 dark:border-[#333] py-3.5 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
+              View seller&apos;s other listings
+              <ChevronRight className="w-4 h-4" />
             </Link>
 
             {!isOwnListing && (
-              <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
+              <div className="py-2.5 my-1">
+                <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
+              </div>
             )}
             
-            <div className="text-center mt-4">
-              <Link href="/safety" className="text-[#0073e6] text-sm hover:underline">Read our safe buying advice</Link>
+            <div className="text-center pt-3 pb-1 border-t border-gray-100 dark:border-zinc-800/80">
+              <Link href="/safety" className="text-[#0073e6] text-xs hover:underline">Read our safe buying advice</Link>
             </div>
           </div>
         </div>

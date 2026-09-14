@@ -70,14 +70,19 @@ export default function BusinessUpgradeModal({
     setError(null);
     setSmsProviderWarning(null);
 
-    const trimmed = phone.trim();
-    const phoneValidation = validatePhoneNumber(trimmed);
+    const rawDigits = phone.replace(/^\+353\s?/, '').trim();
+    if (!rawDigits) {
+      setError('Please enter your Irish business phone number.');
+      return;
+    }
+    const fullPhone = `+353 ${rawDigits}`;
+    const phoneValidation = validatePhoneNumber(fullPhone, 'IE');
     if (!phoneValidation.isValid) {
-      setError(phoneValidation.error || 'Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).');
+      setError(phoneValidation.error || 'Please enter a valid Irish phone number (e.g. 87 123 4567).');
       return;
     }
 
-    const e164 = phoneValidation.e164 || trimmed;
+    const e164 = phoneValidation.e164 || `+353${rawDigits.replace(/\s/g, '').replace(/^0/, '')}`;
     setNormalizedPhone(e164);
     setLoading(true);
 
@@ -266,28 +271,31 @@ export default function BusinessUpgradeModal({
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Business Phone Number <span className="text-red-500">*</span>
+                  Business Phone Number (Ireland) <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                    <Phone className="w-4 h-4" />
-                  </div>
+                <div className={`flex rounded-lg shadow-sm border ${
+                  phone.replace(/^\+353\s?/, '').trim() && !validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`, 'IE').isValid
+                    ? 'border-red-400 dark:border-red-500/60'
+                    : 'border-gray-300 dark:border-zinc-700'
+                } bg-white dark:bg-zinc-900 overflow-hidden`}>
+                  <span className="inline-flex items-center px-3 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-sm font-semibold border-r border-gray-300 dark:border-zinc-700 select-none">
+                    🇮🇪 +353
+                  </span>
                   <input
                     type="tel"
                     required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+353 87 123 4567"
+                    value={phone.replace(/^\+353\s?/, '')}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9\s]/g, '');
+                      setPhone(val ? `+353 ${val.trim()}` : '');
+                    }}
+                    placeholder="87 123 4567"
                     disabled={loading}
-                    className={`w-full pl-10 pr-10 py-2.5 rounded-lg border ${
-                      phone.trim() && !validatePhoneNumber(phone).isValid
-                        ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400'
-                        : 'border-gray-300 dark:border-zinc-700 focus:ring-primary'
-                    } bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 text-sm shadow-sm transition-colors`}
+                    className="flex-1 px-3.5 py-2.5 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none text-sm"
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    {phone.trim() ? (
-                      validatePhoneNumber(phone).isValid ? (
+                  <div className="flex items-center pr-3">
+                    {phone.replace(/^\+353\s?/, '').trim() ? (
+                      validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`, 'IE').isValid ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       ) : (
                         <AlertCircle className="w-4 h-4 text-red-500" />
@@ -295,13 +303,13 @@ export default function BusinessUpgradeModal({
                     ) : null}
                   </div>
                 </div>
-                {phone.trim() && !validatePhoneNumber(phone).isValid ? (
+                {phone.replace(/^\+353\s?/, '').trim() && !validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`, 'IE').isValid ? (
                   <p className="text-xs text-red-500 mt-1.5">
-                    {validatePhoneNumber(phone).error || 'Please enter a valid phone number format.'}
+                    {validatePhoneNumber(phone.startsWith('+353') ? phone : `+353 ${phone}`, 'IE').error || 'Please enter a valid Irish mobile/landline number (e.g. 87 123 4567).'}
                   </p>
                 ) : (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                    Include international country code (e.g. +353 for Ireland, +44 for UK).
+                    Prefix +353 is permanently locked to Republic of Ireland numbers.
                   </p>
                 )}
               </div>
@@ -317,7 +325,7 @@ export default function BusinessUpgradeModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !phone.trim()}
+                  disabled={loading || !phone.replace(/^\+353\s?/, '').trim()}
                   className="flex-1 py-2.5 px-4 bg-primary text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                 >
                   {loading ? (

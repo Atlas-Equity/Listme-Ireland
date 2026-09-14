@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Info, X, ShieldCheck, Sparkles } from 'lucide-react';
+import { Info, X, ShieldCheck } from 'lucide-react';
 import { calculateServiceFee, SERVICE_FEE_TIERS } from '@/utils/serviceFee';
 
 interface ServiceFeeModalProps {
@@ -132,7 +132,7 @@ export default function ServiceFeeModal({
 
               {/* Special Account Credit Discount Callout */}
               <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
-                <Sparkles className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold">ListMe Account Credit Discount:</span> Pay using your ListMe Account Credit at checkout and your service fee automatically drops by <strong>0.5%</strong>!
                 </div>

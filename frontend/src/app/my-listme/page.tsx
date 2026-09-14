@@ -333,6 +333,104 @@ export default async function MyListMePage({ searchParams }: PageProps) {
       console.error('Error verifying Stripe wallet setup session:', setupErr);
     }
   }
+
+  // Stripe Verified Subscription Session Verification
+  const verifiedSessionId = typeof params?.verified_session_id === 'string' ? params.verified_session_id : undefined;
+  let verificationNotification: { success: boolean; message: string } | null = null;
+
+  if (verifiedSessionId) {
+    if (process.env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const session = await stripe.checkout.sessions.retrieve(verifiedSessionId, {
+          expand: ['subscription', 'customer'],
+        });
+
+        if (session.payment_status === 'paid' || session.status === 'complete') {
+          const subId = typeof session.subscription === 'string'
+            ? session.subscription
+            : (session.subscription as any)?.id;
+          const custId = typeof session.customer === 'string'
+            ? session.customer
+            : (session.customer as any)?.id;
+
+          await supabase.auth.updateUser({
+            data: {
+              is_verified: true,
+              verified_at: new Date().toISOString(),
+              verification_type: 'subscription',
+              stripe_subscription_id: subId,
+              stripe_customer_id: custId || userMetadata.stripe_customer_id,
+            },
+          });
+
+          try {
+            await supabase
+              .from('profiles')
+              .update({
+                is_verified: true,
+                stripe_subscription_id: subId,
+                stripe_customer_id: custId || profile?.stripe_customer_id,
+              })
+              .eq('id', user.id);
+          } catch {}
+
+          userMetadata.is_verified = true;
+          userMetadata.verification_type = 'subscription';
+          userMetadata.stripe_subscription_id = subId;
+
+          verificationNotification = {
+            success: true,
+            message: '🎉 Account Verified! Your monthly €4.99 Verified Badge subscription is now active on your profile and listings.',
+          };
+        } else {
+          verificationNotification = {
+            success: false,
+            message: 'Stripe subscription checkout session was not completed.',
+          };
+        }
+      } catch (verErr: any) {
+        console.error('Error verifying Stripe verified session:', verErr);
+        verificationNotification = {
+          success: false,
+          message: 'Could not verify subscription: ' + (verErr?.message || 'Session not found'),
+        };
+      }
+    } else {
+      verificationNotification = {
+        success: true,
+        message: 'Subscription session detected! Please configure STRIPE_SECRET_KEY in frontend/.env.local to activate automated verification.',
+      };
+    }
+  } else if (params?.verified_success === 'true') {
+    await supabase.auth.updateUser({
+      data: {
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+        verification_type: 'subscription',
+      },
+    });
+    try {
+      await supabase
+        .from('profiles')
+        .update({ is_verified: true })
+        .eq('id', user.id);
+    } catch {}
+
+    userMetadata.is_verified = true;
+    userMetadata.verification_type = 'subscription';
+
+    verificationNotification = {
+      success: true,
+      message: '🎉 Account Verified! Your monthly €4.99 Verified Badge subscription is now active on your profile and listings.',
+    };
+  } else if (params?.verified_status === 'cancelled') {
+    verificationNotification = {
+      success: false,
+      message: 'Subscription setup was cancelled. No monthly fee was charged.',
+    };
+  }
+
   const initials = displayName
     .split(' ')
     .map((p: string) => p[0])
@@ -348,6 +446,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const isOneYearOld = Date.now() - memberSinceDate.getTime() >= 365 * 24 * 60 * 60 * 1000;
   const isExplicitlyVerified = Boolean(userMetadata?.is_verified || profile?.is_verified);
   const isVerified = isOneYearOld || isExplicitlyVerified;
+  const isSubscriptionVerified = userMetadata?.verification_type === 'subscription' || Boolean(userMetadata?.stripe_subscription_id || profile?.stripe_subscription_id);
 
   // Review statistics
   const userReviews = reviewsRes.data || [];
@@ -399,7 +498,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     if (sellerIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, username, full_name, avatar_url, account_type, created_at')
+        .select('id, username, avatar_url, account_type, updated_at')
         .in('id', sellerIds);
       favouriteSellers = profiles || [];
     }
@@ -634,6 +733,37 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </Link>
                   </div>
                 )}
+
+                {/* Stripe Verification Notification Banner */}
+                {verificationNotification && (
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
+                    verificationNotification.success 
+                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-gray-900 dark:text-white' 
+                      : 'bg-red-50/70 dark:bg-red-950/20 border-red-200 dark:border-red-800/40 text-gray-900 dark:text-white'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {verificationNotification.success ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                      )}
+                      <div>
+                        <h4 className="font-bold text-sm">
+                          {verificationNotification.success ? 'Verified Subscription Active' : 'Verification Notice'}
+                        </h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                          {verificationNotification.message}
+                        </p>
+                      </div>
+                    </div>
+                    <Link 
+                      href="/my-listme?tab=account" 
+                      className="text-xs font-bold text-[#0073e6] hover:underline px-2 py-1"
+                    >
+                      Dismiss
+                    </Link>
+                  </div>
+                )}
                 
                 {/* TradeMe ACCOUNT DETAILS Table Card */}
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
@@ -737,25 +867,38 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Account Verification (Cute Verified Checkmark & 1-Year or €19.99 Upgrade) */}
+                    {/* Account Verification (Verified Badge & €4.99/mo Subscription) */}
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 dark:border-zinc-800/80">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Account Verification
                       </span>
                       <div className="sm:w-2/3">
                         {isVerified ? (
-                          <div className="flex items-center gap-2.5">
-                            <VerifiedBadge size="md" />
-                            <div>
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                                Verified Account • Safe to Trade With
-                              </span>
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                {isOneYearOld 
-                                  ? 'Platform Veteran (1+ Year Active Member — Personally verified by ListMe)'
-                                  : 'Personally Verified by ListMe'}
-                              </p>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <VerifiedBadge size="md" />
+                              <div>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                                  Verified Account • Safe to Trade With
+                                </span>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {isSubscriptionVerified
+                                    ? 'Active Monthly Subscription (€4.99/mo) • Verified Badge Active'
+                                    : isOneYearOld 
+                                      ? 'Platform Veteran (1+ Year Active Member — Personally verified by ListMe)'
+                                      : 'Personally Verified by ListMe'}
+                                </p>
+                              </div>
                             </div>
+                            {isSubscriptionVerified && (
+                              <div className="shrink-0">
+                                <VerifyAccountButton 
+                                  isSubscribed={true} 
+                                  userId={user.id} 
+                                  userEmail={user.email} 
+                                />
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
@@ -764,11 +907,15 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 Standard Member
                               </span>
                               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                                Accounts active for 1 year are verified for free. Or unlock immediate verification now.
+                                Accounts active for 1 year are verified for free. Or unlock immediate verified status with a €4.99/month subscription.
                               </p>
                             </div>
                             <div className="shrink-0">
-                              <VerifyAccountButton />
+                              <VerifyAccountButton 
+                                isSubscribed={false} 
+                                userId={user.id} 
+                                userEmail={user.email} 
+                              />
                             </div>
                           </div>
                         )}
