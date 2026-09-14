@@ -314,18 +314,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
 
-              {/* TradeMe-Style Questions & Answers Section */}
-              <div className="pt-4">
-                <ListingQuestionsSection
-                  listingId={listing.id}
-                  sellerId={listing.seller_id}
-                  isOwnListing={isOwnListing}
-                  currentUser={currentUser}
-                  initialQuestions={initialQuestions}
-                />
-              </div>
-
             </div>
+
+            {/* TradeMe-Style Questions & Answers Section */}
+            <div className="pt-2">
+              <ListingQuestionsSection
+                listingId={listing.id}
+                sellerId={listing.seller_id}
+                isOwnListing={isOwnListing}
+                currentUser={currentUser}
+                initialQuestions={initialQuestions}
+              />
+            </div>
+
           </div>
 
           {/* RIGHT COLUMN: Price, Actions, Seller */}
