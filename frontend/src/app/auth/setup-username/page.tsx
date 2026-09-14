@@ -20,14 +20,17 @@ export default async function SetupUsernamePage({ searchParams }: SetupUsernameP
     redirect('/login');
   }
 
-  // Check if user already has a valid username
+  // Check if user already has both a valid username and a password
   const { data: profile } = await supabase
     .from('profiles')
     .select('username')
     .eq('id', user.id)
     .maybeSingle();
 
-  if (profile?.username) {
+  const isEmailUser = user.app_metadata?.provider === 'email' || user.app_metadata?.providers?.includes('email');
+  const hasPassword = isEmailUser || Boolean(user.user_metadata?.has_password);
+
+  if (profile?.username && hasPassword) {
     redirect(nextParam);
   }
 
@@ -51,6 +54,7 @@ export default async function SetupUsernamePage({ searchParams }: SetupUsernameP
         <SetupUsernameForm
           initialEmail={user.email}
           suggestedUsername={rawSuggested}
+          existingUsername={profile?.username || ''}
           avatarUrl={avatarUrl}
           fullName={fullName}
         />

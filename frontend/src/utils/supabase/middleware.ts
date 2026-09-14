@@ -75,19 +75,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If user is logged in, check if they have completed username setup (only for UI pages, never API calls)
+  // If user is logged in, check if they have completed username & password setup (only for UI pages, never API calls)
   if (user && !isSignoutRoute && !isApiRoute) {
     const username = user.user_metadata?.username;
+    const isEmailUser = user.app_metadata?.provider === 'email' || user.app_metadata?.providers?.includes('email');
+    const hasPassword = isEmailUser || Boolean(user.user_metadata?.has_password);
     
-    // If they don't have a username and aren't already on the setup-username page, redirect them
-    if (!username && !isOnboardingRoute) {
+    // If they don't have a username or password and aren't already on the setup-username page, redirect them
+    if ((!username || !hasPassword) && !isOnboardingRoute) {
       const url = request.nextUrl.clone()
       url.pathname = '/auth/setup-username'
       return NextResponse.redirect(url)
     }
 
-    // If they do have a username and try to access login/register/setup-username, send them home
-    if (username && (isAuthRoute || isOnboardingRoute)) {
+    // If they do have a username & password and try to access login/register/setup-username, send them home
+    if (username && hasPassword && (isAuthRoute || isOnboardingRoute)) {
        const url = request.nextUrl.clone()
        url.pathname = '/'
        return NextResponse.redirect(url)

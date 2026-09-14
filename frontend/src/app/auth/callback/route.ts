@@ -30,6 +30,9 @@ export async function GET(request: Request) {
         .eq('id', user.id)
         .maybeSingle();
 
+      const isEmailUser = user.app_metadata?.provider === 'email' || user.app_metadata?.providers?.includes('email');
+      const hasPassword = isEmailUser || Boolean(user.user_metadata?.has_password);
+
       if (!profile) {
         // Ensure profile row exists
         await supabase.from('profiles').insert({
@@ -43,7 +46,7 @@ export async function GET(request: Request) {
         );
       }
 
-      if (!profile.username) {
+      if (!profile.username || !hasPassword) {
         return NextResponse.redirect(
           `${redirectBase}/auth/setup-username${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`
         );

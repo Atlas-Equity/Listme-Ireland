@@ -3,14 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { setUsername, checkUsernameAvailability } from './actions';
-import { AtSign, CheckCircle2, AlertCircle, Loader2, Shield } from 'lucide-react';
+import { setupAccountAction, checkUsernameAvailability } from './actions';
+import { AtSign, CheckCircle2, AlertCircle, Loader2, Shield, Lock, Eye, EyeOff, KeyRound } from 'lucide-react';
 
 interface SetupUsernameFormProps {
   initialEmail?: string;
   suggestedUsername?: string;
   avatarUrl?: string;
   fullName?: string;
+  existingUsername?: string;
 }
 
 export default function SetupUsernameForm({
@@ -18,15 +19,24 @@ export default function SetupUsernameForm({
   suggestedUsername = '',
   avatarUrl,
   fullName,
+  existingUsername = '',
 }: SetupUsernameFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get('next') || '/';
 
-  const [username, setUsernameInput] = useState(suggestedUsername);
+  const [username, setUsernameInput] = useState(existingUsername || suggestedUsername);
   const [checking, setChecking] = useState(false);
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(existingUsername ? true : null);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Password fields
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,6 +45,12 @@ export default function SetupUsernameForm({
     const trimmed = username.trim();
     if (!trimmed) {
       setIsAvailable(null);
+      setValidationError(null);
+      return;
+    }
+
+    if (existingUsername && trimmed.toLowerCase() === existingUsername.toLowerCase()) {
+      setIsAvailable(true);
       setValidationError(null);
       return;
     }
@@ -78,11 +94,12 @@ export default function SetupUsernameForm({
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [username]);
+  }, [username, existingUsername]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+    setPasswordError(null);
 
     const trimmed = username.trim();
     if (!trimmed) {
@@ -90,13 +107,28 @@ export default function SetupUsernameForm({
       return;
     }
 
-    if (validationError) {
+    if (validationError || isAvailable === false) {
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await setUsername(trimmed);
+      const res = await setupAccountAction({
+        rawUsername: trimmed,
+        password,
+        confirmPassword,
+      });
+
       if (res.error) {
         setSubmitError(res.error);
         setSubmitting(false);
@@ -111,7 +143,7 @@ export default function SetupUsernameForm({
   };
 
   return (
-    <div className="w-full max-w-md bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-8 space-y-6">
+    <div className="w-full max-w-md bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
       {/* Brand & Welcoming Header */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center justify-center gap-2 mb-1">
@@ -127,15 +159,16 @@ export default function SetupUsernameForm({
           />
         </div>
 
-        <div className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-primary dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
-          <span>Almost done! One final step</span>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-primary dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+          <KeyRound className="w-3.5 h-3.5" />
+          <span>Final Step: Username &amp; Password</span>
         </div>
 
         <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight pt-1">
-          Choose your username
+          Complete your account
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
-          Your unique handle on ListMe for your public seller profile, feedback, and marketplace listings.
+          Set your username and create a password so you can sign in with either Google or your username and email.
         </p>
       </div>
 
@@ -176,12 +209,13 @@ export default function SetupUsernameForm({
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Username Field */}
         <div>
           <label
             htmlFor="username-input"
             className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider"
           >
-            Public Username
+            Choose Username
           </label>
           <div className="relative rounded-xl shadow-xs">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-500 font-bold text-sm">
@@ -190,11 +224,12 @@ export default function SetupUsernameForm({
             <input
               id="username-input"
               type="text"
-              autoFocus
+              autoFocus={!existingUsername}
               value={username}
               onChange={(e) => setUsernameInput(e.target.value.replace(/\s+/g, ''))}
               placeholder="irish_seller"
               maxLength={20}
+              required
               className={`block w-full pl-9 pr-10 py-3 text-sm rounded-xl border transition-colors bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 ${
                 validationError
                   ? 'border-red-500 focus:ring-red-500/20'
@@ -214,15 +249,12 @@ export default function SetupUsernameForm({
             </div>
           </div>
 
-          {/* Inline Validation / Help */}
-          <div className="mt-2 flex items-center justify-between text-xs">
+          <div className="mt-1.5 flex items-center justify-between text-xs">
             {validationError ? (
-              <span className="text-red-500 font-medium flex items-center gap-1">
-                {validationError}
-              </span>
+              <span className="text-red-500 font-medium">{validationError}</span>
             ) : isAvailable ? (
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                @{username.trim()} is available!
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                @{username.trim()} is available
               </span>
             ) : (
               <span className="text-gray-400 dark:text-zinc-500">
@@ -235,7 +267,98 @@ export default function SetupUsernameForm({
           </div>
         </div>
 
-        {/* Global Submit Error */}
+        {/* Password Field */}
+        <div>
+          <label
+            htmlFor="password-input"
+            className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider"
+          >
+            Create Password
+          </label>
+          <div className="relative rounded-xl shadow-xs">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
+              <Lock className="w-4 h-4" />
+            </div>
+            <input
+              id="password-input"
+              type={showPassword ? 'text' : 'password'}
+              autoFocus={Boolean(existingUsername)}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordError(null);
+              }}
+              placeholder="At least 6 characters"
+              minLength={6}
+              required
+              className="block w-full pl-9 pr-10 py-3 text-sm rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Confirm Password Field */}
+        <div>
+          <label
+            htmlFor="confirm-password-input"
+            className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider"
+          >
+            Confirm Password
+          </label>
+          <div className="relative rounded-xl shadow-xs">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
+              <Lock className="w-4 h-4" />
+            </div>
+            <input
+              id="confirm-password-input"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setPasswordError(null);
+              }}
+              placeholder="Re-enter your password"
+              minLength={6}
+              required
+              className="block w-full pl-9 pr-10 py-3 text-sm rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {password && confirmPassword && password !== confirmPassword && (
+            <p className="text-xs text-red-500 mt-1">Passwords do not match.</p>
+          )}
+          {password && confirmPassword && password === confirmPassword && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Passwords match
+            </p>
+          )}
+        </div>
+
+        {/* Password Notice Box */}
+        <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+          <strong>Tip:</strong> This password allows you to log in with your email or username at any time, even without Google.
+        </div>
+
+        {/* Validation Errors */}
+        {passwordError && (
+          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <span>{passwordError}</span>
+          </div>
+        )}
+
         {submitError && (
           <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -245,22 +368,22 @@ export default function SetupUsernameForm({
 
         <button
           type="submit"
-          disabled={submitting || checking || !username.trim() || isAvailable === false}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          disabled={submitting || checking || !username.trim() || isAvailable === false || !password || password.length < 6 || password !== confirmPassword}
+          className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {submitting ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Setting up your account...</span>
+              <span>Saving password and setting up...</span>
             </>
           ) : (
-            <span>Complete Setup &rarr;</span>
+            <span>Complete Setup &amp; Sign In &rarr;</span>
           )}
         </button>
       </form>
 
       <p className="text-[11px] text-center text-gray-400 dark:text-zinc-500">
-        You can always update your display name and details later in your Account Settings.
+        Your password is encrypted securely via Supabase Auth.
       </p>
     </div>
   );

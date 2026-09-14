@@ -73,6 +73,7 @@ export default function RegisterPage() {
           account_type: accountType,
           phone: validatedPhoneE164 || undefined,
           tos_updates_notify: notifyTosUpdates,
+          has_password: true,
         }
       }
     });

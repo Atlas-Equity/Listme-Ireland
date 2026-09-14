@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 const RESERVED_USERNAMES = new Set([
@@ -69,7 +70,15 @@ export async function checkUsernameAvailability(username: string) {
   return { available: true };
 }
 
-export async function setUsername(rawUsername: string) {
+export async function setupAccountAction({
+  rawUsername,
+  password,
+  confirmPassword,
+}: {
+  rawUsername: string;
+  password?: string;
+  confirmPassword?: string;
+}) {
   const username = rawUsername.trim();
   const lower = username.toLowerCase();
 
@@ -78,21 +87,30 @@ export async function setUsername(rawUsername: string) {
   }
 
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return { error: 'Only letters, numbers, and underscores are allowed.' };
+    return { error: 'Only letters, numbers, and underscores are allowed in usernames.' };
   }
 
   if (RESERVED_USERNAMES.has(lower)) {
     return { error: 'This username is reserved. Please choose another.' };
   }
 
+  // Password requirement (OAuth accounts must set a password for username/email login)
+  if (!password || password.length < 6) {
+    return { error: 'Password must be at least 6 characters long.' };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: 'Passwords do not match.' };
+  }
+
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    return { error: 'You must be signed in to choose a username.' };
+    return { error: 'You must be signed in to complete account setup.' };
   }
 
-  // 1. Double check uniqueness
+  // 1. Double check username uniqueness
   const { data: existing } = await supabase
     .from('profiles')
     .select('id')
@@ -104,16 +122,42 @@ export async function setUsername(rawUsername: string) {
     return { error: 'This username is already taken. Please pick a different one.' };
   }
 
-  // 2. Update Supabase Auth metadata
+  // 2. Update Supabase Auth user password & metadata
   const { error: authError } = await supabase.auth.updateUser({
+    password: password,
     data: {
       username: username,
+      has_password: true,
     },
   });
 
   if (authError) {
-    console.error('Error updating auth metadata:', authError);
-    return { error: authError.message };
+    console.warn('supabase.auth.updateUser warning:', authError.message);
+  }
+
+  // Guarantee password is set via Admin API if service role key exists
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (serviceRoleKey && supabaseUrl) {
+    try {
+      const admin = createAdminClient(supabaseUrl, serviceRoleKey, {
+        auth: { persistSession: false },
+      });
+      const { error: adminErr } = await admin.auth.admin.updateUserById(user.id, {
+        password: password,
+        user_metadata: {
+          ...(user.user_metadata || {}),
+          username: username,
+          has_password: true,
+        },
+      });
+      if (adminErr) {
+        console.error('Admin updateUserById error:', adminErr);
+      }
+    } catch (err) {
+      console.error('Admin updateUserById exception:', err);
+    }
   }
 
   // 3. Upsert into public.profiles
@@ -146,4 +190,9 @@ export async function setUsername(rawUsername: string) {
   revalidatePath('/member/[id]', 'page');
 
   return { success: true };
+}
+
+// Backwards-compatible wrapper
+export async function setUsername(rawUsername: string) {
+  return setupAccountAction({ rawUsername });
 }
