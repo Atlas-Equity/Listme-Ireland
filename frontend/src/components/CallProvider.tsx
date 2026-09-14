@@ -23,6 +23,7 @@ import {
   playCallConnectedTone,
   playCallEndedTone,
 } from '@/utils/callSounds';
+import { emitToast } from '@/context/ToastContext';
 
 export type CallStatus = 'idle' | 'calling' | 'incoming' | 'connected' | 'ended';
 
@@ -554,7 +555,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }, 1000);
     } catch (err: any) {
       console.error('Error accepting call:', err);
-      alert('Could not access microphone: ' + (err?.message || 'Please check microphone permissions.'));
+      emitToast('Could not access microphone: ' + (err?.message || 'Please check microphone permissions.'), 'error');
       endCall();
     }
   };
@@ -583,12 +584,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     conversationId?: string
   ) => {
     if (!currentUserId) {
-      alert('Please log in to make calls.');
+      emitToast('Please log in to make calls.', 'error');
       return;
     }
 
     if (targetUserId === currentUserId) {
-      alert('You cannot call yourself.');
+      emitToast('You cannot call yourself.', 'error');
       return;
     }
 
@@ -687,7 +688,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }, 30000);
     } catch (err: any) {
       console.error('Error starting call:', err);
-      alert('Could not start call: ' + (err?.message || 'Check microphone access.'));
+      emitToast('Could not start call: ' + (err?.message || 'Check microphone access.'), 'error');
       cleanupMedia();
       updateCallStatus('idle');
       updateParticipant(null);

@@ -155,7 +155,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
   // Auction Buy Now Price: check buy_now_price column or parse tag from description
   const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
-  const buyNowPrice: number | null = listing.buy_now_price || (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
+  const rawBuyNowPrice: number | null = listing.buy_now_price || (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
   const cleanDescription = listing.description ? listing.description.replace(/\[Buy It Now:\s*€?[0-9.]+\]/gi, '').trim() : '';
 
   let highestBidAmount = null;
@@ -163,6 +163,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   if (isAuction && bidsResult.data && bidsResult.data.length > 0) {
     highestBidAmount = bidsResult.data[0].amount;
   }
+
+  // If the current highest bid meets or exceeds the Buy Now price, remove Buy Now and push completely to auction
+  const isBuyNowOverriddenByBid = rawBuyNowPrice !== null && highestBidAmount !== null && highestBidAmount >= rawBuyNowPrice;
+  const buyNowPrice: number | null = isBuyNowOverriddenByBid ? null : rawBuyNowPrice;
 
   const currentPrice = highestBidAmount !== null ? highestBidAmount : listing.price;
   const minNextBid = highestBidAmount !== null ? highestBidAmount + 1 : listing.price;
@@ -420,7 +424,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
               <div className="p-3 text-sm bg-white dark:bg-[#242424] border-t border-gray-100 dark:border-zinc-800">
-                <ServiceFeeModal price={currentPrice} />
+                <ServiceFeeModal 
+                  price={currentPrice} 
+                  buyNowPrice={buyNowPrice}
+                  isAuction={isAuction}
+                />
               </div>
             </div>
 

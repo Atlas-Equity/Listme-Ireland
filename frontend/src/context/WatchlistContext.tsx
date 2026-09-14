@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getWatchlistIdsAction, toggleWatchlist as toggleWatchlistServer } from '@/app/actions/wishlist';
 import { createClient } from '@/utils/supabase/client';
+import { emitToast } from '@/context/ToastContext';
 
 interface WatchlistContextType {
   isWatchlisted: (listingId: string) => boolean;
@@ -116,7 +117,7 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (res.error === 'Unauthorized') {
-            alert('Please sign in to add items to your watchlist.');
+            emitToast('Please sign in to add items to your watchlist.', 'error');
           }
           return currentlySaved;
         }

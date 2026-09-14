@@ -13,6 +13,7 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { calculateServiceFee } from '@/utils/serviceFee';
+import { emitToast } from '@/context/ToastContext';
 import { 
   getUserPaymentStateAction, 
   payForListingAction, 
@@ -46,12 +47,13 @@ export default function CheckoutButton({
   const [selectedMethod, setSelectedMethod] = useState<'account_credit' | 'stripe'>('stripe');
 
   const numericPrice = typeof price === 'number' ? price : 0;
-  const feeCalc = calculateServiceFee(numericPrice);
+  const isCredit = selectedMethod === 'account_credit';
+  const feeCalc = calculateServiceFee(numericPrice, isCredit);
   const totalAmount = feeCalc.total;
 
   const handleOpenCheckout = async () => {
     if (isAuction) {
-      alert('Please place a bid using the auction bidding form.');
+      emitToast('Please place a bid using the auction bidding form.', 'info');
       return;
     }
 
@@ -185,7 +187,7 @@ export default function CheckoutButton({
               </div>
               <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span className="flex items-center gap-1">
-                  Service Fee ({feeCalc.percentageFormatted})
+                  Service Fee ({feeCalc.percentageFormatted}{isCredit ? ' • 0.5% credit discount' : ''})
                   <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 </span>
                 <span className="font-semibold text-gray-900 dark:text-white font-mono">€{feeCalc.fee.toFixed(2)}</span>
@@ -254,8 +256,11 @@ export default function CheckoutButton({
                     <Coins className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-gray-900 dark:text-white">
-                      Listme Account Credit
+                    <div className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <span>Listme Account Credit</span>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                        ⚡ -0.5% Fee Discount
+                      </span>
                     </div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-400">
                       Balance: €{credit.toFixed(2)} {credit >= totalAmount ? '(Sufficient balance)' : '(Insufficient balance)'}

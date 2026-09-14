@@ -23,6 +23,7 @@ import {
   revokeAdminRoleAction 
 } from '@/app/actions/admin';
 import { useRouter } from 'next/navigation';
+import { emitToast } from '@/context/ToastContext';
 
 interface MemberAdminActionsProps {
   targetUserId: string;
@@ -59,7 +60,7 @@ export default function MemberAdminActions({
       router.refresh();
       setTimeout(() => setToastMessage(null), 3000);
     } else {
-      alert(res.error || 'Failed to grant verified badge.');
+      emitToast(res.error || 'Failed to grant verified badge.', 'error');
     }
   };
 
@@ -73,7 +74,7 @@ export default function MemberAdminActions({
       router.refresh();
       setTimeout(() => setToastMessage(null), 3000);
     } else {
-      alert(res.error || 'Failed to revoke verified badge.');
+      emitToast(res.error || 'Failed to revoke verified badge.', 'error');
     }
   };
 
@@ -88,7 +89,7 @@ export default function MemberAdminActions({
         router.refresh();
         setTimeout(() => setToastMessage(null), 3000);
       } else {
-        alert(res.error || 'Failed to revoke admin role.');
+        emitToast(res.error || 'Failed to revoke admin role.', 'error');
       }
     } else {
       if (!window.confirm(`Grant Administrator privileges to @${targetUsername}? They will be able to manage support channels, verify users, and ban accounts.`)) return;
@@ -100,7 +101,7 @@ export default function MemberAdminActions({
         router.refresh();
         setTimeout(() => setToastMessage(null), 3000);
       } else {
-        alert(res.error || 'Failed to assign admin role.');
+        emitToast(res.error || 'Failed to assign admin role.', 'error');
       }
     }
   };
@@ -116,7 +117,7 @@ export default function MemberAdminActions({
       router.refresh();
       setTimeout(() => setToastMessage(null), 3500);
     } else {
-      alert(res.error || 'Failed to suspend account.');
+      emitToast(res.error || 'Failed to suspend account.', 'error');
     }
   };
 
@@ -130,7 +131,7 @@ export default function MemberAdminActions({
       router.refresh();
       setTimeout(() => setToastMessage(null), 3000);
     } else {
-      alert(res.error || 'Failed to unban account.');
+      emitToast(res.error || 'Failed to unban account.', 'error');
     }
   };
 

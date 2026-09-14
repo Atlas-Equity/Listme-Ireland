@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { emitToast } from '@/context/ToastContext';
 
 export default function WalletLoginButton() {
   const [loading, setLoading] = useState(false);
@@ -17,11 +18,11 @@ export default function WalletLoginButton() {
       if (res.ok && data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || 'Failed to open wallet');
+        emitToast(data.error || 'Failed to open wallet', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('An unexpected error occurred.');
+      emitToast('An unexpected error occurred.', 'error');
     } finally {
       setLoading(false);
     }

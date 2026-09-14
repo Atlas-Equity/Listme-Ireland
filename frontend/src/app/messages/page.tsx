@@ -25,6 +25,7 @@ import { createClient as createBrowserSupabase } from '@/utils/supabase/client';
 import { useCall } from '@/components/CallProvider';
 import { playMessageChime } from '@/utils/callSounds';
 import { respondToOfferAction, OfferPayload } from '@/app/actions/offers';
+import { emitToast } from '@/context/ToastContext';
 
 interface CallLogData {
   status: 'completed' | 'missed' | 'declined';
@@ -408,7 +409,7 @@ function MessagesContent() {
         fetchMessages(selectedConvId, true);
         fetchConversations(true);
       } else {
-        alert(res.error || 'Failed to update offer status.');
+        emitToast(res.error || 'Failed to update offer status.', 'error');
       }
     } catch (err) {
       console.error(err);

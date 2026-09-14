@@ -752,7 +752,7 @@ export async function payForListingAction(
     ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) || 0
     : (Number(listing.price) || 0);
 
-  const feeCalc = calculateServiceFee(priceNum);
+  const feeCalc = calculateServiceFee(priceNum, paymentMethod === 'account_credit');
   const totalAmount = feeCalc.total;
 
   const linkedCard = user.user_metadata?.linked_card;

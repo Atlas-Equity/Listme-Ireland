@@ -8,6 +8,7 @@ import CookieConsent from "@/components/CookieConsent";
 
 import { CallProvider } from "@/components/CallProvider";
 import { WatchlistProvider } from "@/context/WatchlistContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.listme.ie';
 
@@ -153,16 +154,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <WatchlistProvider>
-            <CallProvider>
-              <Header />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-              <CookieConsent />
-            </CallProvider>
-          </WatchlistProvider>
+          <ToastProvider>
+            <WatchlistProvider>
+              <CallProvider>
+                <Header />
+                <main className="flex-1">
+                  {children}
+                </main>
+                <Footer />
+                <CookieConsent />
+              </CallProvider>
+            </WatchlistProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

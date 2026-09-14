@@ -14,28 +14,35 @@ export interface ServiceFeeResult {
   total: number;
   percentageFormatted: string;
   tierLabel: string;
+  isCreditDiscountApplied?: boolean;
 }
 
-export function calculateServiceFee(price: number | string): ServiceFeeResult {
+export function calculateServiceFee(
+  price: number | string,
+  isCreditPayment: boolean = false
+): ServiceFeeResult {
   const numericPrice = typeof price === 'string' 
     ? parseFloat(price.replace(/[^0-9.]/g, '')) || 0 
     : (Number(price) || 0);
 
   const cleanPrice = Math.max(0, numericPrice);
 
-  let percentage = 4.0;
+  let basePercentage = 4.0;
   let tierLabel = '€10 – €50 (4%)';
 
   if (cleanPrice <= 50) {
-    percentage = 4.0;
+    basePercentage = 4.0;
     tierLabel = '€10 – €50 (4%)';
   } else if (cleanPrice <= 250) {
-    percentage = 3.5;
+    basePercentage = 3.5;
     tierLabel = '€50.01 – €250.00 (3.5%)';
   } else {
-    percentage = 3.0;
+    basePercentage = 3.0;
     tierLabel = '€250.01+ (3%)';
   }
+
+  // 0.5% discount when paying with ListMe Account Credit
+  const percentage = isCreditPayment ? Math.max(0, basePercentage - 0.5) : basePercentage;
 
   const fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
   const total = Math.round((cleanPrice + fee) * 100) / 100;
@@ -47,6 +54,7 @@ export function calculateServiceFee(price: number | string): ServiceFeeResult {
     total,
     percentageFormatted: `${percentage}%`,
     tierLabel,
+    isCreditDiscountApplied: isCreditPayment,
   };
 }
 

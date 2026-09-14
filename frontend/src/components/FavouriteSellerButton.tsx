@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { toggleFavouriteSeller } from '@/app/actions/favourites';
+import { emitToast } from '@/context/ToastContext';
 
 interface FavouriteSellerButtonProps {
   sellerId: string;
@@ -27,7 +28,7 @@ export default function FavouriteSellerButton({ sellerId, initialIsFavourite }: 
       if (result.error) {
         // Revert on error
         setIsFavourite(!newStatus);
-        alert(result.error === 'Unauthorized' ? 'Please sign in to add favourite sellers.' : 'Failed to update favourites.');
+        emitToast(result.error === 'Unauthorized' ? 'Please sign in to add favourite sellers.' : 'Failed to update favourites.', 'error');
       }
     } catch (err) {
       setIsFavourite(!newStatus);

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { CreditCard, Loader2 } from 'lucide-react';
+import { emitToast } from '@/context/ToastContext';
 
 export default function WalletSetupButton() {
   const [loading, setLoading] = useState(false);
@@ -17,12 +18,12 @@ export default function WalletSetupButton() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || 'Failed to start wallet setup');
+        emitToast(data.error || 'Failed to start wallet setup', 'error');
         setLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert('An unexpected error occurred.');
+      emitToast('An unexpected error occurred.', 'error');
       setLoading(false);
     }
   };
