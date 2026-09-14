@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getWatchlistIdsAction, toggleWatchlist as toggleWatchlistServer } from '@/app/actions/wishlist';
+import { createClient } from '@/utils/supabase/client';
 
 interface WatchlistContextType {
   isWatchlisted: (listingId: string) => boolean;
@@ -18,42 +19,63 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const [watchlistIds, setWatchlistIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Initial hydration: load from localStorage immediately, then sync with server
+  // 1. Initial hydration: verify auth state, load from server if logged in, otherwise clear
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setWatchlistIds(parsed);
-        }
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
-
-    // Server synchronization - only if user is logged in with auth cookie
     const hasAuthCookie = typeof document !== 'undefined' && document.cookie.includes('-auth-token');
+
     if (!hasAuthCookie) {
+      setWatchlistIds([]);
+      try {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      } catch {}
       setIsLoading(false);
-      return;
+    } else {
+      try {
+        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setWatchlistIds(parsed);
+          }
+        }
+      } catch {}
+
+      getWatchlistIdsAction().then((serverIds) => {
+        if (Array.isArray(serverIds)) {
+          setWatchlistIds(serverIds);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serverIds));
+          } catch {}
+        }
+        setIsLoading(false);
+      }).catch(() => {
+        setIsLoading(false);
+      });
     }
 
-    getWatchlistIdsAction().then((serverIds) => {
-      if (Array.isArray(serverIds)) {
-        setWatchlistIds((prev) => {
-          // Combine previous and server IDs, preserving any optimistic saves
-          const combined = Array.from(new Set([...prev, ...serverIds]));
-          try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(combined));
-          } catch {}
-          return combined;
+    // Listen to Supabase auth events (e.g. user signs out in another tab or clicks Sign Out)
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setWatchlistIds([]);
+        try {
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+        } catch {}
+      } else if (event === 'SIGNED_IN' && session) {
+        getWatchlistIdsAction().then((serverIds) => {
+          if (Array.isArray(serverIds)) {
+            setWatchlistIds(serverIds);
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(serverIds));
+            } catch {}
+          }
         });
       }
-      setIsLoading(false);
-    }).catch(() => {
-      setIsLoading(false);
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const isWatchlisted = useCallback(

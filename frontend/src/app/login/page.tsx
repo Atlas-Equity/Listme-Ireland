@@ -29,7 +29,7 @@ export default function LoginPage() {
   // OTP login state
   const [otpTarget, setOtpTarget] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [otpLength, setOtpLength] = useState<number>(8);
+  const [otpLength, setOtpLength] = useState<number>(6);
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [resendCooldown, setResendCooldown] = useState(0);
   const [smsWarning, setSmsWarning] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export default function LoginPage() {
         setError(otpError.message);
         setLoading(false);
       } else {
-        setOtpLength(8);
+        setOtpLength(6);
         setOtpStep('verify');
         setResendCooldown(30);
         setLoading(false);

@@ -56,6 +56,12 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const currentUser = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null;
   const currentUserIsAdmin = isAdmin(currentUser);
 
+  // If current logged-in user accesses /member/me
+  if (currentUser && id.toLowerCase() === 'me') {
+    const memberNum = getMemberNumber(currentUser.id);
+    redirect(`/member/${memberNum}`);
+  }
+
   // 3. Resolve profile by member number or username using cached profiles
   let profile: any = null;
   let allProfiles = globalThis.__allProfilesCache?.profiles;
@@ -75,12 +81,45 @@ export default async function MemberProfilePage({ params, searchParams }: Member
     // Attempt 2: Match by username (case-insensitive)
     if (!profile) {
       profile = allProfiles.find((p: any) => p.username?.toLowerCase() === id.toLowerCase());
-      // If found by username, redirect to member number for canonical URL
       if (profile) {
         const memberNum = getMemberNumber(profile.id);
         const searchEntries = Object.entries(sParams || {}).filter(([_, v]) => typeof v === 'string') as [string, string][];
         const searchStr = searchEntries.length > 0 ? `?${new URLSearchParams(searchEntries).toString()}` : '';
         redirect(`/member/${memberNum}${searchStr}`);
+      }
+    }
+
+    // Attempt 3: Match by email prefix or UUID
+    if (!profile) {
+      profile = allProfiles.find((p: any) => 
+        p.id === id || 
+        (p.email && p.email.split('@')[0].toLowerCase() === id.toLowerCase())
+      );
+      if (profile) {
+        const memberNum = getMemberNumber(profile.id);
+        const searchEntries = Object.entries(sParams || {}).filter(([_, v]) => typeof v === 'string') as [string, string][];
+        const searchStr = searchEntries.length > 0 ? `?${new URLSearchParams(searchEntries).toString()}` : '';
+        redirect(`/member/${memberNum}${searchStr}`);
+      }
+    }
+  }
+
+  // Fresh query fallback if newly created profile is not yet in in-memory cache
+  if (!profile) {
+    const { data: freshProfiles } = await supabase.from('profiles').select('*');
+    if (freshProfiles && freshProfiles.length > 0) {
+      globalThis.__allProfilesCache = {
+        profiles: freshProfiles,
+        expiresAt: Date.now() + 60 * 1000,
+      };
+      profile = freshProfiles.find((p: any) => getMemberNumber(p.id).toString() === id)
+        || freshProfiles.find((p: any) => p.username?.toLowerCase() === id.toLowerCase())
+        || freshProfiles.find((p: any) => p.id === id)
+        || freshProfiles.find((p: any) => p.email && p.email.split('@')[0].toLowerCase() === id.toLowerCase());
+
+      if (profile && (profile.username?.toLowerCase() === id.toLowerCase() || profile.id === id || (profile.email && profile.email.split('@')[0].toLowerCase() === id.toLowerCase()))) {
+        const memberNum = getMemberNumber(profile.id);
+        redirect(`/member/${memberNum}`);
       }
     }
   }
@@ -93,7 +132,12 @@ export default async function MemberProfilePage({ params, searchParams }: Member
         process.env.SUPABASE_SERVICE_ROLE_KEY
       );
       const { data: { users } } = await adminClient.auth.admin.listUsers();
-      const matched = users?.find(u => getMemberNumber(u.id).toString() === id || u.user_metadata?.username?.toLowerCase() === id.toLowerCase() || u.id === id);
+      const matched = users?.find(u => 
+        getMemberNumber(u.id).toString() === id || 
+        u.user_metadata?.username?.toLowerCase() === id.toLowerCase() || 
+        u.id === id ||
+        (u.email && u.email.split('@')[0].toLowerCase() === id.toLowerCase())
+      );
       if (matched) {
         profile = {
           id: matched.id,

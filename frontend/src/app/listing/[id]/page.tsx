@@ -64,7 +64,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   ] = await Promise.all([
     cachedSeller && Date.now() < cachedSeller.expiresAt
       ? Promise.resolve({ data: cachedSeller.data })
-      : supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url, created_at, is_verified').eq('id', listing.seller_id).maybeSingle().then(res => {
+      : supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url').eq('id', listing.seller_id).maybeSingle().then(res => {
           if (res.data) sellerCache.set(listing.seller_id, { data: res.data, expiresAt: Date.now() + 60 * 1000 });
           return res;
         }),
@@ -96,8 +96,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const sellerInitial = sellerDisplayName.charAt(0).toUpperCase();
   const memberSinceDate = seller?.updated_at ? new Date(seller.updated_at) : (listing.created_at ? new Date(listing.created_at) : new Date());
   const memberSinceText = format(memberSinceDate, 'MMMM yyyy');
-  const isSellerOneYearOld = seller?.created_at ? Date.now() - new Date(seller.created_at).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
-  const isSellerVerified = Boolean(isSellerOneYearOld || seller?.is_verified || (seller as any)?.user_metadata?.is_verified);
+  const isSellerOneYearOld = seller?.updated_at ? Date.now() - new Date(seller.updated_at).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
+  const isSellerVerified = Boolean(isSellerOneYearOld || (seller as any)?.is_verified || (seller as any)?.user_metadata?.is_verified);
 
   // Auction Buy Now Price: check buy_now_price column or parse tag from description
   const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
