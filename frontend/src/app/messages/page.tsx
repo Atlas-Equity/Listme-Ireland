@@ -240,6 +240,10 @@ function MessagesContent() {
         return prev.map(c => c.id === convId ? { ...c, unreadCount: 0 } : c);
       });
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('messages_read'));
+      }
+
       if (!silent) {
         setTimeout(() => scrollToBottom('auto'), 50);
       }

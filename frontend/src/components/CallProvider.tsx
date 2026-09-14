@@ -40,6 +40,7 @@ interface MessageToast {
   senderAvatar?: string;
   content: string;
   conversationId: string;
+  listingId?: string;
 }
 
 interface CallContextType {
@@ -720,15 +721,96 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!currentUserId) return;
 
-    // Listen for call signals on personal channel
+    const handleIncomingNotification = (msg: any, senderName: string, senderAvatar?: string) => {
+      const rawContent = msg.content || '';
+      let displayContent = rawContent;
+      let listingId: string | undefined = msg.listing_id;
+
+      if (rawContent.startsWith('QUESTION:')) {
+        try {
+          const qData = JSON.parse(rawContent.slice(9));
+          displayContent = `Asked on your listing: "${qData.question}"`;
+          listingId = qData.listingId || listingId;
+        } catch {
+          displayContent = 'New question on your listing';
+        }
+      } else if (rawContent.startsWith('ANSWER:')) {
+        try {
+          const aData = JSON.parse(rawContent.slice(7));
+          displayContent = `Answered your question: "${aData.text}"`;
+          listingId = aData.listingId || listingId;
+        } catch {
+          displayContent = 'Seller answered your question';
+        }
+      } else if (rawContent.startsWith('CALL_LOG:')) {
+        try {
+          const data = JSON.parse(rawContent.slice(9));
+          if (data.status === 'missed') {
+            displayContent = 'Missed voice call';
+          } else if (data.status === 'declined') {
+            displayContent = 'Call declined';
+          } else {
+            const mins = Math.floor((data.duration || 0) / 60);
+            const secs = (data.duration || 0) % 60;
+            const dur = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+            displayContent = `Voice call ended (${dur})`;
+          }
+        } catch {
+          displayContent = 'Voice call';
+        }
+      }
+
+      // Play message sound chime!
+      playMessageChime();
+
+      // Notify badge listeners across the app
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('new_message_received', { detail: msg }));
+      }
+
+      // Display in-app toast notification
+      setMessageToast({
+        id: msg.id || `msg_${Date.now()}`,
+        senderName,
+        senderAvatar,
+        content: displayContent,
+        conversationId: msg.conversation_id,
+        listingId,
+      });
+
+      // Browser notification if in background
+      if (
+        typeof window !== 'undefined' &&
+        document.hidden &&
+        'Notification' in window &&
+        Notification.permission === 'granted'
+      ) {
+        try {
+          new Notification(senderName, {
+            body: displayContent,
+            icon: senderAvatar || '/clover-logo.png',
+          });
+        } catch (e) {}
+      }
+    };
+
+    // Listen for call signals & new message broadcasts on personal channel
     const callChannel = supabase
       .channel(`user_call_signals_${currentUserId}`)
       .on('broadcast', { event: 'call_signal' }, ({ payload }) => {
         handleSignal(payload);
       })
+      .on('broadcast', { event: 'new_message' }, ({ payload }) => {
+        if (!payload || payload.sender_id === currentUserId) return;
+        handleIncomingNotification(
+          payload,
+          payload.sender_name || 'A ListMe user',
+          payload.sender_avatar
+        );
+      })
       .subscribe();
 
-    // Listen for incoming messages across the site
+    // Listen for incoming messages across the site via postgres_changes
     const messagesChannel = supabase
       .channel(`global_message_notifications_${currentUserId}`)
       .on(
@@ -764,52 +846,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             const senderName = senderProfile?.username || 'A ListMe user';
             const senderAvatar = senderProfile?.avatar_url || undefined;
 
-            const rawContent = msg.content || '';
-            let displayContent = rawContent;
-            if (rawContent.startsWith('CALL_LOG:')) {
-              try {
-                const data = JSON.parse(rawContent.slice(9));
-                if (data.status === 'missed') {
-                  displayContent = 'Missed voice call';
-                } else if (data.status === 'declined') {
-                  displayContent = 'Call declined';
-                } else {
-                  const mins = Math.floor((data.duration || 0) / 60);
-                  const secs = (data.duration || 0) % 60;
-                  const dur = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-                  displayContent = `Voice call ended (${dur})`;
-                }
-              } catch {
-                displayContent = 'Voice call';
-              }
-            }
-
-            // Play message sound chime!
-            playMessageChime();
-
-            // Display in-app toast notification
-            setMessageToast({
-              id: msg.id,
-              senderName,
-              senderAvatar,
-              content: displayContent,
-              conversationId: msg.conversation_id,
-            });
-
-            // Browser notification if in background
-            if (
-              typeof window !== 'undefined' &&
-              document.hidden &&
-              'Notification' in window &&
-              Notification.permission === 'granted'
-            ) {
-              new Notification(`New message from ${senderName}`, {
-                body: displayContent,
-                icon: '/clover-logo.png',
-              });
-            }
-          } catch (e) {
-            console.warn('Error displaying message notification:', e);
+            handleIncomingNotification(msg, senderName, senderAvatar);
+          } catch (err) {
+            console.error('Message notification error:', err);
           }
         }
       )
@@ -878,7 +917,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mt-0.5">
                 {messageToast.content}
               </p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-3 mt-2">
                 <button
                   onClick={() => {
                     setMessageToast(null);
@@ -886,8 +925,19 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                   }}
                   className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
                 >
-                  Reply <ExternalLink className="w-3 h-3" />
+                  Reply in Chat <ExternalLink className="w-3 h-3" />
                 </button>
+                {messageToast.listingId && (
+                  <button
+                    onClick={() => {
+                      setMessageToast(null);
+                      router.push(`/listing/${messageToast.listingId}#questions-and-answers`);
+                    }}
+                    className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:underline flex items-center gap-1"
+                  >
+                    View Listing <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
 

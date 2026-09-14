@@ -8,6 +8,9 @@ import { cookies } from 'next/headers';
 import VerifiedBadge from './VerifiedBadge';
 import { createClient } from '@/utils/supabase/server';
 
+import HeaderMessagesBadge from './HeaderMessagesBadge';
+import HeaderNotificationsBadge from './HeaderNotificationsBadge';
+
 export default async function Header() {
   console.time('Header');
   const cookieStore = await cookies();
@@ -86,6 +89,7 @@ export default async function Header() {
               <Link href="/my-listme?tab=notifications" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group relative">
                 <div className="relative">
                   <Bell className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                  {user && <HeaderNotificationsBadge currentUserId={user.id} />}
                 </div>
                 <span>Notifications</span>
               </Link>
@@ -97,8 +101,11 @@ export default async function Header() {
                 <Heart className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                 <span>Favourites</span>
               </Link>
-              <Link href="/messages" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                <MessageSquare className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+              <Link href="/messages" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group relative">
+                <div className="relative">
+                  <MessageSquare className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                  {user && <HeaderMessagesBadge currentUserId={user.id} />}
+                </div>
                 <span>Messages</span>
               </Link>
               

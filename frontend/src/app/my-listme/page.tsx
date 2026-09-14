@@ -28,7 +28,8 @@ import {
   Store,
   Briefcase,
   Clock,
-  Users
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import BusinessInviteNotificationCard from '@/components/BusinessInviteNotificationCard';
 import Stripe from 'stripe';
@@ -108,7 +109,51 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const userBusinessPages = (userMetadata.business_pages || []) as any[];
   const assignedBusinessPages = (userMetadata.assigned_business_pages || []) as any[];
   const pendingBusinessInvites = ((userMetadata.business_invites || []) as any[]).filter((i: any) => i.status === 'pending');
-  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length;
+
+  // Fetch pending question messages on seller's listings
+  const sellerListingIds = allUserListings.map(l => l.id);
+  let listingQuestionsNotifications: any[] = [];
+  if (sellerListingIds.length > 0) {
+    const { data: convsWithQuestions } = await supabase
+      .from('conversations')
+      .select('id, listing_id, last_message, last_message_at')
+      .eq('seller_id', user.id)
+      .in('listing_id', sellerListingIds);
+
+    if (convsWithQuestions && convsWithQuestions.length > 0) {
+      const convIds = convsWithQuestions.map(c => c.id);
+      const { data: qMsgs } = await supabase
+        .from('messages')
+        .select('id, conversation_id, content, created_at, sender_id')
+        .in('conversation_id', convIds)
+        .like('content', 'QUESTION:%')
+        .order('created_at', { ascending: false });
+
+      if (qMsgs && qMsgs.length > 0) {
+        for (const m of qMsgs) {
+          try {
+            const q = JSON.parse(m.content.slice(9));
+            const listing = allUserListings.find(l => l.id === q.listingId);
+            listingQuestionsNotifications.push({
+              id: q.id,
+              msgId: m.id,
+              conversationId: m.conversation_id,
+              buyerUsername: q.buyerUsername,
+              question: q.question,
+              hasAnswer: Boolean(q.answer),
+              createdAt: q.createdAt || m.created_at,
+              listingTitle: listing?.title || 'Listing',
+              listingId: q.listingId,
+              listingImage: listing?.images?.[0] || null,
+            });
+          } catch {}
+        }
+      }
+    }
+  }
+
+  const pendingQuestionsCount = listingQuestionsNotifications.filter(q => !q.hasAnswer).length;
+  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount;
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
@@ -1121,6 +1166,84 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
+                {/* Questions on your listings */}
+                {listingQuestionsNotifications.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white">
+                          Questions on your listings ({listingQuestionsNotifications.length})
+                        </h3>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-medium">
+                        {pendingQuestionsCount > 0 ? `${pendingQuestionsCount} awaiting your reply` : 'All answered'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {listingQuestionsNotifications.map((q) => (
+                        <div
+                          key={q.id}
+                          className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                            !q.hasAnswer
+                              ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 shadow-xs'
+                              : 'bg-white dark:bg-[#181818] border-gray-200 dark:border-zinc-800 shadow-xs'
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-3 min-w-0">
+                              {q.listingImage && (
+                                <div className="w-12 h-12 rounded-xl overflow-hidden relative bg-gray-100 dark:bg-zinc-800 shrink-0 border border-gray-200 dark:border-zinc-700">
+                                  <Image src={q.listingImage} alt={q.listingTitle} fill className="object-cover" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-bold text-xs text-gray-900 dark:text-white truncate">
+                                    @{q.buyerUsername}
+                                  </span>
+                                  <span className="text-[11px] text-gray-400">•</span>
+                                  <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                                    on {q.listingTitle}
+                                  </span>
+                                </div>
+                                <p className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">
+                                  &ldquo;{q.question}&rdquo;
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 flex items-center gap-2 self-end sm:self-center">
+                              {!q.hasAnswer ? (
+                                <Link
+                                  href={`/listing/${q.listingId}#questions-and-answers`}
+                                  className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+                                >
+                                  <span>Answer Question</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </Link>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1 border border-emerald-500/20">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Answered
+                                  </span>
+                                  <Link
+                                    href={`/listing/${q.listingId}#questions-and-answers`}
+                                    className="text-xs text-primary hover:underline font-semibold"
+                                  >
+                                    View
+                                  </Link>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* If closed unsold listings exist, render 1-click relist cards */}
                 {closedListings.length > 0 ? (
                   <div className="space-y-4">
@@ -1146,7 +1269,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       ))}
                     </div>
                   </div>
-                ) : pendingBusinessInvites.length === 0 ? (
+                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 ? (
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     

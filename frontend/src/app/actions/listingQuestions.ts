@@ -62,7 +62,7 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
   try {
     const fileQuestions = ensureDataFile().filter(q => q.listingId === listingId);
     
-    // Also check Supabase messages if available
+    // Check Supabase messages
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -88,7 +88,8 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
       .from('messages')
       .select('id, conversation_id, sender_id, content, created_at')
       .in('conversation_id', convIds)
-      .like('content', 'QUESTION:%');
+      .or('content.like.QUESTION:%,content.like.ANSWER:%')
+      .order('created_at', { ascending: true });
 
     if (!messages || messages.length === 0) {
       return fileQuestions;
@@ -97,22 +98,41 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
     const questionMap = new Map<string, ListingQuestion>();
     fileQuestions.forEach(q => questionMap.set(q.id, q));
 
+    // First pass: collect questions
     for (const msg of messages) {
-      try {
-        const payload: ListingQuestion = JSON.parse(msg.content.slice(9));
-        if (payload && payload.id) {
-          if (!questionMap.has(payload.id)) {
+      if (msg.content.startsWith('QUESTION:')) {
+        try {
+          const payload: ListingQuestion = JSON.parse(msg.content.slice(9));
+          if (payload && payload.id) {
+            payload.conversationId = msg.conversation_id;
             questionMap.set(payload.id, payload);
-          } else {
-            // Merge answer if supabase has newer answer
-            const existing = questionMap.get(payload.id)!;
-            if (payload.answer && !existing.answer) {
-              existing.answer = payload.answer;
+          }
+        } catch {
+          // Skip malformed
+        }
+      }
+    }
+
+    // Second pass: attach answers from ANSWER: messages
+    for (const msg of messages) {
+      if (msg.content.startsWith('ANSWER:')) {
+        try {
+          const payload = JSON.parse(msg.content.slice(7));
+          if (payload && payload.questionId && questionMap.has(payload.questionId)) {
+            const target = questionMap.get(payload.questionId)!;
+            if (!target.answer || new Date(payload.answeredAt).getTime() >= new Date(target.answer.answeredAt || 0).getTime()) {
+              target.answer = {
+                text: payload.text,
+                sellerId: payload.sellerId,
+                sellerUsername: payload.sellerUsername,
+                sellerAvatarUrl: payload.sellerAvatarUrl,
+                answeredAt: payload.answeredAt,
+              };
             }
           }
+        } catch {
+          // Skip malformed
         }
-      } catch {
-        // Skip malformed
       }
     }
 
@@ -252,6 +272,26 @@ export async function askListingQuestionAction({
           content: `QUESTION:${JSON.stringify(newQuestion)}`,
           is_read: false,
         });
+
+        // Realtime broadcast to seller so they are instantly notified
+        try {
+          await admin.channel(`user_call_signals_${listing.seller_id}`).send({
+            type: 'broadcast',
+            event: 'new_message',
+            payload: {
+              id: newQuestion.id,
+              conversation_id: conversationId,
+              sender_id: user.id,
+              sender_name: buyerUsername,
+              sender_avatar: buyerAvatarUrl,
+              content: `QUESTION:${JSON.stringify(newQuestion)}`,
+              listing_id: listingId,
+              listing_title: listing.title,
+            },
+          });
+        } catch (bErr) {
+          console.error('Realtime broadcast error:', bErr);
+        }
       }
     }
 
@@ -271,6 +311,7 @@ export async function askListingQuestionAction({
 
 /**
  * Seller answers a public listing question.
+ * Persists directly into Supabase database messages and updates conversation.
  */
 export async function answerListingQuestionAction({
   listingId,
@@ -316,16 +357,7 @@ export async function answerListingQuestionAction({
       answeredAt: new Date().toISOString(),
     };
 
-    // Update local JSON store
-    const currentQuestions = ensureDataFile();
-    const targetQ = currentQuestions.find(q => q.id === questionId);
-
-    if (targetQ) {
-      targetQ.answer = answerData;
-      saveDataFile(currentQuestions);
-    }
-
-    // Update in Supabase messages if conversation exists
+    // Update in Supabase messages
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -334,11 +366,56 @@ export async function answerListingQuestionAction({
         auth: { persistSession: false },
       });
 
-      const conversationId = targetQ?.conversationId;
-      if (conversationId) {
-        // Insert public answer message in conversation
+      // Find conversations for this listing
+      const { data: convs } = await admin
+        .from('conversations')
+        .select('id, buyer_id, seller_id')
+        .eq('listing_id', listingId);
+
+      const convIds = (convs || []).map(c => c.id);
+
+      let targetMsg: any = null;
+      let targetConvId: string | null = null;
+      let buyerId: string | null = null;
+
+      if (convIds.length > 0) {
+        const { data: msgs } = await admin
+          .from('messages')
+          .select('id, conversation_id, content')
+          .in('conversation_id', convIds)
+          .like('content', 'QUESTION:%');
+
+        if (msgs) {
+          for (const m of msgs) {
+            try {
+              const parsed = JSON.parse(m.content.slice(9));
+              if (parsed && parsed.id === questionId) {
+                targetMsg = m;
+                targetConvId = m.conversation_id;
+                buyerId = parsed.buyerId;
+                break;
+              }
+            } catch {}
+          }
+        }
+      }
+
+      if (targetMsg) {
+        // 1. Permanently update original QUESTION message payload so it holds answer
+        try {
+          const parsed = JSON.parse(targetMsg.content.slice(9));
+          parsed.answer = answerData;
+          await admin
+            .from('messages')
+            .update({ content: `QUESTION:${JSON.stringify(parsed)}` })
+            .eq('id', targetMsg.id);
+        } catch (e) {
+          console.error('Error updating question message:', e);
+        }
+
+        // 2. Insert public ANSWER message into the conversation thread
         await admin.from('messages').insert({
-          conversation_id: conversationId,
+          conversation_id: targetConvId,
           sender_id: user.id,
           content: `ANSWER:${JSON.stringify({
             questionId,
@@ -348,14 +425,49 @@ export async function answerListingQuestionAction({
           is_read: false,
         });
 
+        // 3. Update conversation last message snippet
         await admin
           .from('conversations')
           .update({
-            last_message: `Answered question: "${trimmedAnswer.slice(0, 50)}${trimmedAnswer.length > 50 ? '...' : ''}"`,
+            last_message: `Answer: "${trimmedAnswer.slice(0, 50)}${trimmedAnswer.length > 50 ? '...' : ''}"`,
             last_message_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', conversationId);
+          .eq('id', targetConvId);
+
+        // 4. Send Realtime broadcast to buyer
+        if (buyerId) {
+          try {
+            await admin.channel(`user_call_signals_${buyerId}`).send({
+              type: 'broadcast',
+              event: 'new_message',
+              payload: {
+                id: `ans_${Date.now()}`,
+                conversation_id: targetConvId,
+                sender_id: user.id,
+                sender_name: sellerUsername,
+                sender_avatar: sellerAvatarUrl,
+                content: `ANSWER:${JSON.stringify({
+                  questionId,
+                  listingId,
+                  ...answerData,
+                })}`,
+                listing_id: listingId,
+              },
+            });
+          } catch (bErr) {
+            console.error('Broadcast to buyer error:', bErr);
+          }
+        }
       }
+    }
+
+    // 5. Update local JSON file store as fallback
+    const currentQuestions = ensureDataFile();
+    const targetQ = currentQuestions.find(q => q.id === questionId);
+    if (targetQ) {
+      targetQ.answer = answerData;
+      saveDataFile(currentQuestions);
     }
 
     revalidatePath(`/listing/${listingId}`);

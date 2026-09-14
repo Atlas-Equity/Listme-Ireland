@@ -23,6 +23,8 @@ import {
   Bell,
   HelpCircle,
 } from 'lucide-react';
+import HeaderMessagesBadge from './HeaderMessagesBadge';
+import HeaderNotificationsBadge from './HeaderNotificationsBadge';
 import { ThemeToggle } from './ThemeToggle';
 import VerifiedBadge from './VerifiedBadge';
 
@@ -234,6 +236,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                       <Bell className="w-4 h-4 text-primary" />
                       Notifications
                     </span>
+                    {user && <HeaderNotificationsBadge currentUserId={user.id} inline />}
                   </Link>
                   <Link
                     href="/my-listme?tab=watchlist"
@@ -254,10 +257,13 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                   <Link
                     href="/messages"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                    Messages
+                    <span className="flex items-center gap-3">
+                      <MessageSquare className="w-4 h-4 text-primary" />
+                      Messages
+                    </span>
+                    {user && <HeaderMessagesBadge currentUserId={user.id} inline />}
                   </Link>
                   {user && (
                     <Link
