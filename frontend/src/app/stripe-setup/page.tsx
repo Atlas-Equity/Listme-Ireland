@@ -1,22 +1,59 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Building, ShieldCheck, ArrowRight, Loader2, Landmark } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building, ShieldCheck, ArrowRight, Loader2, Landmark, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import { createStripeConnectAction } from '@/app/actions/stripeConnect';
 
 export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error || !user) {
+        setError('You must be logged in to set up payouts. Redirecting to login...');
+        setTimeout(() => {
+          router.push('/login?next=/stripe-setup');
+        }, 1500);
+      } else {
+        setUserEmail(user.email || 'Authenticated User');
+      }
+    });
+  }, [router]);
 
   const startOnboarding = async () => {
     setLoading(true);
     setError('');
 
     try {
+      // 1. Primary path: Server Action (handles cookies natively with zero network header issues)
+      const actionRes = await createStripeConnectAction();
+      if (actionRes?.url) {
+        window.location.href = actionRes.url;
+        return;
+      }
+
+      // 2. Fallback path: API route with explicit client session Bearer token
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('Your login session has expired. Please sign in again.');
+      }
+
       const res = await fetch('/api/connect', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
-      
+
       const rawText = await res.text();
       let data: any = {};
       try {
@@ -30,14 +67,14 @@ export default function OnboardingPage() {
       }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to start onboarding');
+        throw new Error(data.error || actionRes?.error || 'Failed to start onboarding');
       }
 
       if (data.url) {
         window.location.href = data.url;
       }
     } catch (err: any) {
-      console.error(err);
+      console.error('Stripe setup error:', err);
       setError(err.message || 'An unexpected error occurred.');
       setLoading(false);
     }
@@ -78,6 +115,13 @@ export default function OnboardingPage() {
             </p>
           </div>
         </div>
+
+        {userEmail && (
+          <div className="flex items-center gap-2 p-3 mb-6 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-100 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-300">
+            <UserCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="truncate">Setting up payouts for <strong className="text-gray-900 dark:text-white">{userEmail}</strong></span>
+          </div>
+        )}
 
         <button
           onClick={startOnboarding}

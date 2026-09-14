@@ -1,4 +1,5 @@
 import React from 'react';
+import { Metadata } from 'next';
 import { ListingCard } from '@/components/ListingCard';
 import { fetchCategoryListings } from '@/utils/backendApi';
 import { PackageX } from 'lucide-react';
@@ -6,6 +7,32 @@ import Link from 'next/link';
 
 // Cache category pages for 60s for ultra-fast browsing
 export const revalidate = 60;
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const categoryName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
+
+  return {
+    title: `${categoryName} Ireland | Buy, Sell & Bid on ListMe`,
+    description: `Browse active ${categoryName.toLowerCase()} listings, classifieds, and auctions across Ireland. Buy and sell locally in Dublin, Cork, Galway, Limerick and nationwide.`,
+    alternates: {
+      canonical: `/category/${slug}`,
+    },
+    openGraph: {
+      title: `${categoryName} in Ireland | ListMe Marketplace`,
+      description: `Browse active ${categoryName.toLowerCase()} listings, classifieds, and auctions across Ireland.`,
+      url: `/category/${slug}`,
+      siteName: 'ListMe Ireland',
+      locale: 'en_IE',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${categoryName} in Ireland | ListMe Marketplace`,
+      description: `Browse active ${categoryName.toLowerCase()} listings and auctions across Ireland.`,
+    },
+  };
+}
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;

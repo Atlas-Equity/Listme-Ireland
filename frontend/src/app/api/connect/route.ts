@@ -106,7 +106,7 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
     .from('profiles')
     .select('stripe_account_id')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   let accountId = profile?.stripe_account_id;
 
@@ -142,9 +142,27 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    let user = null;
 
-    if (authError || !user) {
+    // 1. Check Bearer token from client header
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      if (token) {
+        const { data: tokenUserData } = await supabase.auth.getUser(token);
+        if (tokenUserData?.user) {
+          user = tokenUserData.user;
+        }
+      }
+    }
+
+    // 2. Fallback to cookie session
+    if (!user) {
+      const { data: { user: cookieUser } } = await supabase.auth.getUser();
+      user = cookieUser;
+    }
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 

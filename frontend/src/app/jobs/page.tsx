@@ -1,9 +1,26 @@
 import React from 'react';
+import { Metadata } from 'next';
 import { createClient } from '@/utils/supabase/server';
 import { getAllRegisteredBusinessPages, getCachedJobCandidates } from '@/app/actions/businessPages';
 import JobsClient from './JobsClient';
 
 export const revalidate = 30;
+
+export const metadata: Metadata = {
+  title: 'Jobs in Ireland | Find Work & Hire Local Candidates',
+  description: 'Search full-time, part-time, and trade job vacancies across Ireland. Connect with hiring Irish businesses or list your profile as an active job seeker on ListMe.',
+  alternates: {
+    canonical: '/jobs',
+  },
+  openGraph: {
+    title: 'Jobs in Ireland | ListMe Careers & Hiring',
+    description: 'Search job vacancies across Ireland. Connect with hiring Irish businesses or list your profile as an active job seeker.',
+    url: '/jobs',
+    siteName: 'ListMe Ireland',
+    locale: 'en_IE',
+    type: 'website',
+  },
+};
 
 export default async function JobsPage() {
   const supabase = await createClient();

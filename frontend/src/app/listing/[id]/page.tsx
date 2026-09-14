@@ -13,12 +13,66 @@ import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import MakeOfferButton from '@/components/MakeOfferButton';
 import ServiceFeeModal from '@/components/ServiceFeeModal';
 import DeleteListingButton from '@/components/DeleteListingButton';
+import { Metadata } from 'next';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
 // Cache listing page for 60s for blazing fast instant loads
 export const revalidate = 60;
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('title, description, price, price_type, images, location, category')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!listing) {
+    return {
+      title: 'Listing Not Found | ListMe Ireland',
+    };
+  }
+
+  const cleanDescription = listing.description
+    ? listing.description.replace(/<[^>]*>?/gm, '').slice(0, 160)
+    : `Buy ${listing.title} for €${listing.price} on ListMe Ireland. Located in ${listing.location || 'Ireland'}.`;
+
+  const firstImage = Array.isArray(listing.images) && listing.images.length > 0 ? listing.images[0] : '/clover-logo.png';
+  const priceDisplay = listing.price != null ? `€${Number(listing.price).toLocaleString('en-IE')}` : '';
+
+  return {
+    title: `${listing.title} ${priceDisplay ? `(${priceDisplay})` : ''}`,
+    description: cleanDescription,
+    alternates: {
+      canonical: `/listing/${id}`,
+    },
+    openGraph: {
+      title: `${listing.title} ${priceDisplay ? `• ${priceDisplay}` : ''} | ListMe Ireland`,
+      description: cleanDescription,
+      url: `/listing/${id}`,
+      siteName: 'ListMe Ireland',
+      images: [
+        {
+          url: firstImage,
+          width: 800,
+          height: 600,
+          alt: listing.title,
+        },
+      ],
+      locale: 'en_IE',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${listing.title} ${priceDisplay ? `• ${priceDisplay}` : ''} | ListMe Ireland`,
+      description: cleanDescription,
+      images: [firstImage],
+    },
+  };
+}
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -130,11 +184,38 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
   const itemLocation = getCoreLocation(listing.location);
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.listme.ie';
+  const firstImage = Array.isArray(listing.images) && listing.images.length > 0 ? listing.images[0] : `${siteUrl}/clover-logo.png`;
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: listing.title,
+    description: listing.description || listing.title,
+    image: Array.isArray(listing.images) && listing.images.length > 0 ? listing.images : [firstImage],
+    category: listing.category || 'Marketplace',
+    offers: {
+      '@type': 'Offer',
+      price: listing.price != null ? Number(listing.price) : 0,
+      priceCurrency: 'EUR',
+      availability: isClosed ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+      itemCondition: listing.condition?.toLowerCase() === 'brand new' ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
+      url: `${siteUrl}/listing/${id}`,
+      seller: {
+        '@type': 'Person',
+        name: seller?.username || 'ListMe Member',
+      },
+    },
+  };
+
   // Ensure payment options is an array
   const paymentOptions: string[] = listing.payment_options || ['cash'];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Breadcrumb / Top Bar */}

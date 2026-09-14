@@ -1,9 +1,26 @@
 import React from 'react';
+import { Metadata } from 'next';
 import { createClient } from '@/utils/supabase/server';
 import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 import MarketplaceClient from './MarketplaceClient';
 
 export const revalidate = 15;
+
+export const metadata: Metadata = {
+  title: 'Marketplace Ireland | Buy, Sell, Auctions & Deals',
+  description: 'Explore active marketplace listings and live auctions across Ireland. Buy cars, electronics, clothing, collectibles, furniture, and more with secure buyer protection on ListMe.',
+  alternates: {
+    canonical: '/marketplace',
+  },
+  openGraph: {
+    title: 'Marketplace Ireland | Buy, Sell & Auctions | ListMe',
+    description: 'Explore active marketplace listings and live auctions across Ireland with secure buyer protection.',
+    url: '/marketplace',
+    siteName: 'ListMe Ireland',
+    locale: 'en_IE',
+    type: 'website',
+  },
+};
 
 export default async function MarketplacePage({
   searchParams,

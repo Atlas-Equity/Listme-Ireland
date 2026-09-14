@@ -1,4 +1,5 @@
 import React from 'react';
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { BusinessPageData, getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
@@ -10,6 +11,54 @@ import { isAdmin } from '@/utils/admin';
 // Always serve the freshest business page data so edits reflect instantly
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const cleanSlug = slug.toLowerCase().trim();
+  const allPages = await getAllRegisteredBusinessPages();
+  const matched = allPages.find(
+    (p) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
+  );
+
+  if (!matched && cleanSlug !== 'listme') {
+    return {
+      title: 'Business Not Found | ListMe Ireland',
+    };
+  }
+
+  const name = matched?.name || (cleanSlug === 'listme' ? 'ListMe Official Store' : 'Business');
+  const bio = matched?.tagline || matched?.announcement || (cleanSlug === 'listme' ? "ListMe's official platform page." : `${name} is a verified business on ListMe Ireland.`);
+  const logo = matched?.avatarUrl || '/clover-logo.png';
+
+  return {
+    title: `${name} | Verified Irish Business on ListMe`,
+    description: bio.slice(0, 160),
+    alternates: {
+      canonical: `/page/${cleanSlug}`,
+    },
+    openGraph: {
+      title: `${name} | Verified Business on ListMe Ireland`,
+      description: bio.slice(0, 160),
+      url: `/page/${cleanSlug}`,
+      siteName: 'ListMe Ireland',
+      images: [
+        {
+          url: logo,
+          width: 400,
+          height: 400,
+          alt: name,
+        },
+      ],
+      locale: 'en_IE',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary',
+      title: `${name} | Verified Irish Business on ListMe`,
+      description: bio.slice(0, 160),
+      images: [logo],
+    },
+  };
+}
 
 interface BusinessPageViewProps {
   params: Promise<{ slug: string }>;
@@ -120,12 +169,34 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     );
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.listme.ie';
+  const businessJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: businessPage.name,
+    description: businessPage.tagline || businessPage.announcement || businessPage.name,
+    image: businessPage.avatarUrl || `${siteUrl}/clover-logo.png`,
+    url: `${siteUrl}/page/${cleanSlug}`,
+    telephone: businessPage.phone || undefined,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: businessPage.county || 'Ireland',
+      addressCountry: 'IE',
+    },
+  };
+
   return (
-    <BusinessPageClient 
-      businessPage={businessPage} 
-      listings={pageListings} 
-      isOwner={isOwner}
-      isAdmin={userIsAdmin}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(businessJsonLd) }}
+      />
+      <BusinessPageClient 
+        businessPage={businessPage} 
+        listings={pageListings} 
+        isOwner={isOwner}
+        isAdmin={userIsAdmin}
+      />
+    </>
   );
 }
