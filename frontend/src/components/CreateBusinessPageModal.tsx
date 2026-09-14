@@ -96,6 +96,9 @@ export default function CreateBusinessPageModal({
   const OFFICIAL_FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61594336620072';
   const [facebook, setFacebook] = useState(initialData?.facebook || OFFICIAL_FACEBOOK_URL);
   const [linkedin, setLinkedin] = useState(initialData?.linkedin || '');
+  const [isHiring, setIsHiring] = useState(Boolean(initialData?.is_hiring));
+
+  const isOfficialListMe = (slug || '').trim().toLowerCase() === 'listme' || (initialData?.slug || '').trim().toLowerCase() === 'listme';
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
@@ -148,7 +151,7 @@ export default function CreateBusinessPageModal({
     }
 
     const rawNumber = phone.replace('+353 ', '').trim();
-    if (!rawNumber) {
+    if (!isOfficialListMe && !rawNumber) {
       setErrorMessage('A contact phone number is required (Irish prefix +353).');
       return;
     }
@@ -168,11 +171,12 @@ export default function CreateBusinessPageModal({
         avatarUrl: avatarUrl.trim(),
         category,
         county,
-        phone,
+        phone: isOfficialListMe && !rawNumber ? '' : phone,
         email,
         website,
         facebook,
         linkedin,
+        is_hiring: isHiring,
       };
 
       const res = await createOrUpdateBusinessPage(payload);
@@ -476,17 +480,19 @@ export default function CreateBusinessPageModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Contact Phone (Locked to Ireland +353) *
+                    Contact Phone (Locked to Ireland +353) {isOfficialListMe ? <span className="text-gray-400 font-normal">(Optional for ListMe)</span> : '*'}
                   </label>
                   <input
                     type="tel"
-                    required
+                    required={!isOfficialListMe}
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder="+353 87 123 4567"
+                    placeholder={isOfficialListMe ? 'Optional for ListMe official page' : '+353 87 123 4567'}
                     className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-primary outline-none"
                   />
-                  <p className="text-[10px] text-gray-400 mt-0.5">Prefix +353 is permanently locked.</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {isOfficialListMe ? 'Phone number is optional for our official platform page.' : 'Prefix +353 is permanently locked.'}
+                  </p>
                 </div>
 
                 <div>
@@ -567,6 +573,26 @@ export default function CreateBusinessPageModal({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Actively Hiring Toggle */}
+              <div className="p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isHiring}
+                    onChange={(e) => setIsHiring(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded text-primary border-gray-300 dark:border-zinc-700 focus:ring-primary cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-gray-900 dark:text-white block">
+                      Actively Hiring / Recruiting
+                    </span>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                      Check this box if your business (store or service) is hiring staff or contractors. Your page will be featured on the Jobs &amp; Employment board.
+                    </p>
+                  </div>
+                </label>
               </div>
 
               {/* Submit Buttons */}

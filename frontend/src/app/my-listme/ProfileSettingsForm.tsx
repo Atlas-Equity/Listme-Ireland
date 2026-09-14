@@ -37,12 +37,10 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
     : '+353 ';
   const [phone, setPhone] = useState(initialPhoneFormatted);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
-    if (!val.startsWith('+353 ')) {
-      val = '+353 ' + val.replace(/^\+?353\s?/, '');
-    }
-    setPhone(val);
+  const handlePhoneDigitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let digits = e.target.value.replace(/[^0-9\s]/g, '');
+    if (digits.startsWith('0')) digits = digits.slice(1);
+    setPhone(digits ? `+353 ${digits}` : '+353 ');
   };
   
   // Avatar state
@@ -215,20 +213,22 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const trimmedPhone = phone.trim();
-    const initialTrimmedPhone = (initialData.phone || '').trim();
+    const rawDigits = phone.replace(/^\+353\s?/, '').trim();
+    const trimmedPhone = rawDigits ? `+353 ${rawDigits}` : '';
+    const initialRawDigits = (initialData.phone || '').replace(/^\+353\s?/, '').trim();
+    const initialTrimmedPhone = initialRawDigits ? `+353 ${initialRawDigits}` : '';
 
     // If account is business, phone number is mandatory
     if (accountType === 'business' && !trimmedPhone) {
-      setErrorMessage('A valid contact phone number is required for business accounts.');
+      setErrorMessage('A valid contact phone number is required for business accounts (locked to Ireland +353).');
       return;
     }
 
     // If a phone number is entered, strictly validate format
     if (trimmedPhone) {
-      const val = validatePhoneNumber(trimmedPhone);
+      const val = validatePhoneNumber(trimmedPhone, 'IE');
       if (!val.isValid) {
-        setErrorMessage(val.error || 'Please enter a valid phone number (e.g. +353 87 123 4567 or 087 123 4567).');
+        setErrorMessage(val.error || 'Please enter a valid Irish phone number (e.g. +353 87 123 4567).');
         return;
       }
     }
@@ -452,41 +452,39 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
                 )
               )}
             </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Phone className="w-4 h-4" />
-              </div>
-              <input
-                type="tel"
-                required={accountType === 'business'}
-                value={phone}
-                onChange={handlePhoneChange}
-                placeholder="+353 87 123 4567"
-                className={`w-full pl-10 pr-10 py-2.5 rounded-lg border font-mono ${
-                  phone.trim() && phone.trim() !== '+353' && !validatePhoneNumber(phone, 'IE').isValid
-                    ? 'border-red-400 dark:border-red-500/60 focus:ring-red-400'
-                    : 'border-gray-300 dark:border-zinc-700 focus:ring-primary'
-                } bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 text-sm`}
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                {phone.trim() ? (
-                  validatePhoneNumber(phone).isValid ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                  )
-                ) : null}
+            <div className="flex rounded-lg shadow-xs overflow-hidden border border-gray-300 dark:border-zinc-700 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
+              <span className="inline-flex items-center px-3.5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold text-sm border-r border-gray-300 dark:border-zinc-700 select-none shrink-0">
+                🇮🇪 +353
+              </span>
+              <div className="relative flex-1">
+                <input
+                  type="tel"
+                  required={accountType === 'business'}
+                  value={phone.replace(/^\+353\s?/, '')}
+                  onChange={handlePhoneDigitsChange}
+                  placeholder="87 123 4567"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white font-mono placeholder-gray-400 focus:outline-none text-sm"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  {phone.replace(/^\+353\s?/, '').trim() ? (
+                    validatePhoneNumber(phone, 'IE').isValid ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )
+                  ) : null}
+                </div>
               </div>
             </div>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-              Prefix +353 is permanently locked to Ireland.
+              Prefix +353 is permanently locked to Republic of Ireland numbers.
             </p>
-            {phone.trim() && phone.trim() !== '+353' && !validatePhoneNumber(phone, 'IE').isValid && (
+            {phone.replace(/^\+353\s?/, '').trim() && !validatePhoneNumber(phone, 'IE').isValid && (
               <p className="text-xs text-red-500 mt-1">
-                {validatePhoneNumber(phone, 'IE').error || 'Please enter a valid Irish phone number (e.g. +353 87 123 4567).'}
+                {validatePhoneNumber(phone, 'IE').error || 'Please enter a valid Irish phone number (e.g. 87 123 4567).'}
               </p>
             )}
-            {phone.trim() && validatePhoneNumber(phone).isValid && phone.trim() !== (initialData.phone || '').trim() && (
+            {phone.replace(/^\+353\s?/, '').trim() && validatePhoneNumber(phone, 'IE').isValid && phone.trim() !== (initialData.phone || '').trim() && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                 <ShieldAlert className="w-3.5 h-3.5" />
                 Updating your phone number requires 6-digit SMS verification on save.

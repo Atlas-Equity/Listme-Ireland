@@ -454,7 +454,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             )}
             
             <div className="text-center mt-4">
-              <a href="#" className="text-[#0073e6] text-sm hover:underline">Read our safe buying advice</a>
+              <Link href="/safety" className="text-[#0073e6] text-sm hover:underline">Read our safe buying advice</Link>
             </div>
           </div>
         </div>

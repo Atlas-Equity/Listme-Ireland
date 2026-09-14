@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, MapPin, Store, ExternalLink, Tag, Plus } from 'lucide-react';
+import { Search, MapPin, Store, ExternalLink, Tag, Plus, Clock } from 'lucide-react';
 import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
@@ -11,15 +11,28 @@ import { COUNTIES } from '@/utils/irelandLocations';
 interface MarketplaceClientProps {
   initialStores: BusinessPageData[];
   initialListings: any[];
+  defaultFormat?: string;
 }
 
 export default function MarketplaceClient({
   initialStores,
   initialListings,
+  defaultFormat,
 }: MarketplaceClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('All');
-  const [buyingFormat, setBuyingFormat] = useState('All');
+  const [buyingFormat, setBuyingFormat] = useState(defaultFormat || 'All');
+
+  // Closing soon items (1 day or less)
+  const closingSoonListings = useMemo(() => {
+    const nowMs = Date.now();
+    return initialListings.filter((item) => {
+      const end = item.expires_at || item.ends_at;
+      if (!end) return false;
+      const diff = new Date(end).getTime() - nowMs;
+      return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+    });
+  }, [initialListings]);
 
   // Filter marketplace store pages (not services)
   const filteredStores = useMemo(() => {
@@ -38,11 +51,18 @@ export default function MarketplaceClient({
 
   // Filter listings
   const filteredListings = useMemo(() => {
+    const nowMs = Date.now();
     return initialListings.filter((item) => {
       const matchesCounty = selectedCounty === 'All' || item.location?.toLowerCase().includes(selectedCounty.toLowerCase());
+      
+      const end = item.expires_at || item.ends_at;
+      const isClosingSoon = Boolean(end) && (new Date(end).getTime() - nowMs > 0) &&
+        (new Date(end).getTime() - nowMs <= 24 * 60 * 60 * 1000);
+
       const matchesFormat = buyingFormat === 'All' || 
         (buyingFormat === 'Auction' && item.price_type?.toLowerCase() === 'auction') ||
-        (buyingFormat === 'Buy Now' && item.price_type?.toLowerCase() !== 'auction');
+        (buyingFormat === 'Buy Now' && item.price_type?.toLowerCase() !== 'auction') ||
+        (buyingFormat === 'Closing Soon' && isClosingSoon);
 
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q ||
@@ -113,6 +133,7 @@ export default function MarketplaceClient({
               <option value="All">All Formats</option>
               <option value="Buy Now">Buy Now / Fixed Price</option>
               <option value="Auction">Live Auctions</option>
+              <option value="Closing Soon">Closing Soon (1 Day or Less)</option>
             </select>
           </div>
         </div>
@@ -200,7 +221,44 @@ export default function MarketplaceClient({
         )}
       </section>
 
-      {/* SECTION 2: Active Marketplace Listings */}
+      {/* SECTION 2: Closing Soon (1 Day or Less) */}
+      {closingSoonListings.length > 0 && (
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-500" />
+                <span>Closing Soon (1 Day or Less)</span>
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Last chance items and auctions ending within 24 hours.
+              </p>
+            </div>
+            <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+              {closingSoonListings.length} {closingSoonListings.length === 1 ? 'item' : 'items'} closing soon
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {closingSoonListings.map((item) => (
+              <ListingCard
+                key={`closing-${item.id}`}
+                id={item.id}
+                title={item.title}
+                price={Number(item.price)}
+                priceType={item.price_type}
+                condition={item.condition}
+                images={item.images || []}
+                createdAt={item.created_at}
+                location={item.location}
+                closesAt={item.expires_at || item.ends_at}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* SECTION 3: Active Marketplace Listings */}
       <section>
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>

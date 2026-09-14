@@ -13,7 +13,7 @@ import {
   Scale
 } from 'lucide-react';
 
-export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Marketplace Fees | Listme.ie',
@@ -510,7 +510,7 @@ export default function MarketplaceFeesPage() {
                   </tr>
                   <tr>
                     <td className="py-2.5 px-4 font-sans font-medium text-gray-900 dark:text-white">€250.01+</td>
-                    <td className="py-2.5 px-4 text-right"><span className="text-xs text-gray-400 font-sans">4% fee</span></td>
+                    <td className="py-2.5 px-4 text-right"><span className="text-xs text-gray-400 font-sans">3% fee</span></td>
                   </tr>
                 </tbody>
               </table>

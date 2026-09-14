@@ -5,7 +5,14 @@ import MarketplaceClient from './MarketplaceClient';
 
 export const revalidate = 15;
 
-export default async function MarketplacePage() {
+export default async function MarketplacePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const defaultFormat = resolvedParams?.format === 'closing-soon' ? 'Closing Soon' : 'All';
+
   const supabase = await createClient();
 
   const [businessPages, listingsResult] = await Promise.all([
@@ -22,6 +29,7 @@ export default async function MarketplacePage() {
     <MarketplaceClient
       initialStores={businessPages}
       initialListings={listingsResult.data || []}
+      defaultFormat={defaultFormat}
     />
   );
 }

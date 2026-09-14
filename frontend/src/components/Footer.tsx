@@ -16,8 +16,8 @@ export default function Footer() {
               <ShoppingBag className="w-4 h-4 mr-2 text-primary" /> Marketplace
             </h3>
             <ul className="space-y-3">
-              <li><Link href="/category/marketplace" className="hover:text-gray-900 dark:hover:text-white transition-colors">Stores</Link></li>
-              <li><Link href="/browse" className="hover:text-gray-900 dark:hover:text-white transition-colors">Closing soon</Link></li>
+              <li><Link href="/marketplace" className="hover:text-gray-900 dark:hover:text-white transition-colors">Stores</Link></li>
+              <li><Link href="/marketplace?format=closing-soon" className="hover:text-gray-900 dark:hover:text-white transition-colors">Closing soon</Link></li>
               <li><Link href="/fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link></li>
             </ul>
           </div>

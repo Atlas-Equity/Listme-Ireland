@@ -20,7 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Scam Prevention and Advice | Listme.ie',

@@ -13,7 +13,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export const metadata = {
   title: 'Buyer Protection Policy | Listme.ie',

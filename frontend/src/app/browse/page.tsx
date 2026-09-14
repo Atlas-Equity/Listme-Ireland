@@ -1,7 +1,7 @@
 import React from 'react';
 import CategoryGrid from '@/components/CategoryGrid';
 
-export const dynamic = 'force-static';
+export const revalidate = 60;
 
 export default function BrowsePage() {
   return (

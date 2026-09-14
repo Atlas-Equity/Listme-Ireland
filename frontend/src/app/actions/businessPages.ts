@@ -24,6 +24,7 @@ export interface BusinessPageData {
   plan?: string;
   created_at?: string;
   owner_id?: string;
+  is_hiring?: boolean;
 }
 
 const OFFICIAL_FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61594336620072';
@@ -50,9 +51,12 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     return { error: 'Please enter a valid page name or handle slug.' };
   }
 
-  // Format phone to Irish standard
+  // Format phone to Irish standard (optional for official ListMe page)
   let formattedPhone = (data.phone || '').trim();
-  if (!formattedPhone.startsWith('+353')) {
+  const isOfficial = cleanSlug === 'listme';
+  if (isOfficial && (!formattedPhone || formattedPhone === '+353' || formattedPhone === '+353 ')) {
+    formattedPhone = '';
+  } else if (formattedPhone && !formattedPhone.startsWith('+353')) {
     formattedPhone = `+353 ${formattedPhone.replace(/^\+?353\s?|^0/, '')}`.trim();
   }
 
@@ -99,6 +103,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     plan: 'Verified Pro Page',
     created_at: data.created_at || new Date().toISOString(),
     owner_id: user.id,
+    is_hiring: Boolean(data.is_hiring),
   };
 
   // Match by id OR slug
