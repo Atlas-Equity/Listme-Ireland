@@ -395,19 +395,18 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   let stripeCustomerId = user.user_metadata?.stripe_customer_id;
   let stripePaymentMethodId = card.stripePaymentMethodId;
+  let stripeFunding = card.funding;
 
   if (stripeKey) {
     try {
       const stripe = new Stripe(stripeKey);
 
-      // Verify that card funding is strictly 'credit' for scam prevention & chargeback guarantees
+      // Check Stripe card funding type if payment method is provided
       if (stripePaymentMethodId) {
         try {
           const pm = await stripe.paymentMethods.retrieve(stripePaymentMethodId);
-          if (pm.card && pm.card.funding && pm.card.funding !== 'credit') {
-            return {
-              error: `ListMe strictly requires a Credit Card for seller scam prevention and chargeback protection. The card you entered is a ${pm.card.funding} card.`
-            };
+          if (pm.card?.funding) {
+            stripeFunding = pm.card.funding;
           }
         } catch (checkErr: any) {
           console.warn('Stripe card funding check note:', checkErr.message);
@@ -448,9 +447,9 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
   const maskedBlocks = ['••••', '••••', '••••', last4];
   const cardId = card.id || `card_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-  const isDebit = card.funding === 'debit' || card.cardType === 'debit' || last4 === '0953';
-  const fundingVal = isDebit ? 'debit' : (card.funding || 'credit');
-  const cardTypeVal = isDebit ? 'debit' : (card.cardType || 'credit');
+  const isDebit = stripeFunding === 'debit' || stripeFunding === 'prepaid' || card.funding === 'debit' || card.cardType === 'debit' || last4 === '0953';
+  const fundingVal: 'credit' | 'debit' = isDebit ? 'debit' : 'credit';
+  const cardTypeVal: 'credit' | 'debit' = isDebit ? 'debit' : 'credit';
 
   const newCardObj: LinkedCardData = {
     id: cardId,
@@ -468,7 +467,7 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
     updatedAt: new Date().toISOString(),
   };
 
-  // Support up to TWO cards in user metadata
+  // Support up to TWO cards in user metadata: strictly 1 Credit Card & 1 Debit Card
   const existingCards: LinkedCardData[] = Array.isArray(user.user_metadata?.linked_cards)
     ? [...user.user_metadata.linked_cards]
     : user.user_metadata?.linked_card
@@ -485,8 +484,19 @@ export async function saveLinkedCardAction(card: LinkedCardData, makeDefault: bo
   } else {
     // Adding a new card
     if (existingCards.length >= 2) {
-      return { error: 'Maximum 2 cards allowed in your ListMe wallet. Please remove one before adding another.' };
+      return { error: 'Maximum 2 cards allowed in your ListMe wallet (1 Credit Card and 1 Debit Card).' };
     }
+
+    const hasCredit = existingCards.some(c => c.funding === 'credit' || c.cardType === 'credit' || (!c.funding && c.cardNumberBlocks?.[3] !== '0953'));
+    const hasDebit = existingCards.some(c => c.funding === 'debit' || c.cardType === 'debit' || c.cardNumberBlocks?.[3] === '0953');
+
+    if (isDebit && hasDebit) {
+      return { error: 'You already have a Debit Card linked (maximum 1). Your second card must be a Credit Card.' };
+    }
+    if (!isDebit && hasCredit) {
+      return { error: 'You already have a Credit Card linked (maximum 1). Your second card must be a Debit Card.' };
+    }
+
     if (makeDefault || existingCards.length === 0) {
       updatedCards = [newCardObj, ...existingCards];
     } else {

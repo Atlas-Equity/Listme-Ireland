@@ -18,7 +18,13 @@ import {
   AlertTriangle,
   ShieldAlert
 } from 'lucide-react';
-import { loadStripe, Stripe, StripeCardElement } from '@stripe/stripe-js';
+import { 
+  loadStripe, 
+  Stripe, 
+  StripeCardNumberElement, 
+  StripeCardExpiryElement, 
+  StripeCardCvcElement 
+} from '@stripe/stripe-js';
 import { 
   saveLinkedCardAction, 
   removeLinkedCardAction, 
@@ -82,8 +88,12 @@ export default function LinkedCardCard({
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const [stripeObj, setStripeObj] = useState<Stripe | null>(null);
-  const [cardElement, setCardElement] = useState<StripeCardElement | null>(null);
-  const cardElementRef = useRef<HTMLDivElement | null>(null);
+  const [cardNumberElement, setCardNumberElement] = useState<StripeCardNumberElement | null>(null);
+  const [cardExpiryElement, setCardExpiryElement] = useState<StripeCardExpiryElement | null>(null);
+  const [cardCvcElement, setCardCvcElement] = useState<StripeCardCvcElement | null>(null);
+  const cardNumberRef = useRef<HTMLDivElement | null>(null);
+  const cardExpiryRef = useRef<HTMLDivElement | null>(null);
+  const cardCvcRef = useRef<HTMLDivElement | null>(null);
   const [isStripeReady, setIsStripeReady] = useState(false);
 
   // Top Up state
@@ -150,20 +160,36 @@ export default function LinkedCardCard({
   const handleOpenAddModal = (asSecondCard = false) => {
     setIsAddingSecondCard(asSecondCard);
     setFormHolderName(defaultCardholderName);
-    setFormNickname(asSecondCard ? 'Secondary Card' : 'Primary Credit Card');
+    const hasCredit = cards.some(isCardCredit);
+    const hasDebit = cards.some(isCardDebit);
+    if (cards.length === 0) {
+      setFormNickname('Personal Card');
+    } else if (hasCredit) {
+      setFormNickname('Secondary Debit Card');
+    } else if (hasDebit) {
+      setFormNickname('Personal Credit Card');
+    } else {
+      setFormNickname(asSecondCard ? 'Secondary Card' : 'Primary Credit Card');
+    }
     setFormError(null);
     setIsStripeReady(false);
     setIsModalOpen(true);
   };
 
-  // Mount official Stripe Card Element when modal opens
+  // Mount official Stripe Split Elements (Card Number, Expiry, CVC) when modal opens
   useEffect(() => {
     if (!isModalOpen) {
-      if (cardElement) {
-        try {
-          cardElement.destroy();
-        } catch {}
-        setCardElement(null);
+      if (cardNumberElement) {
+        try { cardNumberElement.destroy(); } catch {}
+        setCardNumberElement(null);
+      }
+      if (cardExpiryElement) {
+        try { cardExpiryElement.destroy(); } catch {}
+        setCardExpiryElement(null);
+      }
+      if (cardCvcElement) {
+        try { cardCvcElement.destroy(); } catch {}
+        setCardCvcElement(null);
       }
       setIsStripeReady(false);
       return;
@@ -177,32 +203,54 @@ export default function LinkedCardCard({
       setStripeObj(s);
 
       setTimeout(() => {
-        if (!isMounted || !cardElementRef.current) return;
+        if (!isMounted || !cardNumberRef.current || !cardExpiryRef.current || !cardCvcRef.current) return;
         try {
-          cardElementRef.current.innerHTML = '';
+          cardNumberRef.current.innerHTML = '';
+          cardExpiryRef.current.innerHTML = '';
+          cardCvcRef.current.innerHTML = '';
+
           const elements = s.elements();
-          const el = elements.create('card', {
-            style: {
-              base: {
-                color: '#18181b',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                fontSize: '15px',
-                '::placeholder': {
-                  color: '#a1a1aa',
-                },
-              },
-              invalid: {
-                color: '#ef4444',
-                iconColor: '#ef4444',
+          const isDark = typeof window !== 'undefined' && document.documentElement.classList.contains('dark');
+          const elementStyle = {
+            base: {
+              color: isDark ? '#ffffff' : '#18181b',
+              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontSize: '14px',
+              '::placeholder': {
+                color: isDark ? '#71717a' : '#a1a1aa',
               },
             },
-            hidePostalCode: true,
+            invalid: {
+              color: '#ef4444',
+              iconColor: '#ef4444',
+            },
+          };
+
+          const numEl = elements.create('cardNumber', {
+            style: elementStyle,
+            showIcon: true,
+            placeholder: '0800 9841 •••• 7461',
           });
-          el.mount(cardElementRef.current);
-          setCardElement(el);
+          numEl.mount(cardNumberRef.current);
+          setCardNumberElement(numEl);
+
+          const expEl = elements.create('cardExpiry', {
+            style: elementStyle,
+            placeholder: 'MM / YY',
+          });
+          expEl.mount(cardExpiryRef.current);
+          setCardExpiryElement(expEl);
+
+          const cvcEl = elements.create('cardCvc', {
+            style: elementStyle,
+            placeholder: 'CVC',
+          });
+          cvcEl.mount(cardCvcRef.current);
+          setCardCvcElement(cvcEl);
+
           setIsStripeReady(true);
         } catch (mountErr) {
-          console.warn('Card element mount note:', mountErr);
+          console.warn('Split card element mount note:', mountErr);
         }
       }, 120);
     });
@@ -224,11 +272,11 @@ export default function LinkedCardCard({
 
     setIsSubmitting(true);
 
-    if (stripeObj && cardElement) {
+    if (stripeObj && cardNumberElement) {
       try {
         const { paymentMethod, error: stripeErr } = await stripeObj.createPaymentMethod({
           type: 'card',
-          card: cardElement,
+          card: cardNumberElement,
           billing_details: {
             name: formHolderName.trim(),
           },
@@ -241,10 +289,22 @@ export default function LinkedCardCard({
         }
 
         const cardData = paymentMethod.card;
+        const funding = (cardData?.funding || 'credit').toLowerCase();
+        const isDebitInput = funding === 'debit' || funding === 'prepaid';
+        const isCreditInput = !isDebitInput;
 
-        // Strictly enforce Credit Card funding for scam protection & chargeback capability
-        if (cardData?.funding && cardData.funding !== 'credit') {
-          setFormError(`ListMe strictly requires a Credit Card for seller scam prevention and chargeback protection. The card entered is a ${cardData.funding} card. Debit or prepaid cards cannot be accepted.`);
+        // Constraint: Maximum 1 Credit Card and 1 Debit Card in wallet
+        const hasExistingCredit = cards.some(isCardCredit);
+        const hasExistingDebit = cards.some(isCardDebit);
+
+        if (hasExistingCredit && isCreditInput) {
+          setFormError('You already have a Credit Card linked (maximum 1). Your second card must be a Debit Card.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (hasExistingDebit && isDebitInput) {
+          setFormError('You already have a Debit Card linked (maximum 1). Your second card must be a Credit Card.');
           setIsSubmitting(false);
           return;
         }
@@ -258,15 +318,15 @@ export default function LinkedCardCard({
         const newCardData: LinkedCardData = {
           id: cardId,
           cardholderName: formHolderName.trim(),
-          cardNickname: formNickname.trim() || `${brand} ending in ${last4}`,
+          cardNickname: formNickname.trim() || `${brand} ${isDebitInput ? 'Debit' : 'Credit'} ending in ${last4}`,
           cardNumberBlocks: ['••••', '••••', '••••', last4],
           expiry: `${expMonth}/${expYear}`,
           cvvMasked: '•••',
           brand,
           stripePaymentMethodId: paymentMethod.id,
           isStripeVaulted: true,
-          cardType: 'credit',
-          funding: 'credit',
+          cardType: isDebitInput ? 'debit' : 'credit',
+          funding: isDebitInput ? 'debit' : 'credit',
         };
 
         const res = await saveLinkedCardAction(newCardData, !isAddingSecondCard);
@@ -287,7 +347,7 @@ export default function LinkedCardCard({
         } catch {}
 
         setIsModalOpen(false);
-        setSuccessToast(`Credit Card (${brand} ending in ${last4}) securely linked to your wallet!`);
+        setSuccessToast(`${isDebitInput ? 'Debit' : 'Credit'} Card (${brand} ending in ${last4}) securely linked to your wallet!`);
         setTimeout(() => setSuccessToast(null), 3000);
       } catch (err: any) {
         setFormError(err.message || 'Failed to link card with Stripe.');
@@ -298,7 +358,7 @@ export default function LinkedCardCard({
     }
 
     setIsSubmitting(false);
-    setFormError('Stripe security module could not be initialized. Please use the Stripe Vault button.');
+    setFormError('Stripe security module could not be initialized. Please try again.');
   };
 
   // Remove card by index or ID
@@ -494,24 +554,24 @@ export default function LinkedCardCard({
         </div>
       )}
 
-      {/* Header Banner: 2-Card Capacity & Credit Card Security Rule */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
-        <div className="flex items-center gap-2">
+      {/* Header Banner: 2-Card Capacity & 1 Credit + 1 Debit Policy */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <CreditCard className="w-4 h-4 text-primary shrink-0" />
           <span className="text-xs font-bold text-gray-900 dark:text-white">
             Wallet Cards ({cards.length}/2 Linked)
           </span>
-          {cards.some(isCardCredit) ? (
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            • Max: 1 Credit Card &amp; 1 Debit Card
+          </span>
+          {cards.some(isCardCredit) && (
             <span className="text-[11px] text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
-              • <ShieldCheck className="w-3.5 h-3.5 inline" /> Credit Card Linked (Seller Verified)
+              • <ShieldCheck className="w-3.5 h-3.5 inline" /> Credit Card (Seller Active)
             </span>
-          ) : cards.length > 0 ? (
+          )}
+          {cards.some(isCardDebit) && (
             <span className="text-[11px] text-amber-500 dark:text-amber-400 font-semibold flex items-center gap-1">
-              • <AlertTriangle className="w-3.5 h-3.5 inline" /> Credit Card required to sell listings
-            </span>
-          ) : (
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">
-              • Credit card required to sell listings
+              • <ShieldAlert className="w-3.5 h-3.5 inline" /> Debit Card (Top-Ups)
             </span>
           )}
         </div>
@@ -520,10 +580,12 @@ export default function LinkedCardCard({
           <button
             type="button"
             onClick={() => handleOpenAddModal(true)}
-            className="text-xs font-bold text-primary hover:text-green-700 flex items-center gap-1 cursor-pointer"
+            className="text-xs font-bold text-primary hover:text-green-700 flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Second Card</span>
+            <span>
+              {cards.some(isCardCredit) ? 'Add Debit Card' : 'Add Credit Card'}
+            </span>
           </button>
         )}
       </div>
@@ -533,12 +595,12 @@ export default function LinkedCardCard({
         
         {/* CARD 1 (Primary or Placeholder) */}
         {cards[0] ? (
-          <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700 p-6 flex flex-col justify-between shadow-md text-white select-none">
+          <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700/80 p-6 sm:p-7 flex flex-col justify-between shadow-lg text-white select-none">
             {/* Header: Nickname & Primary Badge */}
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 {editingCardId === (cards[0].id || 'card_0') ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={editNicknameValue}
@@ -546,35 +608,35 @@ export default function LinkedCardCard({
                       onBlur={() => handleSaveNickname(cards[0])}
                       onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname(cards[0])}
                       autoFocus
-                      className="bg-zinc-800 text-white font-bold text-base px-2 py-0.5 rounded border border-zinc-600 focus:outline-none"
+                      className="bg-zinc-800 text-white font-bold text-base px-2.5 py-1 rounded-lg border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => { setEditingCardId(cards[0].id || 'card_0'); setEditNicknameValue(cards[0].cardNickname); }}
-                    className="text-lg font-bold text-white hover:text-gray-300 flex items-center gap-1.5 group cursor-pointer"
+                    className="text-lg font-bold text-white hover:text-gray-300 flex items-center gap-2 group cursor-pointer text-left"
                     title="Click to rename"
                   >
-                    <span>{cards[0].cardNickname}</span>
-                    <Edit3 className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300" />
+                    <span className="truncate">{cards[0].cardNickname}</span>
+                    <Edit3 className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
                   </button>
                 )}
-                <p className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                <p className="text-xs text-zinc-400 mt-1 font-medium">
                   {cards[0].cardholderName}
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="px-2.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <span className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700 text-[10px] font-bold text-emerald-400 flex items-center gap-1.5 shadow-xs">
                   <Star className="w-3 h-3 fill-emerald-400" /> Primary Card
                 </span>
                 {isCardDebit(cards[0]) ? (
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400">
+                  <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 shadow-xs">
                     Buying &amp; Top-Ups Only
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 shadow-xs">
                     Seller Active
                   </span>
                 )}
@@ -582,17 +644,17 @@ export default function LinkedCardCard({
             </div>
 
             {/* EMV Chip & Card Type Badge */}
-            <div className="my-4 flex items-center justify-between">
-              <div className="w-10 h-7 rounded-md bg-amber-400 border border-amber-300 flex items-center justify-center">
-                <div className="w-8 h-5 border border-amber-800/40 grid grid-cols-2 grid-rows-2"></div>
+            <div className="mt-6 mb-5 flex items-center justify-between">
+              <div className="w-11 h-8 rounded-md bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 border border-amber-200/50 flex items-center justify-center shadow-xs">
+                <div className="w-8 h-5 border border-amber-900/30 rounded-xs grid grid-cols-2 grid-rows-2"></div>
               </div>
               {isCardDebit(cards[0]) ? (
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
+                <span className="px-3 py-1 rounded-md text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1.5 shadow-xs">
                   <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
                   Verified Debit Card
                 </span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1">
+                <span className="px-3 py-1 rounded-md text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5 shadow-xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   Verified Credit Card
                 </span>
@@ -600,7 +662,7 @@ export default function LinkedCardCard({
             </div>
 
             {/* Masked Card Number */}
-            <div className="my-2 flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-mono font-black tracking-widest text-zinc-100">
+            <div className="my-5 py-1 flex items-center gap-3 sm:gap-4 text-xl sm:text-2xl font-mono font-black tracking-widest text-zinc-100">
               <span className="text-zinc-500">••••</span>
               <span className="text-zinc-500">••••</span>
               <span className="text-zinc-500">••••</span>
@@ -608,13 +670,13 @@ export default function LinkedCardCard({
             </div>
 
             {/* Expiry & Brand Footer */}
-            <div className="flex items-end justify-between pt-3 border-t border-zinc-800 text-xs">
+            <div className="flex items-end justify-between pt-4 pb-1 border-t border-zinc-800/80 text-xs">
               <div>
-                <span className="block text-[10px] text-zinc-400 font-mono">EXPIRES</span>
-                <span className="font-bold text-zinc-200">{cards[0].expiry || '12/28'}</span>
+                <span className="block text-[10px] text-zinc-400 font-mono tracking-wider">EXPIRES</span>
+                <span className="font-bold text-sm text-zinc-200 mt-0.5 block">{cards[0].expiry || '12/28'}</span>
               </div>
               <div className="text-right">
-                <span className="font-black italic text-xl text-white tracking-tight">
+                <span className="font-black italic text-2xl text-white tracking-tight">
                   {cards[0].brand || 'VISA'}
                 </span>
               </div>
@@ -622,21 +684,21 @@ export default function LinkedCardCard({
 
             {/* Debit Card Warning Banner if applicable */}
             {isCardDebit(cards[0]) && (
-              <div className="mt-3 p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/50 flex items-start gap-2 text-xs text-amber-200">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="mt-4 p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 flex items-start gap-2.5 text-xs text-amber-200/90 leading-relaxed">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] leading-relaxed">
-                  <strong className="text-amber-300">Debit Card:</strong> Usable for account credit top-ups and marketplace purchases. Scam prevention policy strictly requires linking a <strong>Credit Card</strong> to publish seller listings.
+                  <strong className="text-amber-300 font-semibold">Debit Card:</strong> Usable for account credit top-ups and marketplace purchases. Scam prevention policy strictly requires linking a <strong className="text-amber-300 font-semibold">Credit Card</strong> to publish seller listings.
                 </div>
               </div>
             )}
 
             {/* Action Bar */}
-            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-zinc-400">Card 1 of {cards.length}</span>
+            <div className="mt-5 pt-3.5 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+              <span className="text-xs text-zinc-400">Card 1 of {cards.length}</span>
               <button
                 type="button"
                 onClick={() => handleRemoveCard(0)}
-                className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-red-500/10 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Unlink</span>
@@ -645,11 +707,11 @@ export default function LinkedCardCard({
           </div>
         ) : (
           /* Empty Card 1 Placeholder */
-          <div className="w-full rounded-2xl bg-[#141414] border border-dashed border-zinc-700 p-8 flex flex-col items-center justify-center text-center shadow-md min-h-[220px]">
+          <div className="w-full rounded-2xl bg-[#141414] border border-dashed border-zinc-700 p-8 flex flex-col items-center justify-center text-center shadow-md min-h-[260px]">
             <CreditCard className="w-8 h-8 text-zinc-500 mb-3" />
-            <h4 className="text-base font-bold text-white mb-1">No Primary Credit Card Linked</h4>
+            <h4 className="text-base font-bold text-white mb-1">No Cards Linked</h4>
             <p className="text-xs text-zinc-400 max-w-xs mb-4">
-              Link a verified credit card to enable instant bidding, payments, and seller listing privileges.
+              Link a payment card to your wallet. You can connect up to 1 Credit Card and 1 Debit Card.
             </p>
             <button
               type="button"
@@ -657,19 +719,19 @@ export default function LinkedCardCard({
               className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Link Primary Credit Card</span>
+              <span>Link Payment Card</span>
             </button>
           </div>
         )}
 
         {/* CARD 2 (Secondary Card or Add Slot) */}
         {cards[1] ? (
-          <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700 p-6 flex flex-col justify-between shadow-md text-white select-none">
+          <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700/80 p-6 sm:p-7 flex flex-col justify-between shadow-lg text-white select-none">
             {/* Header: Nickname & Actions */}
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 {editingCardId === (cards[1].id || 'card_1') ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={editNicknameValue}
@@ -677,35 +739,35 @@ export default function LinkedCardCard({
                       onBlur={() => handleSaveNickname(cards[1])}
                       onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname(cards[1])}
                       autoFocus
-                      className="bg-zinc-800 text-white font-bold text-base px-2 py-0.5 rounded border border-zinc-600 focus:outline-none"
+                      className="bg-zinc-800 text-white font-bold text-base px-2.5 py-1 rounded-lg border border-zinc-600 focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => { setEditingCardId(cards[1].id || 'card_1'); setEditNicknameValue(cards[1].cardNickname); }}
-                    className="text-lg font-bold text-white hover:text-gray-300 flex items-center gap-1.5 group cursor-pointer"
+                    className="text-lg font-bold text-white hover:text-gray-300 flex items-center gap-2 group cursor-pointer text-left"
                     title="Click to rename"
                   >
-                    <span>{cards[1].cardNickname}</span>
-                    <Edit3 className="w-3.5 h-3.5 text-zinc-500 group-hover:text-zinc-300" />
+                    <span className="truncate">{cards[1].cardNickname}</span>
+                    <Edit3 className="w-3.5 h-3.5 shrink-0 text-zinc-500 group-hover:text-zinc-300" />
                   </button>
                 )}
-                <p className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                <p className="text-xs text-zinc-400 mt-1 font-medium">
                   {cards[1].cardholderName}
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="px-2.5 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] font-bold text-zinc-300">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <span className="px-2.5 py-1 rounded-md bg-zinc-800/90 border border-zinc-700 text-[10px] font-bold text-zinc-300 shadow-xs">
                   Secondary Card
                 </span>
                 {isCardDebit(cards[1]) ? (
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400">
+                  <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 shadow-xs">
                     Buying &amp; Top-Ups Only
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 shadow-xs">
                     Seller Active
                   </span>
                 )}
@@ -713,17 +775,17 @@ export default function LinkedCardCard({
             </div>
 
             {/* EMV Chip & Card Type Badge */}
-            <div className="my-4 flex items-center justify-between">
-              <div className="w-10 h-7 rounded-md bg-amber-400 border border-amber-300 flex items-center justify-center">
-                <div className="w-8 h-5 border border-amber-800/40 grid grid-cols-2 grid-rows-2"></div>
+            <div className="mt-6 mb-5 flex items-center justify-between">
+              <div className="w-11 h-8 rounded-md bg-gradient-to-br from-amber-300 via-amber-400 to-amber-500 border border-amber-200/50 flex items-center justify-center shadow-xs">
+                <div className="w-8 h-5 border border-amber-900/30 rounded-xs grid grid-cols-2 grid-rows-2"></div>
               </div>
               {isCardDebit(cards[1]) ? (
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1">
+                <span className="px-3 py-1 rounded-md text-[11px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 flex items-center gap-1.5 shadow-xs">
                   <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
                   Verified Debit Card
                 </span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1">
+                <span className="px-3 py-1 rounded-md text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1.5 shadow-xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   Verified Credit Card
                 </span>
@@ -731,7 +793,7 @@ export default function LinkedCardCard({
             </div>
 
             {/* Masked Card Number */}
-            <div className="my-2 flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-mono font-black tracking-widest text-zinc-100">
+            <div className="my-5 py-1 flex items-center gap-3 sm:gap-4 text-xl sm:text-2xl font-mono font-black tracking-widest text-zinc-100">
               <span className="text-zinc-500">••••</span>
               <span className="text-zinc-500">••••</span>
               <span className="text-zinc-500">••••</span>
@@ -739,13 +801,13 @@ export default function LinkedCardCard({
             </div>
 
             {/* Expiry & Brand Footer */}
-            <div className="flex items-end justify-between pt-3 border-t border-zinc-800 text-xs">
+            <div className="flex items-end justify-between pt-4 pb-1 border-t border-zinc-800/80 text-xs">
               <div>
-                <span className="block text-[10px] text-zinc-400 font-mono">EXPIRES</span>
-                <span className="font-bold text-zinc-200">{cards[1].expiry || '12/28'}</span>
+                <span className="block text-[10px] text-zinc-400 font-mono tracking-wider">EXPIRES</span>
+                <span className="font-bold text-sm text-zinc-200 mt-0.5 block">{cards[1].expiry || '12/28'}</span>
               </div>
               <div className="text-right">
-                <span className="font-black italic text-xl text-white tracking-tight">
+                <span className="font-black italic text-2xl text-white tracking-tight">
                   {cards[1].brand || 'MASTERCARD'}
                 </span>
               </div>
@@ -753,20 +815,20 @@ export default function LinkedCardCard({
 
             {/* Debit Card Warning Banner if applicable */}
             {isCardDebit(cards[1]) && (
-              <div className="mt-3 p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/50 flex items-start gap-2 text-xs text-amber-200">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="mt-4 p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 flex items-start gap-2.5 text-xs text-amber-200/90 leading-relaxed">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] leading-relaxed">
-                  <strong className="text-amber-300">Debit Card:</strong> Usable for account credit top-ups and marketplace purchases. Scam prevention policy strictly requires linking a <strong>Credit Card</strong> to publish seller listings.
+                  <strong className="text-amber-300 font-semibold">Debit Card:</strong> Usable for account credit top-ups and marketplace purchases. Scam prevention policy strictly requires linking a <strong className="text-amber-300 font-semibold">Credit Card</strong> to publish seller listings.
                 </div>
               </div>
             )}
 
             {/* Action Bar */}
-            <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+            <div className="mt-5 pt-3.5 border-t border-zinc-800/80 flex items-center justify-between text-xs">
               <button
                 type="button"
                 onClick={() => handleSetPrimary(1)}
-                className="text-primary hover:text-green-400 font-bold flex items-center gap-1 cursor-pointer"
+                className="text-primary hover:text-green-400 font-bold flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-primary/10 transition-colors"
               >
                 <Star className="w-3.5 h-3.5" />
                 <span>Set as Primary</span>
@@ -774,7 +836,7 @@ export default function LinkedCardCard({
               <button
                 type="button"
                 onClick={() => handleRemoveCard(1)}
-                className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-red-500/10 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Unlink</span>
@@ -782,18 +844,20 @@ export default function LinkedCardCard({
             </div>
           </div>
         ) : (
-          /* Add Second Card Slot (Max 2 cards) */
-          <div className="w-full rounded-2xl bg-[#141414] border border-dashed border-zinc-700 p-8 flex flex-col items-center justify-center text-center shadow-md min-h-[220px]">
+          /* Add Second Card Slot (Max 2 cards: 1 Credit + 1 Debit) */
+          <div className="w-full rounded-2xl bg-[#141414] border border-dashed border-zinc-700 p-8 flex flex-col items-center justify-center text-center shadow-md min-h-[260px]">
             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 mb-3">
               <Plus className="w-5 h-5" />
             </div>
             <h4 className="text-base font-bold text-white mb-1">
-              {cards.length === 1 && isCardDebit(cards[0]) ? 'Add Required Credit Card' : 'Add Second Card'}
+              {cards.length === 1 && isCardDebit(cards[0])
+                ? 'Add Required Credit Card'
+                : 'Add Debit Card'}
             </h4>
             <p className="text-xs text-zinc-400 max-w-xs mb-4">
               {cards.length === 1 && isCardDebit(cards[0])
-                ? 'Link a verified Credit Card to unlock seller listing privileges while keeping your debit card for wallet top-ups.'
-                : 'Store a backup card (max 2 cards) to switch funding sources easily without re-typing.'}
+                ? 'Link a verified Credit Card to unlock seller listing privileges (Wallet allows 1 Credit Card & 1 Debit Card).'
+                : 'Link a Debit Card for top-ups and everyday marketplace bids (Wallet allows 1 Credit Card & 1 Debit Card).'}
             </p>
             <button
               type="button"
@@ -802,7 +866,9 @@ export default function LinkedCardCard({
               className="px-4 py-2 rounded-xl border border-zinc-600 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
-              <span>{cards.length === 1 && isCardDebit(cards[0]) ? 'Link Credit Card to Sell' : 'Link Second Card'}</span>
+              <span>
+                {cards.length === 1 && isCardDebit(cards[0]) ? 'Link Credit Card to Sell' : 'Link Debit Card'}
+              </span>
             </button>
           </div>
         )}
@@ -1005,10 +1071,18 @@ export default function LinkedCardCard({
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-6">
               <div>
                 <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                  {isAddingSecondCard ? 'Add Second Credit Card' : 'Link Credit Card'}
+                  {cards.length === 0
+                    ? 'Link Payment Card'
+                    : cards.some(isCardCredit)
+                    ? 'Link Debit Card'
+                    : 'Link Credit Card'}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Mandatory Credit Card verification for seller scam protection.
+                  {cards.length === 0
+                    ? 'Wallet capacity: 1 Credit Card and 1 Debit Card allowed.'
+                    : cards.some(isCardCredit)
+                    ? 'You have 1 Credit Card linked. Your second card must be a Debit Card.'
+                    : 'You have 1 Debit Card linked. Your second card must be a Credit Card for seller scam protection.'}
                 </p>
               </div>
 
@@ -1043,12 +1117,13 @@ export default function LinkedCardCard({
                 />
               </div>
 
+              {/* Line 1: Card Number */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  Card Details (Credit Cards Only)
+                  Card Number
                 </label>
-                <div className="w-full px-4 py-3.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 transition-all">
-                  <div ref={cardElementRef} id="stripe-card-element" />
+                <div className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 transition-all">
+                  <div ref={cardNumberRef} id="stripe-card-number-element" />
                   {!isStripeReady && (
                     <div className="flex items-center gap-2 text-xs text-gray-400 py-0.5">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
@@ -1056,9 +1131,29 @@ export default function LinkedCardCard({
                     </div>
                   )}
                 </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 flex items-center gap-1.5">
+              </div>
+
+              {/* Line 2: Expiry Date */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                  Expiry Date (MM / YY)
+                </label>
+                <div className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 transition-all">
+                  <div ref={cardExpiryRef} id="stripe-card-expiry-element" />
+                </div>
+              </div>
+
+              {/* Line 3: Security Code (CVC) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                  Security Code (CVC)
+                </label>
+                <div className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 transition-all">
+                  <div ref={cardCvcRef} id="stripe-card-cvc-element" />
+                </div>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1.5">
                   <Lock className="w-3 h-3 text-primary shrink-0" />
-                  <span>Encrypted by Stripe. Strict Credit Card funding required for scam protection.</span>
+                  <span>Encrypted by Stripe. ListMe wallet allows 1 Credit Card &amp; 1 Debit Card maximum.</span>
                 </p>
               </div>
 
@@ -1070,7 +1165,13 @@ export default function LinkedCardCard({
                   type="text"
                   value={formNickname}
                   onChange={(e) => setFormNickname(e.target.value)}
-                  placeholder={isAddingSecondCard ? 'e.g. Secondary Visa' : 'e.g. Everyday Mastercard'}
+                  placeholder={
+                    cards.length === 1 && cards.some(isCardCredit)
+                      ? 'e.g. Everyday Debit Card'
+                      : cards.length === 1 && cards.some(isCardDebit)
+                      ? 'e.g. Primary Credit Card'
+                      : 'e.g. Personal Card'
+                  }
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -1090,7 +1191,13 @@ export default function LinkedCardCard({
                   className="px-6 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isAddingSecondCard ? 'Save Second Card' : 'Save Credit Card'}</span>
+                  <span>
+                    {cards.length === 0
+                      ? 'Save Card'
+                      : cards.some(isCardCredit)
+                      ? 'Save Debit Card'
+                      : 'Save Credit Card'}
+                  </span>
                 </button>
               </div>
             </form>
