@@ -164,12 +164,6 @@ export default async function Header() {
             <Link href="/category/marketplace" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
               <ShoppingBag className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Marketplace
             </Link>
-            <Link href="/category/jobs" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
-              <Briefcase className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Jobs
-            </Link>
-            <Link href="/category/services" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
-              <Wrench className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Services
-            </Link>
             <Link href="/community" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
               <Users className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Community
             </Link>

@@ -8,7 +8,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {/* Main Footer Links - 4 Columns */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        {/* Main Footer Links */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
           
           {/* Marketplace */}
           <div>
@@ -19,28 +20,7 @@ export default function Footer() {
               <li><Link href="/marketplace" className="hover:text-gray-900 dark:hover:text-white transition-colors">Stores</Link></li>
               <li><Link href="/marketplace?format=closing-soon" className="hover:text-gray-900 dark:hover:text-white transition-colors">Closing soon</Link></li>
               <li><Link href="/fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link></li>
-            </ul>
-          </div>
-
-          {/* Jobs */}
-          <div>
-            <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
-              <Briefcase className="w-4 h-4 mr-2 text-primary" /> Jobs
-            </h3>
-            <ul className="space-y-3">
-              <li><Link href="/category/jobs" className="hover:text-gray-900 dark:hover:text-white transition-colors">Browse job categories</Link></li>
-              <li><Link href="/sell" className="hover:text-gray-900 dark:hover:text-white transition-colors">Advertisers advice</Link></li>
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
-              <Wrench className="w-4 h-4 mr-2 text-primary" /> Services
-            </h3>
-            <ul className="space-y-3">
-              <li><Link href="/category/services" className="hover:text-gray-900 dark:hover:text-white transition-colors">Trades</Link></li>
-              <li><Link href="/sell" className="hover:text-gray-900 dark:hover:text-white transition-colors">List my services</Link></li>
+              <li><Link href="/sell" className="hover:text-gray-900 dark:hover:text-white transition-colors">List an item</Link></li>
             </ul>
           </div>
 

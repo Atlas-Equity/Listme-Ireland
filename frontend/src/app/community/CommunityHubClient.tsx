@@ -94,18 +94,13 @@ export default function CommunityHubClient({
     })
     .slice(0, 3);
 
-  const featuredServices = businessPages
-    .filter((p) => p.business_type === 'service' || p.category?.toLowerCase().includes('service'))
-    .slice(0, 3);
-
   const SECTIONS = [
     { id: 'announcements', number: 1, title: 'Announcements & Updates' },
     { id: 'featured-stores', number: 2, title: 'Featured Marketplace Stores' },
-    { id: 'featured-services', number: 3, title: 'Verified Services & Trades' },
-    { id: 'trust-safety', number: 4, title: 'Trust & Safety Advisories' },
-    { id: 'social-storefront', number: 5, title: 'Official Social & Storefront' },
-    { id: 'help-centre', number: 6, title: 'Support & Help Centre' },
-    { id: 'site-stats', number: 7, title: 'Live Platform Statistics' },
+    { id: 'trust-safety', number: 3, title: 'Trust & Safety Advisories' },
+    { id: 'social-storefront', number: 4, title: 'Official Social & Storefront' },
+    { id: 'help-centre', number: 5, title: 'Support & Help Centre' },
+    { id: 'site-stats', number: 6, title: 'Live Platform Statistics' },
   ];
 
   return (
@@ -184,9 +179,6 @@ export default function CommunityHubClient({
                   </Link>
                   <Link href="/fees" className="text-[#0073e6] dark:text-[#3894ff] hover:underline block">
                     • Marketplace Fees Schedule
-                  </Link>
-                  <Link href="/services" className="text-[#0073e6] dark:text-[#3894ff] hover:underline block">
-                    • Search Irish Services
                   </Link>
                 </div>
               </div>
@@ -322,88 +314,12 @@ export default function CommunityHubClient({
               )}
             </section>
 
-            {/* 3. VERIFIED SERVICES & TRADES */}
-            <section id="featured-services" className="scroll-mt-28 space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-zinc-800 pb-3">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-primary" />
-                    <span>3. Verified Services &amp; Trades</span>
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Contractors, domestic trades, repairs, and professional service business pages.
-                  </p>
-                </div>
-                <Link href="/services" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                  Search Services <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              {featuredServices.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {featuredServices.map((svc) => (
-                    <Link
-                      key={svc.slug}
-                      href={`/page/${svc.slug}`}
-                      className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 overflow-hidden relative shrink-0 flex items-center justify-center">
-                            {svc.avatarUrl ? (
-                              <Image src={svc.avatarUrl} alt={svc.name} fill className="object-cover" unoptimized />
-                            ) : (
-                              <Building2 className="w-5 h-5 text-primary" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                              {svc.name}
-                            </h3>
-                            <span className="text-[10px] font-semibold">
-                              {svc.is_verified ? (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Trade</span>
-                              ) : (
-                                <span className="text-gray-500">Service Provider</span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed mb-3">
-                          {svc.announcement || svc.tagline || 'Official service business on ListMe.'}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px]">
-                        <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{svc.county || 'Ireland'}</span>
-                        </span>
-                        <span className="font-bold text-primary flex items-center gap-1 group-hover:underline">
-                          View Services <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Search and hire vetted tradespeople and service contractors across Ireland.
-                  </p>
-                  <Link href="/services" className="mt-3 inline-block text-xs font-bold text-primary hover:underline">
-                    Explore Services &amp; Trades →
-                  </Link>
-                </div>
-              )}
-            </section>
-
-            {/* 4. TRUST & SAFETY ADVISORIES */}
+            {/* 3. TRUST & SAFETY ADVISORIES */}
             <section id="trust-safety" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-primary" />
-                  <span>4. Trust &amp; Safety Advisories</span>
+                  <span>3. Trust &amp; Safety Advisories</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Guidelines and protections designed to keep every Irish buyer and seller safe.
@@ -445,12 +361,12 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            {/* 5. OFFICIAL CHANNELS & STOREFRONT (NO INSTAGRAM) */}
+            {/* 4. OFFICIAL CHANNELS & STOREFRONT (NO INSTAGRAM) */}
             <section id="social-storefront" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Globe2 className="w-5 h-5 text-primary" />
-                  <span>5. Official Social Channels &amp; Storefront</span>
+                  <span>4. Official Social Channels &amp; Storefront</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Connect with our official verified Facebook community and our central platform storefront.
@@ -512,7 +428,7 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            {/* 6. SUPPORT & HELP CENTRE */}
+            {/* 5. SUPPORT & HELP CENTRE */}
             <section id="help-centre" className="scroll-mt-28">
               <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 shadow-xs">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -522,7 +438,7 @@ export default function CommunityHubClient({
                       <span>Support &amp; Inquiries</span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      6. Need Assistance? Visit the Help Centre
+                      5. Need Assistance? Visit the Help Centre
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                       Browse FAQs about buying, selling, and marketplace fees, learn about Buyer Protection coverage, or submit a support ticket directly to our Dublin team.
@@ -547,12 +463,12 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            {/* 7. VERIFIED PLATFORM STATISTICS */}
+            {/* 6. VERIFIED PLATFORM STATISTICS */}
             <section id="site-stats" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  <span>7. Live Platform Statistics</span>
+                  <span>6. Live Platform Statistics</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Verified platform metrics queried live from our production database.

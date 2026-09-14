@@ -103,8 +103,6 @@ export default function CategoriesMegaMenu() {
 
   const tabs: { id: CategoryTab; label: string; icon: React.ReactNode; count: number; href: string }[] = [
     { id: 'marketplace', label: 'Marketplace', icon: <ShoppingBag className="w-4 h-4" />, count: MARKETPLACE_SUBCATEGORIES.length, href: '/category/marketplace' },
-    { id: 'jobs', label: 'Jobs', icon: <Briefcase className="w-4 h-4" />, count: JOBS_SUBCATEGORIES.length, href: '/category/jobs' },
-    { id: 'services', label: 'Services', icon: <Wrench className="w-4 h-4" />, count: SERVICES_SUBCATEGORIES.length, href: '/category/services' },
     { id: 'community', label: 'Community', icon: <Users className="w-4 h-4" />, count: COMMUNITY_SUBCATEGORIES.length, href: '/community' },
   ];
 

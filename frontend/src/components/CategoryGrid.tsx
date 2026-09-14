@@ -1,11 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
-import { Sofa, Laptop, Briefcase, Wrench, Baby, Smartphone, Music, Shirt } from 'lucide-react';
+import { Sofa, Laptop, Car, Gamepad2, Baby, Smartphone, Music, Shirt } from 'lucide-react';
 
 const categories = [
   { name: 'Marketplace', icon: Laptop, slug: 'marketplace' },
-  { name: 'Jobs', icon: Briefcase, slug: 'jobs' },
-  { name: 'Services', icon: Wrench, slug: 'services' },
+  { name: 'Motors & Cars', icon: Car, slug: 'motors' },
+  { name: 'Gaming', icon: Gamepad2, slug: 'marketplace' },
   { name: 'Home & Garden', icon: Sofa, slug: 'marketplace' },
   { name: 'Baby & Kids', icon: Baby, slug: 'marketplace' },
   { name: 'Mobiles', icon: Smartphone, slug: 'marketplace' },

@@ -34,9 +34,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+import { redirect } from 'next/navigation';
+
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
+
+  if (slug.toLowerCase() === 'jobs' || slug.toLowerCase() === 'services') {
+    redirect('/marketplace');
+  }
   
   // Format slug back to category name (e.g. "marketplace" -> "Marketplace")
   const categoryName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');

@@ -287,22 +287,6 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                     Marketplace
                   </Link>
                   <Link
-                    href="/category/jobs"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <Briefcase className="w-4 h-4 text-gray-400" />
-                    Jobs
-                  </Link>
-                  <Link
-                    href="/category/services"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                  >
-                    <Wrench className="w-4 h-4 text-gray-400" />
-                    Services
-                  </Link>
-                  <Link
                     href="/community"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"

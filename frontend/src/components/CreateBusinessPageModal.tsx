@@ -65,12 +65,12 @@ export default function CreateBusinessPageModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [businessType, setBusinessType] = useState<'service' | 'marketplace'>(
-    initialData?.business_type || 'service'
+    initialData?.business_type || 'marketplace'
   );
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [tagline, setTagline] = useState(initialData?.tagline || '');
-  const [category, setCategory] = useState(initialData?.category || BIZ_CATEGORIES[0]);
+  const [category, setCategory] = useState(initialData?.category || 'Retail & Local Storefront');
   const [county, setCounty] = useState(initialData?.county || 'Dublin');
   
   // Irish phone locking: ensure '+353 ' prefix
@@ -263,59 +263,7 @@ export default function CreateBusinessPageModal({
                 </div>
               )}
 
-              {/* 1. REQUIRED DECLARATION: Service Business vs Marketplace Store */}
-              <div>
-                <label className="block text-xs font-bold text-gray-900 dark:text-white mb-2">
-                  Business Declaration *
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBusinessType('service');
-                      setCategory('Services & Trades');
-                    }}
-                    className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                      businessType === 'service'
-                        ? 'border-primary bg-primary/10 dark:bg-primary/20 ring-1 ring-primary'
-                        : 'border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <Briefcase className={`w-4 h-4 ${businessType === 'service' ? 'text-primary' : 'text-gray-500'}`} />
-                      <span className="font-extrabold text-sm text-gray-900 dark:text-white">
-                        Service Business
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                      Trades, domestic work, consulting, IT, repairs, or professional contract services.
-                    </p>
-                  </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBusinessType('marketplace');
-                      setCategory('Retail & Local Storefront');
-                    }}
-                    className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                      businessType === 'marketplace'
-                        ? 'border-primary bg-primary/10 dark:bg-primary/20 ring-1 ring-primary'
-                        : 'border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <Store className={`w-4 h-4 ${businessType === 'marketplace' ? 'text-primary' : 'text-gray-500'}`} />
-                      <span className="font-extrabold text-sm text-gray-900 dark:text-white">
-                        Marketplace Store
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                      Commercial seller or retail store selling inventory and multiple items.
-                    </p>
-                  </button>
-                </div>
-              </div>
 
               {/* Profile Picture / Logo */}
               <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/60 space-y-3">
@@ -578,25 +526,7 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              {/* Actively Hiring Toggle */}
-              <div className="p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isHiring}
-                    onChange={(e) => setIsHiring(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded text-primary border-gray-300 dark:border-zinc-700 focus:ring-primary cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-gray-900 dark:text-white block">
-                      Actively Hiring / Recruiting
-                    </span>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
-                      Check this box if your business (store or service) is hiring staff or contractors. Your page will be featured on the Jobs &amp; Employment board.
-                    </p>
-                  </div>
-                </label>
-              </div>
+
 
               {/* Direct Messaging Toggle */}
               <div className="p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">

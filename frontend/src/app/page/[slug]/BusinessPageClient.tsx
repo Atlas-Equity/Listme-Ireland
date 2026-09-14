@@ -120,15 +120,10 @@ export default function BusinessPageClient({
                     <Store className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Official Platform</span>
                   </>
-                ) : isMarketplace ? (
+                ) : (
                   <>
                     <Store className="w-3.5 h-3.5 text-amber-400" />
                     <span>Marketplace Store</span>
-                  </>
-                ) : (
-                  <>
-                    <Briefcase className="w-3.5 h-3.5 text-white" />
-                    <span>Service Business</span>
                   </>
                 )}
               </span>
@@ -200,7 +195,7 @@ export default function BusinessPageClient({
 
                   <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs text-gray-600 dark:text-gray-400 font-medium">
                     <span className="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-gray-300">
-                      {isListMeOfficial ? 'Official Marketplace Platform' : isMarketplace ? 'Commercial Storefront' : 'Direct Service Provider'}
+                      {isListMeOfficial ? 'Official Marketplace Platform' : 'Commercial Storefront'}
                     </span>
                     <span>•</span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
@@ -247,7 +242,7 @@ export default function BusinessPageClient({
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  {isMarketplace ? 'Store Items' : 'Services & Listings'} ({listings.length})
+                  Store Items ({listings.length})
                 </button>
               )}
 
@@ -280,7 +275,7 @@ export default function BusinessPageClient({
                   About
                 </h3>
                 <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
-                  {isMarketplace ? 'Marketplace' : 'Service'}
+                  Marketplace Store
                 </span>
               </div>
 
@@ -294,13 +289,9 @@ export default function BusinessPageClient({
                 
                 {/* Business Type */}
                 <div className="flex items-center gap-3">
-                  {isMarketplace ? (
-                    <Store className="w-4 h-4 text-gray-400 shrink-0" />
-                  ) : (
-                    <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
-                  )}
+                  <Store className="w-4 h-4 text-gray-400 shrink-0" />
                   <span>
-                    Model: <strong>{isMarketplace ? 'Marketplace Store' : 'Service Business'}</strong>
+                    Model: <strong>Marketplace Store</strong>
                   </span>
                 </div>
 
@@ -510,7 +501,7 @@ export default function BusinessPageClient({
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-zinc-800">
                   <h3 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-2">
                     <Package className="w-4 h-4 text-primary" />
-                    <span>{isMarketplace ? 'Store Inventory' : 'Services & Offerings'}</span>
+                    <span>Store Inventory</span>
                     <span className="text-xs font-medium text-gray-400">({listings.length})</span>
                   </h3>
                   {isOwner && (
@@ -530,7 +521,7 @@ export default function BusinessPageClient({
                       No listings published yet
                     </h4>
                     <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-                      {isOwner ? 'Click "+ Add New Item" to add products or services to your storefront.' : 'This business will post new listings shortly.'}
+                      {isOwner ? 'Click "+ Add New Item" to add products to your storefront.' : 'This business will post new listings shortly.'}
                     </p>
                   </div>
                 ) : (

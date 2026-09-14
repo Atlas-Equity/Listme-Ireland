@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Briefcase, Wrench, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Car, Laptop, ChevronRight } from 'lucide-react';
 import { createClient as createStatelessClient } from '@supabase/supabase-js';
 
 const publicSupabase = createStatelessClient(
@@ -9,26 +9,24 @@ const publicSupabase = createStatelessClient(
 );
 
 const globalForCatCache = globalThis as unknown as {
-  categoryCountsCache?: { counts: { marketplace: number; jobs: number; services: number }; expiresAt: number };
+  categoryCountsCache?: { counts: { marketplace: number; motors: number; tech: number }; expiresAt: number };
 };
 
 export default async function TrendingCategories() {
-  console.time('TrendingCategories');
   let counts = globalForCatCache.categoryCountsCache?.counts;
   const isExpired = !globalForCatCache.categoryCountsCache || Date.now() > globalForCatCache.categoryCountsCache.expiresAt;
 
   if (!counts || isExpired) {
-    // Fast count query using head: true (transfers 0 bytes of row data, executes index count)
-    const [marketplaceRes, jobsRes, servicesRes] = await Promise.all([
+    const [marketplaceRes, motorsRes, techRes] = await Promise.all([
       publicSupabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Marketplace%').eq('status', 'active'),
-      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Jobs%').eq('status', 'active'),
-      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).ilike('category', '%Services%').eq('status', 'active'),
+      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).or('category.ilike.%Motor%,category.ilike.%Vehicle%').eq('status', 'active'),
+      publicSupabase.from('listings').select('id', { count: 'exact', head: true }).or('category.ilike.%Tech%,category.ilike.%Electronic%').eq('status', 'active'),
     ]);
 
     counts = {
       marketplace: marketplaceRes.count ?? 0,
-      jobs: jobsRes.count ?? 0,
-      services: servicesRes.count ?? 0,
+      motors: motorsRes.count ?? 0,
+      tech: techRes.count ?? 0,
     };
 
     globalForCatCache.categoryCountsCache = {
@@ -45,16 +43,16 @@ export default async function TrendingCategories() {
       slug: 'marketplace',
     },
     {
-      category: 'Jobs',
-      count: counts.jobs,
-      icon: Briefcase,
-      slug: 'jobs',
+      category: 'Motors & Vehicles',
+      count: counts.motors,
+      icon: Car,
+      slug: 'motors',
     },
     {
-      category: 'Services',
-      count: counts.services,
-      icon: Wrench,
-      slug: 'services',
+      category: 'Electronics & Tech',
+      count: counts.tech,
+      icon: Laptop,
+      slug: 'marketplace',
     },
   ];
 

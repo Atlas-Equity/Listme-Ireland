@@ -1111,7 +1111,7 @@ export default function HelpCentrePage() {
                   5. Business Pages &amp; Marketplace Storefronts
                 </h2>
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                  Registered business members can establish subsidiary business pages declared as either a <strong>Service Business</strong> (quotes, trades, local contractor profile) or a <strong>Marketplace Store</strong> (selling multiple items under a store brand).
+                  Registered business members can establish subsidiary business pages as a <strong>Marketplace Store</strong> to showcase commercial inventory and sell items under a dedicated store brand.
                 </p>
 
                 <div className="space-y-2 mb-5 text-xs">
