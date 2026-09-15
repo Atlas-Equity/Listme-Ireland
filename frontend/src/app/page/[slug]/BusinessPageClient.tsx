@@ -515,7 +515,7 @@ export default function BusinessPageClient({
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
                     {listings.map((listing: any) => (
                       <ListingCard
                         key={listing.id}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Menu,
   X,
@@ -89,38 +90,39 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
       {/* Hamburger Toggle Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 -ml-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-        aria-label="Toggle Navigation Menu"
-        aria-expanded={isOpen}
+        onClick={() => setIsOpen(true)}
+        className="p-2 -ml-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative z-10 cursor-pointer"
+        aria-label="Open Navigation Menu"
       >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        <Menu className="w-6 h-6" />
       </button>
 
-      {/* Backdrop & Drawer Container with Hardware-Accelerated Transitions */}
-      <div
-        className={`fixed inset-0 z-50 flex transition-[visibility] duration-300 ${
-          isOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none delay-300'
-        }`}
-        aria-hidden={!isOpen}
-      >
-        {/* Backdrop Overlay with Smooth Fade */}
-        <div
-          className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
-            isOpen ? 'opacity-100' : 'opacity-0'
-          }`}
-          onClick={() => setIsOpen(false)}
-        />
+      {/* Backdrop & Drawer Animated with Framer Motion */}
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[100] flex">
+            {/* Backdrop Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+              onClick={() => setIsOpen(false)}
+            />
 
-        {/* Drawer Content with Smooth Slide-In / Slide-Out */}
-        <div
-          className={`relative w-full max-w-xs bg-white dark:bg-[#181818] border-r border-gray-200 dark:border-zinc-800 h-full overflow-y-auto flex flex-col justify-between z-10 shadow-2xl transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
-            isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <div>
-            {/* Drawer Top Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+            {/* Drawer Content */}
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="relative w-full max-w-xs bg-white dark:bg-[#181818] border-r border-gray-200 dark:border-zinc-800 h-full overflow-y-auto flex flex-col justify-between z-10 shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                {/* Drawer Top Header */}
+                <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                 <Link
                   href="/"
                   onClick={() => setIsOpen(false)}
@@ -339,7 +341,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                 <form action="/auth/signout" method="POST">
                   <button
                     type="submit"
-                    className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign out
@@ -347,8 +349,10 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                 </form>
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
-      </div>
+      )}
+    </AnimatePresence>
+  </div>
   );
 }

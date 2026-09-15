@@ -1288,7 +1288,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </Link>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                     {wishlistedListings.map((listing: any) => {
                       const priceNum = typeof listing.price === 'string'
                         ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) || 0
@@ -1370,7 +1370,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </Link>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                     {userListings.map((listing: any) => (
                       <div key={listing.id} className="flex flex-col space-y-2">
                         <ListingCard

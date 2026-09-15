@@ -258,7 +258,7 @@ export default function MarketplaceClient({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
             {closingSoonListings.map((item) => (
               <ListingCard
                 key={`closing-${item.id}`}
@@ -295,7 +295,7 @@ export default function MarketplaceClient({
         </div>
 
         {filteredListings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
             {filteredListings.map((item) => (
               <ListingCard
                 key={item.id}

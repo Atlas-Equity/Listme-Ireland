@@ -1,6 +1,5 @@
 import Hero from "@/components/Hero";
 import PromoBanners from "@/components/PromoBanners";
-import TrendingCategories from "@/components/TrendingCategories";
 import SectionHeader from "@/components/SectionHeader";
 import { ListingCard } from "@/components/ListingCard";
 import { fetchHomeListings } from "@/utils/backendApi";
@@ -22,7 +21,7 @@ export default async function Home() {
         {closingSoonListings && closingSoonListings.length > 0 && (
           <>
             <SectionHeader title="Closing Soon (Under 24h)" viewAllLink="/marketplace" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-8">
               {closingSoonListings.map((listing, idx) => (
                 <ListingCard 
                   key={listing.id} 
@@ -46,7 +45,7 @@ export default async function Home() {
         {auctionListings.length > 0 && (
           <>
             <SectionHeader title="Cool auctions" viewAllLink="/category/marketplace" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-8">
               {auctionListings.map((listing) => (
                 <ListingCard 
                   key={listing.id} 
@@ -65,13 +64,11 @@ export default async function Home() {
           </>
         )}
 
-        <TrendingCategories />
-
         {/* Latest Listings Section */}
         {latestListings.length > 0 && (
           <>
             <SectionHeader title="Latest listings" viewAllLink="/category/marketplace" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-12">
               {latestListings.map((listing) => (
                 <ListingCard 
                   key={listing.id} 

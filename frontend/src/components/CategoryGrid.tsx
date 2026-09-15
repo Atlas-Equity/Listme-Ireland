@@ -1,16 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
-import { Sofa, Laptop, Car, Gamepad2, Baby, Smartphone, Music, Shirt } from 'lucide-react';
+import { ShoppingBag, Users } from 'lucide-react';
 
 const categories = [
-  { name: 'Marketplace', icon: Laptop, slug: 'marketplace' },
-  { name: 'Motors & Cars', icon: Car, slug: 'motors' },
-  { name: 'Gaming', icon: Gamepad2, slug: 'marketplace' },
-  { name: 'Home & Garden', icon: Sofa, slug: 'marketplace' },
-  { name: 'Baby & Kids', icon: Baby, slug: 'marketplace' },
-  { name: 'Mobiles', icon: Smartphone, slug: 'marketplace' },
-  { name: 'Music', icon: Music, slug: 'marketplace' },
-  { name: 'Clothing', icon: Shirt, slug: 'marketplace' },
+  { name: 'Marketplace', icon: ShoppingBag, href: '/category/marketplace' },
+  { name: 'Community', icon: Users, href: '/community' },
 ];
 
 export default function CategoryGrid() {
@@ -20,33 +14,26 @@ export default function CategoryGrid() {
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              Browse Marketplace
+              Explore ListMe
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Explore categories with live auctions and instant-buy items.
+              Browse marketplace auctions or join discussions in the community hub.
             </p>
           </div>
-          <Link
-            href="/browse"
-            prefetch={true}
-            className="text-xs sm:text-sm font-semibold text-primary hover:underline"
-          >
-            View all
-          </Link>
         </div>
         
-        <div className="grid grid-cols-2 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-2 gap-4 max-w-lg">
           {categories.map((category, idx) => (
             <Link 
               key={idx} 
-              href={`/category/${category.slug}`}
+              href={category.href}
               prefetch={true}
-              className="flex flex-col items-center group cursor-pointer p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-900/60 transition-colors"
+              className="flex flex-col items-center group cursor-pointer p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900/60 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-zinc-800"
             >
-              <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gray-100 dark:bg-zinc-900/80 rounded-2xl mb-2 sm:mb-3 group-hover:bg-primary/20 group-hover:border-primary/40 transition-all duration-300 border border-gray-200 dark:border-zinc-800">
-                <category.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors" />
+              <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-white dark:bg-zinc-800 rounded-2xl mb-3 group-hover:bg-primary/20 transition-all duration-300 border border-gray-200 dark:border-zinc-700">
+                <category.icon className="w-6 h-6 sm:w-7 sm:h-7 text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors" />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 text-center group-hover:text-primary transition-colors line-clamp-1">
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center group-hover:text-primary transition-colors">
                 {category.name}
               </span>
             </Link>
