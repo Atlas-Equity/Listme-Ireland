@@ -394,7 +394,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 {!isClosed ? (
                   isOwnListing ? (
                     <div className="space-y-3">
-                      <div className="w-full py-3 px-4 bg-primary/10 border border-primary/20 text-primary font-semibold rounded-xl text-xs flex items-center justify-center">
+                      <div className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs flex items-center justify-center">
                         You are the seller of this listing
                       </div>
                       <DeleteListingButton 
@@ -488,7 +488,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   href={`/page/${listingBusinessPage.slug}`}
                   className="flex items-center group hover:opacity-90 transition-opacity"
                 >
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
                     {listingBusinessPage.avatarUrl ? (
                       <Image
                         src={listingBusinessPage.avatarUrl}
@@ -499,7 +499,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                         unoptimized
                       />
                     ) : (
-                      <Store className="w-6 h-6 text-primary" />
+                      <Store className="w-6 h-6 text-zinc-500 dark:text-zinc-400" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -521,7 +521,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   href={`/member/${getMemberNumber(listing.seller_id)}`}
                   className="flex items-center group hover:opacity-90 transition-opacity"
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
                     {sellerAvatarUrl ? (
                       <Image
                         src={sellerAvatarUrl}
@@ -532,7 +532,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                         unoptimized
                       />
                     ) : (
-                      <span className="text-xl font-bold text-primary">{sellerInitial}</span>
+                      <span className="text-xl font-bold text-zinc-700 dark:text-zinc-200">{sellerInitial}</span>
                     )}
                   </div>
                   <div className="min-w-0">
@@ -562,7 +562,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </h2>
               <div className="flex flex-col items-center mb-6">
                 <Link href={`/page/${listingBusinessPage.slug}`} className="group flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-primary/30 bg-primary/10 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
                     {listingBusinessPage.avatarUrl ? (
                       <Image
                         src={listingBusinessPage.avatarUrl}
@@ -573,7 +573,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                         unoptimized
                       />
                     ) : (
-                      <Store className="w-8 h-8 text-primary" />
+                      <Store className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
                     )}
                   </div>
                   <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1.5">

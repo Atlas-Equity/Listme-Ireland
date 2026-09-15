@@ -146,7 +146,7 @@ export default function CategoriesMegaMenu() {
                     <span>{tab.label}</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                       isActive
-                        ? 'bg-primary/10 text-primary dark:text-green-400'
+                        ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
                         : 'bg-gray-200 dark:bg-zinc-800 text-gray-500'
                     }`}>
                       {tab.count}

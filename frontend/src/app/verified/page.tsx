@@ -20,14 +20,14 @@ export default async function VerifiedPage() {
       <div className="max-w-4xl mx-auto space-y-12">
         {/* Header Hero */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold border border-emerald-200/60 dark:border-emerald-800/40 shadow-xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-bold border border-zinc-200 dark:border-zinc-700 shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-primary" />
             <span>Official ListMe Trust &amp; Safety</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
             Stand out with the <br />
-            <span className="text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-2">
+            <span className="text-gray-900 dark:text-white inline-flex items-center gap-2">
               ListMe Verified Badge
               <VerifiedBadge size="lg" />
             </span>
@@ -41,7 +41,7 @@ export default async function VerifiedPage() {
         {/* Benefits Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-[#181818] border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
               <Star className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-base">
@@ -53,7 +53,7 @@ export default async function VerifiedPage() {
           </div>
 
           <div className="bg-white dark:bg-[#181818] border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-base">
@@ -65,7 +65,7 @@ export default async function VerifiedPage() {
           </div>
 
           <div className="bg-white dark:bg-[#181818] border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
               <Lock className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-base">

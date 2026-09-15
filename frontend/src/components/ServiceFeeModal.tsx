@@ -136,8 +136,8 @@ export default function ServiceFeeModal({
               </div>
 
               {/* Special Account Credit Discount Callout */}
-              <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
-                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <div className="p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 flex items-start gap-2.5 text-xs text-zinc-800 dark:text-zinc-200">
+                <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold">ListMe Account Credit Discount:</span> Pay using your ListMe Account Credit at checkout and your service fee automatically drops by <strong>0.5%</strong>!
                 </div>
@@ -159,10 +159,10 @@ export default function ServiceFeeModal({
                       <span>Service Fee (Standard {primaryStandardCalc.percentageFormatted}):</span>
                       <span className="font-semibold text-gray-900 dark:text-white">+€{primaryStandardCalc.fee.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                    <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300">
                       <span className="flex items-center gap-1 font-medium">
                         <span>Service Fee (With Credit {primaryCreditCalc.percentageFormatted}):</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">-0.5% off</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold">-0.5% off</span>
                       </span>
                       <span className="font-bold font-mono">+€{primaryCreditCalc.fee.toFixed(2)}</span>
                     </div>
@@ -172,8 +172,8 @@ export default function ServiceFeeModal({
                         <span className="font-bold text-gray-900 dark:text-white font-mono">€{primaryStandardCalc.total.toFixed(2)}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block font-bold">Est. Total (With Credit):</span>
-                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">€{primaryCreditCalc.total.toFixed(2)}</span>
+                        <span className="text-[11px] text-gray-600 dark:text-gray-300 block font-bold">Est. Total (With Credit):</span>
+                        <span className="text-sm font-extrabold text-gray-900 dark:text-white font-mono">€{primaryCreditCalc.total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -191,10 +191,10 @@ export default function ServiceFeeModal({
                       <span>Service Fee (Standard {buyNowStandardCalc.percentageFormatted}):</span>
                       <span className="font-semibold text-gray-900 dark:text-white">+€{buyNowStandardCalc.fee.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                    <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300">
                       <span className="flex items-center gap-1 font-medium">
                         <span>Service Fee (With Credit {buyNowCreditCalc.percentageFormatted}):</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">-0.5% off</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold">-0.5% off</span>
                       </span>
                       <span className="font-bold font-mono">+€{buyNowCreditCalc.fee.toFixed(2)}</span>
                     </div>
@@ -204,8 +204,8 @@ export default function ServiceFeeModal({
                         <span className="font-bold text-gray-900 dark:text-white font-mono">€{buyNowStandardCalc.total.toFixed(2)}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block font-bold">Est. Total (With Credit):</span>
-                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">€{buyNowCreditCalc.total.toFixed(2)}</span>
+                        <span className="text-[11px] text-gray-600 dark:text-gray-300 block font-bold">Est. Total (With Credit):</span>
+                        <span className="text-sm font-extrabold text-gray-900 dark:text-white font-mono">€{buyNowCreditCalc.total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -220,10 +220,10 @@ export default function ServiceFeeModal({
                     <span>Service Fee (Standard {primaryStandardCalc.percentageFormatted}):</span>
                     <span className="font-semibold text-gray-900 dark:text-white">+€{primaryStandardCalc.fee.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400">
+                  <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300">
                     <span className="flex items-center gap-1 font-medium">
                       <span>Service Fee (With Credit {primaryCreditCalc.percentageFormatted}):</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold">-0.5% off</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold">-0.5% off</span>
                     </span>
                     <span className="font-bold font-mono">+€{primaryCreditCalc.fee.toFixed(2)}</span>
                   </div>

@@ -155,7 +155,7 @@ export default function PhoneVerificationModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-zinc-800">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+            <div className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -277,8 +277,8 @@ export default function PhoneVerificationModal({
 
           {step === 'success' && (
             <div className="py-8 flex flex-col items-center justify-center text-center space-y-3">
-              <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center animate-in zoom-in-75 duration-200">
-                <CheckCircle2 className="w-8 h-8" />
+              <div className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center animate-in zoom-in-75 duration-200">
+                <CheckCircle2 className="w-8 h-8 text-primary" />
               </div>
               <h4 className="text-lg font-bold text-gray-900 dark:text-white">
                 Phone Number Verified!

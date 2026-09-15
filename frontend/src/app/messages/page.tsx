@@ -869,10 +869,10 @@ function MessagesContent() {
                       if (questionData) {
                         return (
                           <div key={msg.id} className="flex flex-col items-center my-4 px-2 animate-in fade-in duration-200">
-                            <div className="p-4 rounded-2xl border border-primary/30 bg-primary/5 dark:bg-primary/10 max-w-md w-full space-y-2.5">
+                            <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 max-w-md w-full space-y-2.5">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                  <div className="p-1.5 bg-primary/20 text-primary rounded-lg">
+                                  <div className="p-1.5 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg">
                                     <HelpCircle className="w-4 h-4" />
                                   </div>
                                   <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">

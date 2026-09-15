@@ -159,7 +159,7 @@ export default function SetupUsernameForm({
           />
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-primary dark:text-emerald-400 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-semibold border border-zinc-200 dark:border-zinc-700">
           <KeyRound className="w-3.5 h-3.5" />
           <span>Final Step: Username &amp; Password</span>
         </div>

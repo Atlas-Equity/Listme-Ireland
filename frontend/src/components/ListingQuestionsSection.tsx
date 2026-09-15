@@ -142,7 +142,7 @@ export default function ListingQuestionsSection({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 dark:border-[#333333] pb-5">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary/10 text-primary rounded-xl shrink-0">
+          <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl shrink-0">
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
@@ -183,7 +183,7 @@ export default function ListingQuestionsSection({
               >
                 {/* Question */}
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden relative border border-primary/30">
+                  <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden relative border border-zinc-200 dark:border-zinc-700">
                     {q.buyerAvatarUrl ? (
                       <Image
                         src={q.buyerAvatarUrl}
@@ -201,7 +201,7 @@ export default function ListingQuestionsSection({
                       <div className="font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
                         <span>@{q.buyerUsername}</span>
                         {isBuyer && (
-                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.2 rounded font-medium">You</span>
+                          <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-1.5 py-0.5 rounded font-medium">You</span>
                         )}
                       </div>
                       <span className="text-gray-400 dark:text-gray-500 text-[11px]">
@@ -219,11 +219,11 @@ export default function ListingQuestionsSection({
                   <div className="ml-5 sm:ml-9 p-3.5 rounded-xl bg-white dark:bg-[#1e1e1e] border-l-4 border-l-primary border-y border-r border-gray-200 dark:border-[#383838] space-y-1.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
                       <div className="flex items-center gap-1.5">
-                        <CornerDownRight className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <CornerDownRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                         <span className="font-bold text-gray-900 dark:text-white">
                           @{q.answer.sellerUsername}
                         </span>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700 font-bold px-1.5 py-0.5 rounded">
                           Seller
                         </span>
                       </div>
@@ -365,8 +365,8 @@ export default function ListingQuestionsSection({
             )}
 
             {askSuccess && (
-              <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <div className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-primary" />
                 <span>{askSuccess}</span>
               </div>
             )}

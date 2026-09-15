@@ -67,32 +67,18 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
   const RESERVED_SLUGS = new Set([
     'listme', 'official', 'admin', 'administrator', 'support', 'help',
     'api', 'auth', 'login', 'signup', 'register', 'settings', 'account',
-    'marketplace', 'services', 'jobs', 'community', 'messages', 'terms', 'privacy', 'about'
+    'marketplace', 'services', 'jobs', 'community', 'messages', 'terms', 'privacy', 'about',
+    'google', 'apple', 'facebook', 'instagram', 'stripe'
   ]);
+
+  if (cleanSlug === 'listme') {
+    return { error: 'The handle "listme" is the official ListMe platform storefront and cannot be registered as a personal or subsidiary business page.' };
+  }
 
   const userIsAdmin = isAdmin(user);
   if (RESERVED_SLUGS.has(cleanSlug) && !userIsAdmin) {
     return { error: `The handle "${cleanSlug}" is reserved by the ListMe platform. Please choose a different handle.` };
   }
-
-  // 2. Global uniqueness check across all registered business pages
-  const allRegistered = await getAllRegisteredBusinessPages();
-  const existingGlobalPage = allRegistered.find(p => p.slug === cleanSlug);
-  if (existingGlobalPage && existingGlobalPage.owner_id && existingGlobalPage.owner_id !== user.id) {
-    return { error: `The handle "${cleanSlug}" is already taken by another registered business. Please choose a different name or handle.` };
-  }
-
-  // Format phone to Irish standard (optional for official ListMe page)
-  let formattedPhone = (data.phone || '').trim();
-  const isOfficial = cleanSlug === 'listme';
-  if (isOfficial && (!formattedPhone || formattedPhone === '+353' || formattedPhone === '+353 ')) {
-    formattedPhone = '';
-  } else if (formattedPhone && !formattedPhone.startsWith('+353')) {
-    formattedPhone = `+353 ${formattedPhone.replace(/^\+?353\s?|^0/, '')}`.trim();
-  }
-
-  // Truncate announcement to 250 characters max
-  const cleanAnnouncement = (data.announcement || '').trim().slice(0, 250);
 
   // Fetch freshest user metadata via admin client if available
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -114,12 +100,65 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
 
   const existingPages: BusinessPageData[] = currentUserMeta?.business_pages || [];
 
+  // 2. Strict Uniqueness Check across ALL registered pages in Supabase (ALWAYS bypass cache)
+  const allRegistered = await getAllRegisteredBusinessPages({ bypassCache: true });
+
+  const isEditing = Boolean(data.id);
+  const existingUserPageIndex = isEditing ? existingPages.findIndex(p => p.id === data.id) : -1;
+
+  if (isEditing) {
+    if (existingUserPageIndex === -1) {
+      return { error: 'The business page you are trying to edit was not found in your account.' };
+    }
+    const currentBusiness = existingPages[existingUserPageIndex];
+    // If the user changed their handle, verify that the new handle is not taken by ANY other page in Supabase
+    if (cleanSlug !== currentBusiness.slug) {
+      const collision = allRegistered.find(p => p.slug === cleanSlug && p.id !== data.id);
+      if (collision) {
+        return { error: `The handle "${cleanSlug}" is already taken by another registered business. Please choose a different handle.` };
+      }
+    }
+  } else {
+    // Creating a brand new business page:
+    // It must NOT match ANY existing handle globally or locally!
+    const collision = allRegistered.find(p => p.slug === cleanSlug);
+    if (collision) {
+      if (collision.owner_id === user.id) {
+        return { error: `You already own a business page with the handle "${cleanSlug}". To update it, please click "Edit" on your existing page card rather than creating a duplicate.` };
+      }
+      return { error: `The handle "${cleanSlug}" is already taken by another registered business. Please choose a different name or handle.` };
+    }
+    // Also double check locally in user's own pages
+    const localCollision = existingPages.find(p => p.slug === cleanSlug);
+    if (localCollision) {
+      return { error: `You already have a business page with the handle "${cleanSlug}". Please click "Edit" on that card to update it.` };
+    }
+  }
+
+  // Format phone to Irish standard
+  let formattedPhone = (data.phone || '').trim();
+  if (formattedPhone && !formattedPhone.startsWith('+353')) {
+    formattedPhone = `+353 ${formattedPhone.replace(/^\+?353\s?|^0/, '')}`.trim();
+  }
+
+  // Truncate announcement to 250 characters max
+  const cleanAnnouncement = (data.announcement || '').trim().slice(0, 250);
+
+  // Avatar protection: NEVER store temporary blob URLs in Supabase!
+  let safeAvatarUrl = (data.avatarUrl || '').trim();
+  if (safeAvatarUrl.startsWith('blob:')) {
+    safeAvatarUrl = (isEditing && existingPages[existingUserPageIndex]?.avatarUrl) 
+      ? existingPages[existingUserPageIndex].avatarUrl!
+      : (currentUserMeta?.avatar_url || '');
+  }
+
+  const newPageId = isEditing && data.id ? data.id : `biz_${Date.now()}`;
   const newPage: BusinessPageData = {
-    id: data.id || `biz_${Date.now()}`,
+    id: newPageId,
     name: data.name.trim(),
     slug: cleanSlug,
     tagline: data.tagline.trim(),
-    business_type: data.business_type || 'service',
+    business_type: data.business_type || 'marketplace',
     opening_hours: data.opening_hours?.trim() || 'Open 24 Hours / 7 Days',
     announcement: cleanAnnouncement,
     category: data.category || (data.business_type === 'marketplace' ? 'Retail & Local Storefront' : 'Services & Trades'),
@@ -129,27 +168,22 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     website: data.website?.trim() || '',
     facebook: data.facebook?.trim() || OFFICIAL_FACEBOOK_URL,
     linkedin: data.linkedin?.trim() || '',
-    avatarUrl: data.avatarUrl?.trim() || currentUserMeta?.avatar_url || '',
+    avatarUrl: safeAvatarUrl,
     coverUrl: data.coverUrl || '',
-    plan: isOfficial ? 'Official Platform Storefront' : (data.is_verified ? 'Verified Pro Page' : 'Commercial Storefront'),
-    is_verified: isOfficial ? true : Boolean(data.is_verified),
+    plan: data.is_verified ? 'Verified Pro Page' : 'Commercial Storefront',
+    is_verified: Boolean(data.is_verified),
     allow_direct_messaging: Boolean(data.allow_direct_messaging),
-    created_at: data.created_at || new Date().toISOString(),
+    created_at: (isEditing && existingPages[existingUserPageIndex]?.created_at) || data.created_at || new Date().toISOString(),
     owner_id: user.id,
     is_hiring: Boolean(data.is_hiring),
-    team_members: Array.isArray(data.team_members) ? data.team_members : [],
-    pending_invites: Array.isArray(data.pending_invites) ? data.pending_invites : [],
+    team_members: Array.isArray(data.team_members) ? data.team_members : (isEditing ? existingPages[existingUserPageIndex]?.team_members || [] : []),
+    pending_invites: Array.isArray(data.pending_invites) ? data.pending_invites : (isEditing ? existingPages[existingUserPageIndex]?.pending_invites || [] : []),
   };
 
-  // Match by id OR slug
-  const pageIndex = existingPages.findIndex(
-    p => (data.id && p.id === data.id) || (data.slug && p.slug === data.slug) || p.slug === cleanSlug
-  );
-
   let updatedPages: BusinessPageData[];
-  if (pageIndex >= 0) {
+  if (isEditing && existingUserPageIndex >= 0) {
     updatedPages = [...existingPages];
-    updatedPages[pageIndex] = { ...existingPages[pageIndex], ...newPage };
+    updatedPages[existingUserPageIndex] = { ...existingPages[existingUserPageIndex], ...newPage };
   } else {
     updatedPages = [...existingPages, newPage];
   }
@@ -261,11 +295,11 @@ export function invalidateBusinessPagesCache(): void {
 }
 
 /**
- * Returns all real registered business pages across all users (cached for 60s).
+ * Returns all real registered business pages across all users (cached for 60s unless bypassCache is true).
  */
-export async function getAllRegisteredBusinessPages(): Promise<BusinessPageData[]> {
+export async function getAllRegisteredBusinessPages(options?: { bypassCache?: boolean }): Promise<BusinessPageData[]> {
   const cached = globalThis.__businessPagesCache;
-  if (cached && Date.now() < cached.expiresAt) {
+  if (!options?.bypassCache && cached && Date.now() < cached.expiresAt) {
     return cached.pages;
   }
 
@@ -277,12 +311,23 @@ export async function getAllRegisteredBusinessPages(): Promise<BusinessPageData[
     const adminClient = createAdminClient(url, serviceKey, {
       auth: { persistSession: false },
     });
-    const { data: usersData, error } = await adminClient.auth.admin.listUsers({ perPage: 100 });
-    if (error || !usersData?.users) return cached?.pages || [];
+    
+    // Fetch all users across pages
+    let allUsers: any[] = [];
+    let pageNum = 1;
+    while (true) {
+      const { data: usersData, error } = await adminClient.auth.admin.listUsers({ page: pageNum, perPage: 1000 });
+      if (error || !usersData?.users || usersData.users.length === 0) break;
+      allUsers.push(...usersData.users);
+      if (usersData.users.length < 1000) break;
+      pageNum++;
+    }
+
+    if (allUsers.length === 0 && !options?.bypassCache) return cached?.pages || [];
 
     const rawPages: { page: BusinessPageData; owner_id: string; created_time: number }[] = [];
 
-    for (const u of usersData.users) {
+    for (const u of allUsers) {
       const pages = u.user_metadata?.business_pages as BusinessPageData[];
       if (Array.isArray(pages)) {
         for (const p of pages) {
@@ -314,7 +359,7 @@ export async function getAllRegisteredBusinessPages(): Promise<BusinessPageData[
     }
 
     // Populate candidates cache from the same user list to save an extra roundtrip
-    const candidates = usersData.users
+    const candidates = allUsers
       .filter((u) => u.user_metadata?.bio || u.user_metadata?.skills || u.user_metadata?.looking_for_work)
       .map((u) => {
         let hash = 0;
@@ -357,6 +402,7 @@ export async function getAllRegisteredBusinessPages(): Promise<BusinessPageData[
         coverUrl: '/ListMeBanner.png',
         is_verified: true,
         allow_direct_messaging: false,
+        owner_id: 'listme_platform',
       });
       seenSlugs.add('listme');
     }

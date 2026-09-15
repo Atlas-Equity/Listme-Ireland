@@ -144,6 +144,16 @@ export default function CreateBusinessPageModal({
     e.preventDefault();
     setErrorMessage(null);
 
+    if (isUploadingImage) {
+      setErrorMessage('Please wait for your business logo to finish uploading before saving.');
+      return;
+    }
+
+    if (avatarUrl.startsWith('blob:')) {
+      setErrorMessage('Your business logo is still uploading. Please wait a moment.');
+      return;
+    }
+
     if (!avatarUrl.trim()) {
       setErrorMessage('Please upload a business profile picture / logo.');
       return;
@@ -547,11 +557,17 @@ export default function CreateBusinessPageModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                  disabled={isSubmitting || isUploadingImage}
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isEditing ? 'Save Changes' : 'Publish Business Page'}</span>
+                  {(isSubmitting || isUploadingImage) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>
+                    {isUploadingImage 
+                      ? 'Uploading Logo...' 
+                      : isSubmitting 
+                      ? 'Saving...' 
+                      : (isEditing ? 'Save Changes' : 'Publish Business Page')}
+                  </span>
                 </button>
               </div>
 

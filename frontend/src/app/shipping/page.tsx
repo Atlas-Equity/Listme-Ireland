@@ -24,7 +24,7 @@ export default function ShippingPage() {
 
         {/* Header */}
         <div className="border-b border-gray-200 dark:border-[#333333] pb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 mb-3">
             <Truck className="w-3.5 h-3.5" />
             <span>Platform Policy &amp; Delivery Guide</span>
           </div>
@@ -77,7 +77,7 @@ export default function ShippingPage() {
         {/* SECTION 2: Combined Shipping & Cart Purchases */}
         <section className="bg-white dark:bg-[#202020] rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-[#333333] shadow-sm space-y-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl">
+            <div className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-xl">
               <PackageCheck className="w-5 h-5" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
