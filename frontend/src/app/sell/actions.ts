@@ -39,14 +39,24 @@ export async function createListing(formData: CreateListingInput) {
     return { error: 'You must be logged in to create a listing.' };
   }
 
-  // Verify seller has completed Stripe onboarding
+  // Verify seller has completed Stripe onboarding (Quinn and sahleyis are whitelisted for testing)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_onboarding_complete, stripe_account_id')
+    .select('stripe_onboarding_complete, stripe_account_id, username')
     .eq('id', user.id)
     .single();
 
-  if (!profile?.stripe_onboarding_complete || !profile?.stripe_account_id) {
+  const username = (profile?.username || user.user_metadata?.username || '').toLowerCase();
+  const userEmail = (user.email || '').toLowerCase();
+  const isExempt = 
+    username === 'quinn' || 
+    username === 'sahleyis' || 
+    userEmail === 'qrmooney@outlook.com' || 
+    userEmail === 'dahiruhammajam@gmail.com' ||
+    user.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16' ||
+    user.id === '88beddab-0640-4f99-a04a-ff58c03704e4';
+
+  if (!isExempt && (!profile?.stripe_onboarding_complete || !profile?.stripe_account_id)) {
     return { error: 'You must complete Stripe onboarding before creating a listing. Go to your profile to set up payments.' };
   }
 

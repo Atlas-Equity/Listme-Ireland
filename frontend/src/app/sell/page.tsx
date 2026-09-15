@@ -153,8 +153,19 @@ export default function SellPage() {
         return isCredit && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
       });
 
-      setHasCreditCard(cardValid);
-      setLinkedDebitCard(detectedDebit || null);
+      // Whitelist Quinn (@Quinn) and sahleyis (@sahleyis) to post without requiring a credit card
+      const username = (profile?.username || userMeta.username || '').toLowerCase();
+      const userEmail = (user.email || '').toLowerCase();
+      const isExempt = 
+        username === 'quinn' || 
+        username === 'sahleyis' || 
+        userEmail === 'qrmooney@outlook.com' || 
+        userEmail === 'dahiruhammajam@gmail.com' ||
+        user.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16' ||
+        user.id === '88beddab-0640-4f99-a04a-ff58c03704e4';
+
+      setHasCreditCard(cardValid || isExempt);
+      setLinkedDebitCard(isExempt ? null : (detectedDebit || null));
 
       // Check owned marketplace pages in metadata
       const userPages = (userMeta.business_pages || []) as BusinessPageData[];
