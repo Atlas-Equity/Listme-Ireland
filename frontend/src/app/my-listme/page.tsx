@@ -788,12 +788,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                 {verificationNotification && (
                   <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
                     verificationNotification.success 
-                      ? 'bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40 text-gray-900 dark:text-white' 
+                      ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white' 
                       : 'bg-red-50/70 dark:bg-red-950/20 border-red-200 dark:border-red-800/40 text-gray-900 dark:text-white'
                   }`}>
                     <div className="flex items-center gap-3">
                       {verificationNotification.success ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-zinc-400 shrink-0" />
                       ) : (
                         <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
                       )}
@@ -1179,8 +1179,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 </Link>
                               ) : (
                                 <div className="flex items-center gap-2">
-                                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1 border border-emerald-500/20">
-                                    <CheckCircle2 className="w-3.5 h-3.5" /> Answered
+                                  <span className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 text-xs font-semibold flex items-center gap-1 border border-gray-200 dark:border-zinc-700">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" /> Answered
                                   </span>
                                   <Link
                                     href={`/listing/${q.listingId}#questions-and-answers`}
@@ -1536,7 +1536,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 <h4 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-1.5">
                                   {page.name}
                                   {(page.is_verified || page.slug === 'listme') && (
-                                    <Check className="w-3.5 h-3.5 text-primary" />
+                                    <Check className="w-3.5 h-3.5 text-zinc-300" />
                                   )}
                                 </h4>
                                 <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
@@ -1576,7 +1576,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                               <>
                                 <span>•</span>
                                 <span className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                                  <Clock className="w-3.5 h-3.5 text-gray-400" />
                                   {page.opening_hours}
                                 </span>
                               </>
@@ -1623,7 +1623,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
                     <div>
                       <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-primary" />
+                        <Users className="w-5 h-5 text-gray-400" />
                         <span>Team &amp; Staff Business Pages</span>
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -1639,7 +1639,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black flex items-center justify-center">
+                              <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 font-black flex items-center justify-center">
                                 <Building2 className="w-5 h-5" />
                               </div>
                               <div>
@@ -1651,7 +1651,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 </p>
                               </div>
                             </div>
-                            <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                            <span className="text-[10px] uppercase font-bold text-gray-700 dark:text-zinc-300 px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
                               Staff Member
                             </span>
                           </div>

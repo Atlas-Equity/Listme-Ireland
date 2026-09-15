@@ -59,6 +59,10 @@ export default function BusinessPageClient({
   };
 
   const isMarketplace = businessPage.business_type === 'marketplace';
+  const isVerifiedOrOfficial = Boolean(isListMeOfficial || businessPage.is_verified);
+  const bannerImage = (isVerifiedOrOfficial && businessPage.coverUrl) 
+    ? businessPage.coverUrl 
+    : '/ListMeBanner.png';
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-black py-4 sm:py-6">
@@ -99,45 +103,34 @@ export default function BusinessPageClient({
         {/* Flat Main Profile Header Container */}
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden mb-6">
           
-          {/* 1. Cover Photo Banner (Displays official banner or solid neutral) */}
-          <div className="h-44 sm:h-60 w-full bg-zinc-800 dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 relative overflow-hidden">
-            {businessPage.coverUrl && (
-              <Image
-                src={businessPage.coverUrl}
-                alt={businessPage.name}
-                fill
-                priority
-                sizes="(max-width: 1200px) 100vw, 1200px"
-                className="object-cover object-center"
-              />
-            )}
+          {/* 1. Cover Photo Banner (Displays official ListMe banner by default, or custom cover only if verified) */}
+          <div className="h-44 sm:h-60 w-full bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 relative overflow-hidden">
+            <Image
+              src={bannerImage}
+              alt={businessPage.name}
+              fill
+              priority
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              className="object-cover object-center"
+            />
             
             {/* Top Right Verified Pill & Business Model Declaration */}
             <div className="absolute top-3 right-3 flex flex-wrap items-center gap-2 z-10">
               <span className="px-2.5 py-1 rounded-md bg-black/80 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
-                {isListMeOfficial ? (
-                  <>
-                    <Store className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Official Platform</span>
-                  </>
-                ) : (
-                  <>
-                    <Store className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Marketplace Store</span>
-                  </>
-                )}
+                <Store className="w-3.5 h-3.5 text-zinc-300" />
+                <span>{isListMeOfficial ? 'Official Platform' : 'Marketplace Store'}</span>
               </span>
 
               {/* Top Right Verified Pill (ONLY IF ACTUALLY VERIFIED) */}
               {(isListMeOfficial || businessPage.is_verified) ? (
                 <span className="px-2.5 py-1 rounded-md bg-black/80 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
                   <span>{isListMeOfficial ? 'Verified Platform' : 'Verified Storefront'}</span>
                 </span>
               ) : isOwner ? (
                 <Link
                   href="/my-listme?tab=settings"
-                  className="px-2.5 py-1 rounded-md bg-black/70 hover:bg-black/90 text-amber-300 text-xs font-semibold border border-amber-500/30 flex items-center gap-1.5 transition-colors"
+                  className="px-2.5 py-1 rounded-md bg-black/70 hover:bg-black/90 text-zinc-200 text-xs font-semibold border border-white/20 flex items-center gap-1.5 transition-colors"
                   title="Subscribe to Business Verification for €4.99/mo"
                 >
                   <span>Unverified Business • Get Verified (€4.99/mo)</span>
@@ -153,17 +146,17 @@ export default function BusinessPageClient({
               {/* Profile Avatar & Details */}
               <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4">
                 
-                {/* Circular Profile Avatar (Solid flat neutral - NO gradients) */}
+                {/* Profile Avatar / Logo (Modern rounded squircle for proper logo scaling) */}
                 <div className="relative group">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white dark:bg-[#181818] p-1 shadow-md ring-4 ring-white dark:ring-[#181818]">
-                    <div className="w-full h-full rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-gray-800 dark:text-gray-200 font-bold text-3xl uppercase select-none overflow-hidden relative">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white dark:bg-[#181818] p-1.5 shadow-md ring-4 ring-white dark:ring-[#181818]">
+                    <div className="w-full h-full rounded-xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-gray-800 dark:text-gray-200 font-bold text-3xl uppercase select-none overflow-hidden relative">
                       {businessPage.avatarUrl ? (
                         <Image
                           src={businessPage.avatarUrl}
                           alt={businessPage.name}
                           fill
                           sizes="128px"
-                          className="object-contain p-2"
+                          className="object-cover"
                           unoptimized
                         />
                       ) : (
@@ -171,9 +164,6 @@ export default function BusinessPageClient({
                       )}
                     </div>
                   </div>
-
-                  {/* Online / Active Indicator */}
-                  <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white dark:border-[#181818]" title="Verified & Active"></div>
                 </div>
 
                 {/* Name, Handle, Metrics */}
@@ -183,14 +173,14 @@ export default function BusinessPageClient({
                       {businessPage.name}
                     </h1>
                     {(isListMeOfficial || businessPage.is_verified) && (
-                      <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold" title="Verified Business">
-                        <Check className="w-3 h-3 text-white" />
+                      <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center text-[10px] font-bold" title="Verified Business">
+                        <Check className="w-3 h-3 text-zinc-200" />
                       </div>
                     )}
                   </div>
 
                   <p className="text-xs font-mono font-medium text-gray-500 dark:text-gray-400 mt-1">
-                    @{businessPage.slug} • <span className="text-primary font-bold">{businessPage.category}</span>
+                    @{businessPage.slug} • <span className="text-zinc-400 font-medium">{businessPage.category}</span>
                   </p>
 
                   <div className="flex items-center justify-center sm:justify-start gap-3 mt-2 text-xs text-gray-600 dark:text-gray-400 font-medium">
@@ -198,8 +188,8 @@ export default function BusinessPageClient({
                       {isListMeOfficial ? 'Official Marketplace Platform' : 'Commercial Storefront'}
                     </span>
                     <span>•</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Direct Stripe Payouts
+                    <span className="text-gray-600 dark:text-zinc-400 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" /> Direct Stripe Payouts
                     </span>
                   </div>
                 </div>
@@ -224,7 +214,7 @@ export default function BusinessPageClient({
                   className="p-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                   title="Share page"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
+                  {copied ? <Check className="w-4 h-4 text-zinc-200" /> : <Share2 className="w-4 h-4" />}
                 </button>
               </div>
 
@@ -297,7 +287,7 @@ export default function BusinessPageClient({
 
                 {/* Opening Hours */}
                 <div className="flex items-start gap-3">
-                  <Clock className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="block font-semibold text-gray-900 dark:text-white">Opening Hours</span>
                     <span className="text-gray-500 dark:text-gray-400">
@@ -387,7 +377,7 @@ export default function BusinessPageClient({
 
             {/* Buyer Protection Card */}
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
               <div className="text-xs">
                 <span className="font-bold text-gray-900 dark:text-white block mb-0.5">
                   Listme Buyer Protection
@@ -452,7 +442,7 @@ export default function BusinessPageClient({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900">
                       <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white mb-1">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <CheckCircle2 className="w-4 h-4 text-gray-400" />
                         <span>Direct Bank Payouts</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -462,7 +452,7 @@ export default function BusinessPageClient({
 
                     <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900">
                       <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white mb-1">
-                        <ShieldCheck className="w-4 h-4 text-primary" />
+                        <ShieldCheck className="w-4 h-4 text-gray-400" />
                         <span>Credit Card Seller Verification</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -472,7 +462,7 @@ export default function BusinessPageClient({
 
                     <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900">
                       <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white mb-1">
-                        <MessageSquare className="w-4 h-4 text-blue-500" />
+                        <MessageSquare className="w-4 h-4 text-gray-400" />
                         <span>Direct Ticket Support</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -485,7 +475,7 @@ export default function BusinessPageClient({
 
                     <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900">
                       <div className="flex items-center gap-2 font-bold text-sm text-gray-900 dark:text-white mb-1">
-                        <Store className="w-4 h-4 text-amber-500" />
+                        <Store className="w-4 h-4 text-gray-400" />
                         <span>Business Storefronts</span>
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
@@ -500,7 +490,7 @@ export default function BusinessPageClient({
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-zinc-800">
                   <h3 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-2">
-                    <Package className="w-4 h-4 text-primary" />
+                    <Package className="w-4 h-4 text-gray-400" />
                     <span>Store Inventory</span>
                     <span className="text-xs font-medium text-gray-400">({listings.length})</span>
                   </h3>

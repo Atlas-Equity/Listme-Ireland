@@ -79,29 +79,25 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   let sellerId: string | null = null;
   let isOwner = false;
 
-  // 1. Search for REAL business pages created/edited by registered users
-  // Step A: Check current user's business pages first
-  if (user?.user_metadata?.business_pages) {
-    const found = (user.user_metadata.business_pages as BusinessPageData[]).find(
-      (p) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
-    );
-    if (found) {
-      businessPage = found;
-      sellerId = user.id;
-      isOwner = true;
-    }
-  }
+  // 1. Search across all registered business pages (canonical registry)
+  const allPages = await getAllRegisteredBusinessPages();
+  const matched = allPages.find(
+    (p: BusinessPageData) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
+  );
 
-  // Step B: Search across all registered business pages
-  if (!businessPage) {
-    const allPages = await getAllRegisteredBusinessPages();
-    const matched = allPages.find(
-      (p: BusinessPageData) => p.slug === cleanSlug || p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === cleanSlug
-    );
-    if (matched) {
-      businessPage = matched;
-      sellerId = matched.owner_id || null;
-      isOwner = Boolean(user && user.id === matched.owner_id);
+  if (matched) {
+    businessPage = matched;
+    sellerId = matched.owner_id || null;
+    isOwner = Boolean(user && user.id === matched.owner_id);
+
+    // If current user is the verified owner, merge freshest in-session metadata
+    if (isOwner && user?.user_metadata?.business_pages) {
+      const userCopy = (user.user_metadata.business_pages as BusinessPageData[]).find(
+        (p) => p.slug === cleanSlug || p.id === matched.id
+      );
+      if (userCopy) {
+        businessPage = { ...matched, ...userCopy };
+      }
     }
   }
 

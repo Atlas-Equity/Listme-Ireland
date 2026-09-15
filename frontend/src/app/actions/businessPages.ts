@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { isAdmin } from '@/utils/admin';
 
 export interface TeamMemberData {
   user_id: string;
@@ -60,6 +61,25 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
 
   if (!cleanSlug) {
     return { error: 'Please enter a valid page name or handle slug.' };
+  }
+
+  // 1. Reserved platform slugs check
+  const RESERVED_SLUGS = new Set([
+    'listme', 'official', 'admin', 'administrator', 'support', 'help',
+    'api', 'auth', 'login', 'signup', 'register', 'settings', 'account',
+    'marketplace', 'services', 'jobs', 'community', 'messages', 'terms', 'privacy', 'about'
+  ]);
+
+  const userIsAdmin = isAdmin(user);
+  if (RESERVED_SLUGS.has(cleanSlug) && !userIsAdmin) {
+    return { error: `The handle "${cleanSlug}" is reserved by the ListMe platform. Please choose a different handle.` };
+  }
+
+  // 2. Global uniqueness check across all registered business pages
+  const allRegistered = await getAllRegisteredBusinessPages();
+  const existingGlobalPage = allRegistered.find(p => p.slug === cleanSlug);
+  if (existingGlobalPage && existingGlobalPage.owner_id && existingGlobalPage.owner_id !== user.id) {
+    return { error: `The handle "${cleanSlug}" is already taken by another registered business. Please choose a different name or handle.` };
   }
 
   // Format phone to Irish standard (optional for official ListMe page)
@@ -260,21 +280,36 @@ export async function getAllRegisteredBusinessPages(): Promise<BusinessPageData[
     const { data: usersData, error } = await adminClient.auth.admin.listUsers({ perPage: 100 });
     if (error || !usersData?.users) return cached?.pages || [];
 
-    const allPages: BusinessPageData[] = [];
-    const seenSlugs = new Set<string>();
+    const rawPages: { page: BusinessPageData; owner_id: string; created_time: number }[] = [];
 
     for (const u of usersData.users) {
       const pages = u.user_metadata?.business_pages as BusinessPageData[];
       if (Array.isArray(pages)) {
         for (const p of pages) {
-          if (p && p.slug && !seenSlugs.has(p.slug)) {
-            seenSlugs.add(p.slug);
-            allPages.push({
-              ...p,
+          if (p && p.slug) {
+            rawPages.push({
+              page: p,
               owner_id: u.id,
+              created_time: p.created_at ? new Date(p.created_at).getTime() : 0,
             });
           }
         }
+      }
+    }
+
+    // Sort chronologically ascending so the original creator is always canonical
+    rawPages.sort((a, b) => a.created_time - b.created_time);
+
+    const allPages: BusinessPageData[] = [];
+    const seenSlugs = new Set<string>();
+
+    for (const item of rawPages) {
+      if (!seenSlugs.has(item.page.slug)) {
+        seenSlugs.add(item.page.slug);
+        allPages.push({
+          ...item.page,
+          owner_id: item.owner_id,
+        });
       }
     }
 
@@ -628,11 +663,12 @@ export async function removeBusinessTeamMemberAction(pageSlug: string, memberUse
     return { error: 'Business page not found.' };
   }
 
-  const isOwner = page.owner_id === user.id;
+  const userIsAdmin = isAdmin(user);
+  const isOwner = page.owner_id === user.id || (page.slug === 'listme' && userIsAdmin);
   const isSelf = user.id === memberUserId;
 
-  if (!isOwner && !isSelf) {
-    return { error: 'You do not have permission to remove team members from this page.' };
+  if (!isOwner && !userIsAdmin && !isSelf) {
+    return { error: 'Only the business page owner can remove team members.' };
   }
 
   // 2. Remove member from owner's page

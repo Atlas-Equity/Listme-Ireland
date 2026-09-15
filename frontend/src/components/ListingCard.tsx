@@ -100,7 +100,7 @@ export function ListingCard({
           {isSaved ? (
             /* Iconic golden triangle bookmark with checkmark */
             <div className="relative w-12 h-12 overflow-hidden drop-shadow-md">
-              <div className="absolute -top-6 -right-6 w-16 h-16 bg-gradient-to-br from-[#f8c633] to-[#e6ac10] rotate-45 flex items-end justify-center pb-1">
+              <div className="absolute -top-6 -right-6 w-16 h-16 bg-[#f8c633] rotate-45 flex items-end justify-center pb-1">
                 <Check className="w-3.5 h-3.5 text-[#5e3800] stroke-[3.5] -rotate-45 mb-1 mr-1" />
               </div>
             </div>

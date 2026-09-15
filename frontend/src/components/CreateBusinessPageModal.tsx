@@ -219,7 +219,7 @@ export default function CreateBusinessPageModal({
           onClick={() => setIsOpen(true)}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 font-bold text-xs transition-colors cursor-pointer shadow-xs"
         >
-          <Edit2 className="w-3.5 h-3.5 text-primary" />
+          <Edit2 className="w-3.5 h-3.5 text-zinc-400" />
           <span>Edit Page</span>
         </button>
       ) : (
@@ -240,7 +240,7 @@ export default function CreateBusinessPageModal({
             {/* Modal Header */}
             <div className="p-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -280,7 +280,7 @@ export default function CreateBusinessPageModal({
                   Page Profile Picture / Logo (PFP) *
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 flex items-center justify-center shrink-0 relative">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 flex items-center justify-center shrink-0 relative">
                     {avatarUrl ? (
                       <Image
                         src={avatarUrl}
@@ -313,9 +313,9 @@ export default function CreateBusinessPageModal({
                       className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-900 dark:text-white text-xs font-bold transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
                     >
                       {isUploadingImage ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" />
                       ) : (
-                        <Upload className="w-3.5 h-3.5 text-primary" />
+                        <Upload className="w-3.5 h-3.5 text-zinc-400" />
                       )}
                       <span>{isUploadingImage ? 'Uploading Image...' : avatarUrl ? 'Change Image' : 'Upload Image'}</span>
                     </button>

@@ -80,9 +80,9 @@ export default function VerifyAccountButton({
         <button
           type="button"
           onClick={() => setShowModal(true)}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-xs font-bold transition-all shadow-sm hover:shadow flex items-center gap-2 cursor-pointer active:scale-[0.99]"
+          className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-[0.99]"
         >
-          <ShieldCheck className="w-4 h-4 text-emerald-200" />
+          <ShieldCheck className="w-4 h-4 text-white" />
           <span>Get Verified for €4.99/mo</span>
         </button>
 
@@ -103,13 +103,13 @@ export default function VerifyAccountButton({
             {/* Modal Header */}
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-zinc-800 flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
                     <span>ListMe Verified Badge</span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                    <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700">
                       Official
                     </span>
                   </h3>
@@ -129,22 +129,22 @@ export default function VerifyAccountButton({
             </div>
 
             {/* Perks Summary */}
-            <div className="px-6 py-3.5 bg-emerald-50/50 dark:bg-emerald-950/15 border-b border-emerald-100/60 dark:border-emerald-900/20">
+            <div className="px-6 py-3.5 bg-gray-50 dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                   <span>Exclusive badge on profile &amp; listings</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                   <span>Increased buyer confidence &amp; faster sales</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                   <span>Priority search and category ranking</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                   <span>Cancel anytime in your Account Portal</span>
                 </div>
               </div>
@@ -164,7 +164,7 @@ export default function VerifyAccountButton({
             {/* Modal Footer */}
             <div className="px-6 py-3 bg-gray-50 dark:bg-zinc-900/50 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
                 Processed securely by Stripe • 256-bit encryption
               </span>
               <button

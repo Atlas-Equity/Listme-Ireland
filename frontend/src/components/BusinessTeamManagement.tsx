@@ -39,6 +39,8 @@ export default function BusinessTeamManagement({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  const [pendingRemovalMember, setPendingRemovalMember] = useState<{ id: string; name: string } | null>(null);
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteInput.trim()) return;
@@ -64,8 +66,13 @@ export default function BusinessTeamManagement({
     }
   };
 
-  const handleRemoveMember = async (memberUserId: string) => {
-    if (!confirm('Are you sure you want to remove this member from the business team?')) return;
+  const handlePromptRemoval = (memberUserId: string, memberName: string) => {
+    setPendingRemovalMember({ id: memberUserId, name: memberName });
+  };
+
+  const executeRemoveMember = async () => {
+    if (!pendingRemovalMember) return;
+    const { id: memberUserId, name: memberName } = pendingRemovalMember;
     setRemovingId(memberUserId);
     setFeedback(null);
     try {
@@ -73,7 +80,8 @@ export default function BusinessTeamManagement({
       if (res.error) {
         setFeedback({ type: 'error', message: res.error });
       } else {
-        setFeedback({ type: 'success', message: 'Team member removed.' });
+        setFeedback({ type: 'success', message: `@${memberName} was removed from the business team.` });
+        setPendingRemovalMember(null);
         router.refresh();
       }
     } catch {
@@ -87,7 +95,7 @@ export default function BusinessTeamManagement({
     <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs space-y-5">
       <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
           <div>
@@ -100,7 +108,7 @@ export default function BusinessTeamManagement({
           </div>
         </div>
 
-        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300">
+        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700">
           {1 + teamMembers.length} {1 + teamMembers.length === 1 ? 'Member' : 'Members'}
         </span>
       </div>
@@ -109,12 +117,12 @@ export default function BusinessTeamManagement({
         <div
           className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
             feedback.type === 'success'
-              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+              ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-200'
               : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
           }`}
         >
           {feedback.type === 'success' ? (
-            <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+            <Check className="w-4 h-4 shrink-0 text-zinc-400" />
           ) : (
             <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
           )}
@@ -171,8 +179,8 @@ export default function BusinessTeamManagement({
           {/* Owner Entry */}
           <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                <Crown className="w-3.5 h-3.5 text-amber-500" />
+              <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 flex items-center justify-center font-bold text-xs">
+                <Crown className="w-3.5 h-3.5 text-zinc-300" />
               </div>
               <div>
                 <span className="font-bold text-gray-900 dark:text-white block">
@@ -181,7 +189,7 @@ export default function BusinessTeamManagement({
                 <span className="text-[10px] text-gray-400">Primary Administrator</span>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
               Owner
             </span>
           </div>
@@ -196,7 +204,7 @@ export default function BusinessTeamManagement({
                 className="p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs">
                     {memberName.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -208,16 +216,16 @@ export default function BusinessTeamManagement({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
                     Staff
                   </span>
 
                   {(isOwner || isAdmin) && memberId && (
                     <button
                       type="button"
-                      onClick={() => handleRemoveMember(memberId)}
+                      onClick={() => handlePromptRemoval(memberId, memberName)}
                       disabled={removingId === memberId}
-                      className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors"
+                      className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                       title="Remove member"
                     >
                       {removingId === memberId ? (
@@ -234,6 +242,53 @@ export default function BusinessTeamManagement({
         </div>
       </div>
 
+      {/* In-App Confirmation Modal (Replaces browser "www.listme.ie says" confirm) */}
+      {pendingRemovalMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-[#1c1c1e] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white">
+                  Remove Team Member
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Are you sure you want to remove <span className="font-bold text-gray-900 dark:text-white">@{pendingRemovalMember.name}</span> from the business team?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setPendingRemovalMember(null)}
+                disabled={removingId !== null}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-xs font-semibold text-gray-700 dark:text-zinc-300 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeRemoveMember}
+                disabled={removingId !== null}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {removingId ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Removing...</span>
+                  </>
+                ) : (
+                  <span>Remove Member</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pending Invites List */}
       {pendingInvites.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
@@ -246,13 +301,13 @@ export default function BusinessTeamManagement({
             {pendingInvites.map((invite, idx) => (
               <div
                 key={idx}
-                className="p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-between text-xs"
+                className="p-2 rounded-lg bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs"
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-semibold text-gray-800 dark:text-gray-200">
                     @{invite.username}
                   </span>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-400">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">
                     • Awaiting acceptance
                   </span>
                 </div>

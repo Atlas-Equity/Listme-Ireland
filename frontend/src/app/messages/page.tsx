@@ -780,19 +780,19 @@ function MessagesContent() {
                           <div key={msg.id} className="flex flex-col items-center my-4 px-2 animate-in fade-in duration-200">
                             <div className={`p-4 sm:p-5 rounded-2xl border shadow-sm max-w-md w-full transition-all ${
                               isAccepted
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100'
+                                ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white'
                                 : isDeclined
                                 ? 'bg-gray-50 dark:bg-zinc-900/80 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-gray-300'
-                                : 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-zinc-900 dark:to-zinc-900/90 border-amber-300 dark:border-amber-700/70 text-gray-900 dark:text-white'
+                                : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white'
                             }`}>
                               <div className="flex items-start justify-between gap-3 mb-2">
                                 <div className="flex items-center gap-2.5">
                                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold shrink-0 ${
                                     isAccepted 
-                                      ? 'bg-emerald-500 text-white' 
+                                      ? 'bg-zinc-800 border border-zinc-700 text-zinc-300' 
                                       : isDeclined 
                                       ? 'bg-gray-400 text-white' 
-                                      : 'bg-amber-400 text-amber-950 shadow-xs'
+                                      : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
                                   }`}>
                                     <Tag className="w-4 h-4" />
                                   </div>
@@ -805,12 +805,12 @@ function MessagesContent() {
                                     </div>
                                   </div>
                                 </div>
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold ${
+                                <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
                                   isAccepted
-                                    ? 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
+                                    ? 'bg-zinc-800 border border-zinc-700 text-zinc-300'
                                     : isDeclined
                                     ? 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-400'
-                                    : 'bg-amber-200 dark:bg-amber-900/70 text-amber-900 dark:text-amber-200'
+                                    : 'bg-zinc-800 border border-zinc-700 text-zinc-300'
                                 }`}>
                                   {isAccepted ? 'Accepted' : isDeclined ? 'Declined' : 'Pending Response'}
                                 </span>
@@ -907,8 +907,8 @@ function MessagesContent() {
                       if (answerData) {
                         return (
                           <div key={msg.id} className="flex flex-col items-center my-3 px-2 animate-in fade-in duration-200">
-                            <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 max-w-md w-full text-xs text-emerald-950 dark:text-emerald-100 flex items-start gap-2.5">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                            <div className="p-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 max-w-md w-full text-xs text-gray-900 dark:text-zinc-200 flex items-start gap-2.5">
+                              <CheckCircle2 className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
                               <div>
                                 <span className="font-bold">Public Answer posted to listing:</span> &ldquo;{answerData.text}&rdquo;
                               </div>
@@ -933,7 +933,7 @@ function MessagesContent() {
                                       ? 'bg-red-500/10 text-red-500 border border-red-500/20'
                                       : isDeclined
                                       ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                      : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
                                   }`}
                                 >
                                   {isMissed ? (

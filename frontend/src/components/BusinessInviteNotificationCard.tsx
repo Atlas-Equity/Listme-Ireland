@@ -46,9 +46,9 @@ export default function BusinessInviteNotificationCard({ invite }: BusinessInvit
 
   if (isResolved) {
     return (
-      <div className="p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between animate-in fade-in">
+      <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-xs text-gray-800 dark:text-zinc-200 flex items-center justify-between animate-in fade-in">
         <div className="flex items-center gap-2 font-semibold">
-          <Check className="w-4 h-4 text-emerald-600" />
+          <Check className="w-4 h-4 text-zinc-300" />
           <span>{statusMessage}</span>
         </div>
       </div>
@@ -60,12 +60,12 @@ export default function BusinessInviteNotificationCard({ invite }: BusinessInvit
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center shrink-0 mt-0.5">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-zinc-300">
                 Business Team Invitation
               </span>
               <span className="text-[10px] text-gray-400 font-mono">
