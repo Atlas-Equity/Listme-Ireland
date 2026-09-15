@@ -18,7 +18,6 @@ import {
   CheckCircle2, 
   AlertCircle,
   Clock,
-  Megaphone,
   Camera,
   Upload,
   Edit2
@@ -87,7 +86,6 @@ export default function CreateBusinessPageModal({
   const [isCustomHours, setIsCustomHours] = useState(
     initialData?.opening_hours ? !OPENING_HOURS_PRESETS.includes(initialData.opening_hours) : false
   );
-  const [announcement, setAnnouncement] = useState(initialData?.announcement || '');
   const [avatarUrl, setAvatarUrl] = useState(initialData?.avatarUrl || '');
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -146,37 +144,48 @@ export default function CreateBusinessPageModal({
     e.preventDefault();
     setErrorMessage(null);
 
+    if (!avatarUrl.trim()) {
+      setErrorMessage('Please upload a business profile picture / logo.');
+      return;
+    }
+
     if (!name.trim()) {
-      setErrorMessage('Please enter a business page name.');
+      setErrorMessage('Please enter a business / store name.');
+      return;
+    }
+
+    if (!tagline.trim()) {
+      setErrorMessage('Please enter your business pitch / about this.');
+      return;
+    }
+
+    const resolvedHours = isCustomHours && customHours.trim() ? customHours.trim() : openingHours;
+    if (!resolvedHours.trim()) {
+      setErrorMessage('Opening hours are required.');
       return;
     }
 
     const rawNumber = phone.replace('+353 ', '').trim();
-    if (!isOfficialListMe && !rawNumber) {
-      setErrorMessage('A contact phone number is required (Irish prefix +353).');
-      return;
-    }
+    const formattedPhone = rawNumber ? phone : '';
 
     setIsSubmitting(true);
     try {
-      const resolvedHours = isCustomHours && customHours.trim() ? customHours.trim() : openingHours;
-
       const payload: BusinessPageData = {
         id: initialData?.id,
         name,
         slug,
-        tagline,
+        tagline: tagline.trim(),
         business_type: businessType,
         opening_hours: resolvedHours,
-        announcement: announcement.trim().slice(0, 250),
+        announcement: '',
         avatarUrl: avatarUrl.trim(),
         category,
         county,
-        phone: isOfficialListMe && !rawNumber ? '' : phone,
-        email,
-        website,
-        facebook,
-        linkedin,
+        phone: formattedPhone,
+        email: email.trim(),
+        website: website.trim(),
+        facebook: facebook.trim(),
+        linkedin: linkedin.trim(),
         is_hiring: isHiring,
         allow_direct_messaging: allowDirectMessaging,
         is_verified: isOfficialListMe ? true : Boolean(initialData?.is_verified),
@@ -268,7 +277,7 @@ export default function CreateBusinessPageModal({
               {/* Profile Picture / Logo */}
               <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/60 space-y-3">
                 <label className="block text-xs font-bold text-gray-900 dark:text-white">
-                  Page Profile Picture / Logo (PFP)
+                  Page Profile Picture / Logo (PFP) *
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 flex items-center justify-center shrink-0 relative">
@@ -311,7 +320,7 @@ export default function CreateBusinessPageModal({
                       <span>{isUploadingImage ? 'Uploading Image...' : avatarUrl ? 'Change Image' : 'Upload Image'}</span>
                     </button>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Upload your business logo or photo. Direct upload (JPG, PNG, WebP).
+                      Upload your business logo or photo (JPG, PNG, WebP). Required for business verification.
                     </p>
                   </div>
                 </div>
@@ -353,37 +362,17 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              {/* Announcement (max 250 chars) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <Megaphone className="w-3.5 h-3.5 text-primary" />
-                    <span>Business Announcement (Max 250 characters)</span>
-                  </label>
-                  <span className={`text-[11px] font-mono ${announcement.length > 250 ? 'text-red-500 font-bold' : 'text-gray-400'}`}>
-                    {announcement.length} / 250
-                  </span>
-                </div>
-                <textarea
-                  value={announcement}
-                  maxLength={250}
-                  rows={2}
-                  onChange={(e) => setAnnouncement(e.target.value)}
-                  placeholder="e.g. Special spring sale: 10% off all website design packages this week! Open for urgent inquiries."
-                  className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
-                />
-              </div>
-
-              {/* Tagline */}
+              {/* Business Pitch / About This */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Tagline / Business Pitch
+                  Business Pitch / About This *
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  required
+                  rows={3}
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. Modern web design, branding, and digital strategy for Irish brands."
+                  placeholder="e.g. Modern web design, branding, and digital strategy for Irish brands. Tell customers what your business does and why to choose you."
                   className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
@@ -431,18 +420,17 @@ export default function CreateBusinessPageModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Contact Phone (Locked to Ireland +353) {isOfficialListMe ? <span className="text-gray-400 font-normal">(Optional for ListMe)</span> : '*'}
+                    Contact Phone (Locked to Ireland +353) <span className="text-gray-400 font-normal">(Recommended)</span>
                   </label>
                   <input
                     type="tel"
-                    required={!isOfficialListMe}
                     value={phone}
                     onChange={handlePhoneChange}
-                    placeholder={isOfficialListMe ? 'Optional for ListMe official page' : '+353 87 123 4567'}
+                    placeholder="+353 87 123 4567"
                     className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-primary outline-none"
                   />
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    {isOfficialListMe ? 'Phone number is optional for our official platform page.' : 'Prefix +353 is permanently locked.'}
+                    Recommended for direct customer calls. Prefix +353 is locked.
                   </p>
                 </div>
 

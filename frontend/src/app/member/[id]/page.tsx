@@ -363,12 +363,20 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                   </div>
 
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">
-                      {totalReviews > 0 ? `${feedbackPercentage}% positive feedback` : '100% positive feedback'}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      ({totalReviews > 0 ? `${totalReviews} reviews` : 'New Member'})
-                    </span>
+                    {totalReviews > 0 ? (
+                      <>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          {feedbackPercentage}% positive feedback
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          ({totalReviews} reviews)
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Verified Community Member
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -456,17 +464,19 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               <span>Active Listings ({activeListings.length})</span>
             </Link>
 
-            <Link
-              href={`/member/${memberNumber}?tab=feedback`}
-              className={`py-4 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === 'feedback'
-                  ? 'border-primary text-primary dark:text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Feedback &amp; Reviews ({totalReviews})</span>
-            </Link>
+            {totalReviews > 0 && (
+              <Link
+                href={`/member/${memberNumber}?tab=feedback`}
+                className={`py-4 border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'feedback'
+                    ? 'border-primary text-primary dark:text-white'
+                    : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Feedback &amp; Reviews ({totalReviews})</span>
+              </Link>
+            )}
           </div>
         </div>
 

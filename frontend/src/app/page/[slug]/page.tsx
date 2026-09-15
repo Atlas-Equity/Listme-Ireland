@@ -165,7 +165,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       .limit(50);
     pageListings = (data || []).filter(l => 
       l.description?.includes(`[Business Page: ${cleanSlug}`) || 
-      !l.description?.includes('[Business Page:')
+      (l as any).business_page_slug === cleanSlug
     );
   }
 

@@ -23,7 +23,8 @@ import {
   FileText,
   ShieldCheck,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import { uploadListingImage } from '@/utils/supabase/storage';
 import { createListing } from './actions';
@@ -76,6 +77,7 @@ export default function SellPage() {
   const [hasCreditCard, setHasCreditCard] = useState(false);
   const [linkedDebitCard, setLinkedDebitCard] = useState<any>(null);
   const [marketplacePages, setMarketplacePages] = useState<BusinessPageData[]>([]);
+  const [currentUsername, setCurrentUsername] = useState<string>('me');
   const [error, setError] = useState<string | null>(null);
 
   // TradeMe Branch Selection ('item' | 'job' | 'service')
@@ -167,10 +169,27 @@ export default function SellPage() {
       setHasCreditCard(cardValid || isExempt);
       setLinkedDebitCard(isExempt ? null : (detectedDebit || null));
 
-      // Check owned marketplace pages in metadata
+      // Check all owned and assigned business pages
       const userPages = (userMeta.business_pages || []) as BusinessPageData[];
-      const mktPages = userPages.filter(p => p.business_type === 'marketplace');
-      setMarketplacePages(mktPages);
+      const assigned = (userMeta.assigned_business_pages || []) as any[];
+      const combinedPages: BusinessPageData[] = [...userPages];
+      for (const ap of assigned) {
+        if (ap.slug && !combinedPages.some(p => p.slug === ap.slug)) {
+          combinedPages.push({
+            name: ap.name || ap.slug,
+            slug: ap.slug,
+            tagline: '',
+            category: 'Storefront',
+            county: 'Ireland',
+            phone: '',
+            email: '',
+          });
+        }
+      }
+      setMarketplacePages(combinedPages);
+
+      const resolvedUsername = profile?.username || userMeta.username || user.email?.split('@')[0] || 'Member';
+      setCurrentUsername(resolvedUsername);
 
       // Default company name if user has profile info
       setCompanyName(profile?.full_name || profile?.username || userMeta.full_name || userMeta.username || '');
@@ -370,30 +389,96 @@ export default function SellPage() {
             </span>
           </div>
           
-          {/* Business Page Storefront Selector (IF Business Account AND has marketplace page) */}
-          {isBusiness && marketplacePages.length > 0 && (
-            <div className="mt-4 p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
-              <label className="block text-xs font-bold text-gray-900 dark:text-white mb-1.5 flex items-center gap-1.5">
-                <Store className="w-3.5 h-3.5 text-primary" />
-                <span>List Under Business Storefront</span>
-                <span className="text-[10px] font-normal text-gray-400">(Marketplace Business Pages)</span>
-              </label>
-              <select
-                value={selectedBusinessSlug}
-                onChange={(e) => setSelectedBusinessSlug(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-primary focus:border-primary"
-              >
-                <option value="">Personal Seller Profile (Default)</option>
-                {marketplacePages.map(page => (
-                  <option key={page.slug} value={page.slug}>
-                    {page.name} — Storefront (/page/{page.slug})
-                  </option>
-                ))}
-              </select>
+          {/* Selling Identity Customizer: Sell as Myself vs Sell on Storefront */}
+          {marketplacePages.length > 0 && (
+            <div className="mt-4 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] space-y-3">
+              <div>
+                <label className="text-xs font-bold text-gray-900 dark:text-white block">
+                  Who is selling this item?
+                </label>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  Customise whether this listing is published under your personal name or on a business storefront.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Option A: Myself */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedBusinessSlug('')}
+                  className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                    !selectedBusinessSlug
+                      ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary'
+                      : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-700 text-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
+                    !selectedBusinessSlug ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {currentUsername.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold block text-gray-900 dark:text-white">
+                      Sell as Myself (@{currentUsername})
+                    </span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block">
+                      Personal listing (does not show on store page)
+                    </span>
+                  </div>
+                </button>
+
+                {/* Option B: Business Storefront */}
+                <div className={`p-3 rounded-xl border transition-all ${
+                  selectedBusinessSlug
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                    : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-700'
+                }`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedBusinessSlug && marketplacePages.length > 0) {
+                        setSelectedBusinessSlug(marketplacePages[0].slug);
+                      }
+                    }}
+                    className="w-full text-left flex items-center gap-3 cursor-pointer"
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      selectedBusinessSlug ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-400'
+                    }`}>
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-bold block text-gray-900 dark:text-white">
+                        Sell on Business Storefront
+                      </span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 block">
+                        Shows store branding &amp; appears in store catalog
+                      </span>
+                    </div>
+                  </button>
+
+                  {selectedBusinessSlug && marketplacePages.length > 1 && (
+                    <select
+                      value={selectedBusinessSlug}
+                      onChange={(e) => setSelectedBusinessSlug(e.target.value)}
+                      className="mt-2 w-full px-2.5 py-1.5 text-xs border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {marketplacePages.map((page) => (
+                        <option key={page.slug} value={page.slug}>
+                          {page.name} (/page/{page.slug})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
               {selectedBusinessSlug && (
-                <p className="text-[11px] text-primary mt-1.5 font-medium flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  This listing will be featured directly in the storefront of {selectedPageObj?.name}.
+                <p className="text-[11px] text-primary font-medium flex items-center gap-1.5 pt-0.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Storefront Active: Buyers will see the <strong>{selectedPageObj?.name}</strong> storefront and location on this listing.
+                  </span>
                 </p>
               )}
             </div>

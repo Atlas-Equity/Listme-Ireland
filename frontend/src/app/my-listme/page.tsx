@@ -985,52 +985,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                {/* TradeMe Feedback Breakdown Card */}
-                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-zinc-800">
-                    <div>
-                      <h3 className="font-extrabold uppercase text-gray-900 dark:text-white text-base">
-                        FEEDBACK SUMMARY
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Ratings and reviews from completed transactions.
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-black text-gray-900 dark:text-white">
-                        {feedbackPercentage}%
-                      </div>
-                      <div className="text-[10px] text-gray-400 uppercase font-semibold">Positive Rating</div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800">
-                      <div className="text-xl font-extrabold text-gray-900 dark:text-white">
-                        {positiveReviews}
-                      </div>
-                      <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
-                        Positive (Score 4-5)
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800">
-                      <div className="text-xl font-extrabold text-gray-900 dark:text-white">
-                        {neutralReviews}
-                      </div>
-                      <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
-                        Neutral (Score 3)
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800">
-                      <div className="text-xl font-extrabold text-gray-900 dark:text-white">
-                        {negativeReviews}
-                      </div>
-                      <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400">
-                        Negative (Score 1-2)
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Account Type Switch Card */}
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
@@ -1303,30 +1257,15 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               <div className="space-y-6">
                 
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
                         WATCHLIST
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {wishlistedListings.length} {wishlistedListings.length === 1 ? 'listing' : 'listings'}
+                        {wishlistedListings.length} {wishlistedListings.length === 1 ? 'item saved' : 'items saved'}
                       </p>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <CreateWatchlistModal />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 pt-4">
-                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 text-xs font-semibold bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shadow-2xs hover:bg-gray-50 flex items-center gap-1.5">
-                      <span>All Categories</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                    </button>
-                    <button className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-800 text-xs font-semibold bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 shadow-2xs hover:bg-gray-50 flex items-center gap-1.5">
-                      <span>All current listings</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                    </button>
                   </div>
                 </div>
 
