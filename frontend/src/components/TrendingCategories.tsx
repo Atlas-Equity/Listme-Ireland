@@ -31,7 +31,7 @@ export default async function TrendingCategories() {
 
     globalForCatCache.categoryCountsCache = {
       counts,
-      expiresAt: Date.now() + 60 * 1000,
+      expiresAt: Date.now() + 10 * 60 * 1000,
     };
   }
 
@@ -55,8 +55,6 @@ export default async function TrendingCategories() {
       slug: 'marketplace',
     },
   ];
-
-  console.timeEnd('TrendingCategories');
 
   return (
     <div className="mb-8 mt-8 sm:mt-12">

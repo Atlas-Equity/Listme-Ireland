@@ -9,9 +9,7 @@ import { fetchHomeListings } from "@/utils/backendApi";
 export const revalidate = 30;
 
 export default async function Home() {
-  console.time('Home_fetchHomeListings');
   const { latest: latestListings, auctions: auctionListings, closingSoon: closingSoonListings } = await fetchHomeListings();
-  console.timeEnd('Home_fetchHomeListings');
 
   return (
     <div className="w-full bg-white dark:bg-black min-h-screen">
@@ -25,7 +23,7 @@ export default async function Home() {
           <>
             <SectionHeader title="Closing Soon (Under 24h)" viewAllLink="/marketplace" />
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-              {closingSoonListings.map((listing) => (
+              {closingSoonListings.map((listing, idx) => (
                 <ListingCard 
                   key={listing.id} 
                   id={listing.id}
@@ -37,6 +35,7 @@ export default async function Home() {
                   createdAt={listing.created_at}
                   location={listing.location}
                   closesAt={listing.expires_at || listing.ends_at}
+                  priority={idx < 2}
                 />
               ))}
             </div>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ListMe</string>
+    <string name="title_activity_main">ListMe</string>
+    <string name="package_name">ie.listme.app</string>
+    <string name="custom_url_scheme">ie.listme.app</string>
+</resources>

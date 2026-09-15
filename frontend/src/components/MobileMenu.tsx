@@ -52,6 +52,17 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
     setIsOpen(false);
   }, [pathname]);
 
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   // Prevent background scrolling when menu is open
   useEffect(() => {
     if (isOpen) {
@@ -86,20 +97,30 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
-      {/* Backdrop & Drawer */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-            onClick={() => setIsOpen(false)}
-          />
+      {/* Backdrop & Drawer Container with Hardware-Accelerated Transitions */}
+      <div
+        className={`fixed inset-0 z-50 flex transition-[visibility] duration-300 ${
+          isOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none delay-300'
+        }`}
+        aria-hidden={!isOpen}
+      >
+        {/* Backdrop Overlay with Smooth Fade */}
+        <div
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
+            isOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setIsOpen(false)}
+        />
 
-          {/* Drawer Content */}
-          <div className="relative w-full max-w-xs bg-white dark:bg-[#181818] border-r border-gray-200 dark:border-zinc-800 h-full overflow-y-auto flex flex-col justify-between z-10 shadow-2xl animate-in slide-in-from-left duration-200">
-            <div>
-              {/* Drawer Top Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
+        {/* Drawer Content with Smooth Slide-In / Slide-Out */}
+        <div
+          className={`relative w-full max-w-xs bg-white dark:bg-[#181818] border-r border-gray-200 dark:border-zinc-800 h-full overflow-y-auto flex flex-col justify-between z-10 shadow-2xl transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div>
+            {/* Drawer Top Header */}
+            <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                 <Link
                   href="/"
                   onClick={() => setIsOpen(false)}
@@ -328,7 +349,6 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
             )}
           </div>
         </div>
-      )}
-    </div>
+      </div>
   );
 }

@@ -5,9 +5,18 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--dns-result-order=ipv4first --max-http-header-size=65536' next dev",
     "build": "next build",
-    "start": "NODE_OPTIONS='--dns-result-order=ipv4first --max-http-header-size=65536' next start"
+    "start": "NODE_OPTIONS='--dns-result-order=ipv4first --max-http-header-size=65536' next start",
+    "cap:sync": "cap sync",
+    "cap:ios": "cap open ios",
+    "cap:android": "CAPACITOR_ANDROID_STUDIO_PATH=/home/sahleyis/Documents/android-studio/bin/studio.sh cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@stripe/stripe-js": "^9.15.0",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
@@ -23,6 +32,7 @@
     "stripe": "^22.6.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

@@ -19,6 +19,7 @@ export interface ListingCardProps {
   location?: string;
   closesAt?: string | null;
   initialWatchlisted?: boolean;
+  priority?: boolean;
 }
 
 export function ListingCard({
@@ -32,6 +33,7 @@ export function ListingCard({
   location = 'Dublin',
   closesAt,
   initialWatchlisted = false,
+  priority = false,
 }: ListingCardProps) {
   const { isWatchlisted, toggleWatchlist } = useWatchlist();
   const isSaved = isWatchlisted(id) || initialWatchlisted;
@@ -74,7 +76,8 @@ export function ListingCard({
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-            loading="lazy"
+            priority={priority}
+            loading={priority ? undefined : 'lazy'}
             decoding="async"
             unoptimized={!mainImage.includes('supabase.co') && !mainImage.includes('unsplash.com')}
           />

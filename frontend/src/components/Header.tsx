@@ -12,7 +12,6 @@ import HeaderMessagesBadge from './HeaderMessagesBadge';
 import HeaderNotificationsBadge from './HeaderNotificationsBadge';
 
 export default async function Header() {
-  console.time('Header');
   const cookieStore = await cookies();
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
 
@@ -40,7 +39,8 @@ export default async function Header() {
         isBusiness = cached.isBusiness;
         avatarUrl = cached.avatarUrl;
         isVerified = cached.isVerified;
-      } else {
+      } else if (!avatarUrl && !isBusiness) {
+        // Only query profiles if user_metadata is missing required fields
         const { data: profile } = await supabase
           .from('profiles')
           .select('account_type, avatar_url, updated_at')
@@ -59,7 +59,15 @@ export default async function Header() {
           isBusiness,
           avatarUrl,
           isVerified,
-          expiresAt: Date.now() + 60 * 1000,
+          expiresAt: Date.now() + 5 * 60 * 1000,
+        });
+      } else {
+        // user_metadata already has the data; cache it for 5 minutes
+        headerCache.set(user.id, {
+          isBusiness,
+          avatarUrl,
+          isVerified,
+          expiresAt: Date.now() + 5 * 60 * 1000,
         });
       }
     }

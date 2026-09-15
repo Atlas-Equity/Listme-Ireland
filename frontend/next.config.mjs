@@ -9,6 +9,8 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
   async redirects() {
     return [
       {
@@ -84,6 +86,24 @@ const nextConfig = {
     return [
       {
         source: '/clover-logo.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/ListMeBanner.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/favicon.ico',
         headers: [
           {
             key: 'Cache-Control',

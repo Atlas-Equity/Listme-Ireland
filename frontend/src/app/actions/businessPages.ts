@@ -200,6 +200,46 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     } catch (adminErr) {
       console.error('Error updating business page via adminClient:', adminErr);
     }
+
+    // Also sync directly to public.business_pages table if present in Supabase
+    try {
+      const dbRow = {
+        id: newPage.id,
+        owner_id: user.id,
+        name: newPage.name,
+        slug: newPage.slug,
+        tagline: newPage.tagline,
+        business_type: newPage.business_type,
+        opening_hours: newPage.opening_hours,
+        announcement: newPage.announcement,
+        category: newPage.category,
+        county: newPage.county,
+        phone: newPage.phone,
+        email: newPage.email,
+        website: newPage.website,
+        facebook: newPage.facebook,
+        linkedin: newPage.linkedin,
+        avatar_url: newPage.avatarUrl,
+        cover_url: newPage.coverUrl,
+        plan: newPage.plan,
+        is_verified: newPage.is_verified,
+        is_hiring: newPage.is_hiring,
+        allow_direct_messaging: newPage.allow_direct_messaging,
+        team_members: newPage.team_members,
+        pending_invites: newPage.pending_invites,
+        created_at: newPage.created_at,
+        updated_at: new Date().toISOString(),
+      };
+      const { error: dbErr } = await adminClient
+        .from('business_pages')
+        .upsert(dbRow, { onConflict: 'id' });
+
+      if (dbErr && dbErr.code === '23505') {
+        return { error: `The handle "${cleanSlug}" is already taken by another registered business in Supabase. Please choose a different handle.` };
+      }
+    } catch (dbEx) {
+      // Table may not be created yet in SQL editor, silent fallback to metadata
+    }
   }
 
   // Also update session cookie client
@@ -266,6 +306,11 @@ export async function deleteBusinessPage(slugOrId: string) {
         },
       });
     } catch (err) {}
+
+    // Also delete from public.business_pages table if exists
+    try {
+      await adminClient.from('business_pages').delete().eq('id', targetPage.id);
+    } catch (e) {}
   }
 
   await supabase.auth.updateUser({
@@ -295,7 +340,9 @@ export function invalidateBusinessPagesCache(): void {
 }
 
 /**
- * Returns all real registered business pages across all users (cached for 60s unless bypassCache is true).
+/**
+ * Returns all real registered business pages across all users (cached for 10 minutes unless bypassCache is true).
+ * Fast-paths to public.business_pages PostgreSQL table for sub-20ms response times.
  */
 export async function getAllRegisteredBusinessPages(options?: { bypassCache?: boolean }): Promise<BusinessPageData[]> {
   const cached = globalThis.__businessPagesCache;
@@ -311,35 +358,109 @@ export async function getAllRegisteredBusinessPages(options?: { bypassCache?: bo
     const adminClient = createAdminClient(url, serviceKey, {
       auth: { persistSession: false },
     });
-    
-    // Fetch all users across pages
-    let allUsers: any[] = [];
-    let pageNum = 1;
-    while (true) {
-      const { data: usersData, error } = await adminClient.auth.admin.listUsers({ page: pageNum, perPage: 1000 });
-      if (error || !usersData?.users || usersData.users.length === 0) break;
-      allUsers.push(...usersData.users);
-      if (usersData.users.length < 1000) break;
-      pageNum++;
-    }
-
-    if (allUsers.length === 0 && !options?.bypassCache) return cached?.pages || [];
 
     const rawPages: { page: BusinessPageData; owner_id: string; created_time: number }[] = [];
+    let candidates: any[] = [];
 
-    for (const u of allUsers) {
-      const pages = u.user_metadata?.business_pages as BusinessPageData[];
-      if (Array.isArray(pages)) {
-        for (const p of pages) {
-          if (p && p.slug) {
-            rawPages.push({
-              page: p,
-              owner_id: u.id,
-              created_time: p.created_at ? new Date(p.created_at).getTime() : 0,
-            });
+    // 1. FAST PATH: Query public.business_pages table directly (~15ms)
+    try {
+      const { data: dbPages, error: dbErr } = await adminClient
+        .from('business_pages')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (!dbErr && Array.isArray(dbPages) && dbPages.length > 0) {
+        for (const r of dbPages) {
+          rawPages.push({
+            page: {
+              id: r.id,
+              owner_id: r.owner_id,
+              name: r.name,
+              slug: r.slug,
+              tagline: r.tagline || '',
+              business_type: r.business_type || 'marketplace',
+              opening_hours: r.opening_hours || 'Open 24 Hours / 7 Days',
+              announcement: r.announcement || '',
+              category: r.category || 'Retail & Local Storefront',
+              county: r.county || 'Dublin',
+              phone: r.phone || '',
+              email: r.email || '',
+              website: r.website || '',
+              facebook: r.facebook || '',
+              linkedin: r.linkedin || '',
+              avatarUrl: r.avatar_url || '',
+              coverUrl: r.cover_url || '',
+              plan: r.plan || 'Commercial Storefront',
+              is_verified: Boolean(r.is_verified),
+              is_hiring: Boolean(r.is_hiring),
+              allow_direct_messaging: Boolean(r.allow_direct_messaging),
+              team_members: Array.isArray(r.team_members) ? r.team_members : [],
+              pending_invites: Array.isArray(r.pending_invites) ? r.pending_invites : [],
+              created_at: r.created_at,
+            },
+            owner_id: r.owner_id,
+            created_time: r.created_at ? new Date(r.created_at).getTime() : 0,
+          });
+        }
+      }
+    } catch (e) {
+      // Fall through to fallback
+    }
+
+    // 2. FALLBACK: Only paginate auth.admin.listUsers if business_pages table returned no rows
+    if (rawPages.length === 0) {
+      let allUsers: any[] = [];
+      let pageNum = 1;
+      while (true) {
+        const { data: usersData, error } = await adminClient.auth.admin.listUsers({ page: pageNum, perPage: 1000 });
+        if (error || !usersData?.users || usersData.users.length === 0) break;
+        allUsers.push(...usersData.users);
+        if (usersData.users.length < 1000) break;
+        pageNum++;
+      }
+
+      for (const u of allUsers) {
+        const pages = u.user_metadata?.business_pages as BusinessPageData[];
+        if (Array.isArray(pages)) {
+          for (const p of pages) {
+            if (p && p.slug) {
+              rawPages.push({
+                page: p,
+                owner_id: u.id,
+                created_time: p.created_at ? new Date(p.created_at).getTime() : 0,
+              });
+            }
           }
         }
       }
+
+      // Populate candidates cache from fallback user list
+      const candidates = allUsers
+        .filter((u) => u.user_metadata?.bio || u.user_metadata?.skills || u.user_metadata?.looking_for_work)
+        .map((u) => {
+          let hash = 0;
+          const uid = u.id || '';
+          for (let i = 0; i < uid.length; i++) {
+            hash = (hash << 5) - hash + uid.charCodeAt(i);
+            hash |= 0;
+          }
+          const memberNumber = 6000000 + Math.abs(hash % 3999999);
+          return {
+            id: u.id,
+            name: u.user_metadata?.full_name || u.user_metadata?.username || u.email?.split('@')[0] || 'Member',
+            memberNumber,
+            bio: u.user_metadata?.bio || 'Verified member open to opportunities.',
+            skills: u.user_metadata?.skills || '',
+            location: u.user_metadata?.location || 'Ireland',
+            avatarUrl: u.user_metadata?.avatar_url || '',
+            contactEmail: u.email,
+          };
+        });
+
+      globalThis.__jobCandidatesCache = {
+        candidates,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      };
     }
 
     // Sort chronologically ascending so the original creator is always canonical
@@ -357,29 +478,6 @@ export async function getAllRegisteredBusinessPages(options?: { bypassCache?: bo
         });
       }
     }
-
-    // Populate candidates cache from the same user list to save an extra roundtrip
-    const candidates = allUsers
-      .filter((u) => u.user_metadata?.bio || u.user_metadata?.skills || u.user_metadata?.looking_for_work)
-      .map((u) => {
-        let hash = 0;
-        const uid = u.id || '';
-        for (let i = 0; i < uid.length; i++) {
-          hash = (hash << 5) - hash + uid.charCodeAt(i);
-          hash |= 0;
-        }
-        const memberNumber = 6000000 + Math.abs(hash % 3999999);
-        return {
-          id: u.id,
-          name: u.user_metadata?.full_name || u.user_metadata?.username || u.email?.split('@')[0] || 'Member',
-          memberNumber,
-          bio: u.user_metadata?.bio || 'Verified member open to opportunities.',
-          skills: u.user_metadata?.skills || '',
-          location: u.user_metadata?.location || 'Ireland',
-          avatarUrl: u.user_metadata?.avatar_url || '',
-          contactEmail: u.email,
-        };
-      });
 
     // Ensure official ListMe storefront is always present
     if (!seenSlugs.has('listme')) {
@@ -418,13 +516,15 @@ export async function getAllRegisteredBusinessPages(options?: { bypassCache?: bo
 
     globalThis.__businessPagesCache = {
       pages: allPages,
-      expiresAt: Date.now() + 60 * 1000,
+      expiresAt: Date.now() + 10 * 60 * 1000,
     };
 
-    globalThis.__jobCandidatesCache = {
-      candidates,
-      expiresAt: Date.now() + 60 * 1000,
-    };
+    if (candidates && candidates.length > 0) {
+      globalThis.__jobCandidatesCache = {
+        candidates,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      };
+    }
 
     return allPages;
   } catch (err) {

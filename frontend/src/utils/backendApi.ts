@@ -125,7 +125,7 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
           auctions: (data.auctions || []).map(normalizeListing),
           closingSoon,
         };
-        setCached(cacheKey, result, 30);
+        setCached(cacheKey, result, 60);
         return result;
       } else {
         markJavaBackendFailure();
@@ -165,8 +165,12 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
     closingSoon,
   };
 
-  setCached(cacheKey, result, 30);
+  setCached(cacheKey, result, 60);
   return result;
+}
+
+export function invalidateHomeListingsCache(): void {
+  memoryCache.delete('home_listings');
 }
 
 /**
@@ -213,7 +217,7 @@ export async function fetchCategoryListings(categoryName: string): Promise<Listi
     .limit(30);
 
   const list = (data || []).map(normalizeListing);
-  setCached(cacheKey, list, 60);
+  setCached(cacheKey, list, 120);
   return list;
 }
 
@@ -234,7 +238,7 @@ export async function searchListings(query: string): Promise<ListingCardData[]> 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300);
       const res = await fetch(`${JAVA_BACKEND_URL}/api/public/listings?q=${encodeURIComponent(query)}&limit=50`, {
-        next: { revalidate: 15 },
+        next: { revalidate: 30 },
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -243,7 +247,7 @@ export async function searchListings(query: string): Promise<ListingCardData[]> 
         const data = await res.json();
         if (Array.isArray(data)) {
           const list = data.map(normalizeListing);
-          setCached(cacheKey, list, 15);
+          setCached(cacheKey, list, 30);
           return list;
         }
       } else {
@@ -263,6 +267,6 @@ export async function searchListings(query: string): Promise<ListingCardData[]> 
     .limit(50);
 
   const list = (data || []).map(normalizeListing);
-  setCached(cacheKey, list, 15);
+  setCached(cacheKey, list, 30);
   return list;
 }
