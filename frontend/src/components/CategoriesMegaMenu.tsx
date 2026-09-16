@@ -78,7 +78,6 @@ export default function CategoriesMegaMenu() {
   const [activeTab, setActiveTab] = useState<CategoryTab>('marketplace');
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click or Esc
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -102,13 +101,13 @@ export default function CategoriesMegaMenu() {
   }, [isOpen]);
 
   const tabs: { id: CategoryTab; label: string; icon: React.ReactNode; count: number; href: string }[] = [
-    { id: 'marketplace', label: 'Marketplace', icon: <ShoppingBag className="w-4 h-4" />, count: MARKETPLACE_SUBCATEGORIES.length, href: '/category/marketplace' },
+    { id: 'marketplace', label: 'Marketplace', icon: <ShoppingBag className="w-4 h-4" />, count: MARKETPLACE_SUBCATEGORIES.length, href: '/marketplace' },
     { id: 'community', label: 'Community', icon: <Users className="w-4 h-4" />, count: COMMUNITY_SUBCATEGORIES.length, href: '/community' },
   ];
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
-      {/* Mega Menu Trigger */}
+      
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -123,11 +122,11 @@ export default function CategoriesMegaMenu() {
         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-white' : 'text-gray-400'}`} />
       </button>
 
-      {/* Flyout Mega-Menu Dropdown */}
+      
       {isOpen && (
         <div className="absolute left-0 top-full mt-2 w-[850px] max-w-[90vw] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
           
-          {/* Top Tabs Bar */}
+          
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/80 px-4 pt-2">
             <div className="flex items-center gap-1">
               {tabs.map((tab) => {
@@ -165,10 +164,10 @@ export default function CategoriesMegaMenu() {
             </button>
           </div>
 
-          {/* Tab Content Panel */}
+          
           <div className="p-6">
             
-            {/* MARKETPLACE TAB */}
+            
             {activeTab === 'marketplace' && (
               <div>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -177,7 +176,7 @@ export default function CategoriesMegaMenu() {
                     Browse Marketplace
                   </h3>
                   <Link
-                    href="/category/marketplace"
+                    href="/marketplace"
                     onClick={() => setIsOpen(false)}
                     className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                   >
@@ -202,7 +201,7 @@ export default function CategoriesMegaMenu() {
               </div>
             )}
 
-            {/* JOBS TAB */}
+            
             {activeTab === 'jobs' && (
               <div>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -236,7 +235,7 @@ export default function CategoriesMegaMenu() {
               </div>
             )}
 
-            {/* SERVICES TAB */}
+            
             {activeTab === 'services' && (
               <div>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -270,7 +269,7 @@ export default function CategoriesMegaMenu() {
               </div>
             )}
 
-            {/* COMMUNITY TAB */}
+            
             {activeTab === 'community' && (
               <div>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -306,7 +305,7 @@ export default function CategoriesMegaMenu() {
 
           </div>
 
-          {/* Bottom Banner */}
+          
           <div className="p-3 bg-gray-50 dark:bg-zinc-900/60 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-6">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />

@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import PhoneVerificationModal from '@/components/PhoneVerificationModal';
 import { validatePhoneNumber } from '@/utils/phoneValidation';
 import { COUNTIES, getCoreLocation } from '@/utils/irelandLocations';
+import CustomSelect from '@/components/CustomSelect';
 
 interface ProfileSettingsFormProps {
   initialData: {
@@ -263,7 +264,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       
-      {/* Feedback Messages */}
+      
       {successMessage && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 transition-all animate-in fade-in">
           <CheckCircle2 className="w-5 h-5 shrink-0 text-green-600 dark:text-green-400" />
@@ -278,7 +279,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </div>
       )}
 
-      {/* Avatar Card */}
+      
       <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Picture</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -286,7 +287,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Avatar circle */}
+          
           <div className="relative group">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shadow-inner relative">
               {previewUrl ? (
@@ -305,7 +306,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
               )}
             </div>
 
-            {/* Camera Overlay Icon */}
+            
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -325,7 +326,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
             className="hidden"
           />
 
-          {/* Action buttons & info */}
+          
           <div className="flex flex-col gap-2 text-center sm:text-left">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
               <button
@@ -355,7 +356,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </div>
       </div>
 
-      {/* Basic Info Card */}
+      
       <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm space-y-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Personal Information</h2>
@@ -365,7 +366,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Full Name */}
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Full Name / Display Name
@@ -384,7 +385,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
             </div>
           </div>
 
-          {/* Username */}
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Username
@@ -408,33 +409,22 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
-          {/* Location */}
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Location / County
             </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <select
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-              >
-                {COUNTIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CustomSelect
+              value={location}
+              onChange={setLocation}
+              options={COUNTIES.map((c) => ({ value: c, label: c }))}
+            />
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Locked strictly to Ireland core counties.
             </p>
           </div>
 
-          {/* Phone */}
+          
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -493,7 +483,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
           </div>
         </div>
 
-        {/* Email Address (Read-only) */}
+        
         <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Registered Email
@@ -516,7 +506,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </div>
       </div>
 
-      {/* Save Button Bar */}
+      
       <div className="flex items-center justify-end gap-4">
         <button
           type="submit"
@@ -534,7 +524,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         </button>
       </div>
 
-      {/* Phone OTP Verification Modal */}
+      
       <PhoneVerificationModal
         isOpen={isVerifyingPhone}
         onClose={() => setIsVerifyingPhone(false)}

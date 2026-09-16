@@ -26,7 +26,6 @@ export default function HeaderMessagesBadge({
         setUnreadCount(data.unreadCount || 0);
       }
     } catch {
-      // Graceful fallback
     }
   }, [currentUserId]);
 
@@ -37,7 +36,6 @@ export default function HeaderMessagesBadge({
   useEffect(() => {
     if (!currentUserId) return;
 
-    // Listen for custom app events (e.g. from chat view or CallProvider)
     const handleLocalRead = () => {
       fetchUnread();
     };
@@ -49,7 +47,6 @@ export default function HeaderMessagesBadge({
     window.addEventListener('messages_read', handleLocalRead);
     window.addEventListener('new_message_received', handleLocalNewMessage);
 
-    // Subscribe to personal realtime channel for instant badge update
     const channel = supabase
       .channel(`badge_signals_${currentUserId}`)
       .on('broadcast', { event: 'new_message' }, () => {

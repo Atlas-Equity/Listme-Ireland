@@ -98,7 +98,7 @@ export default function ContactSellerButton({
 
   return (
     <>
-      {/* Trigger Button Variants */}
+      
       {variant === 'qa' ? (
         <div
           onClick={handleOpen}
@@ -133,14 +133,14 @@ export default function ContactSellerButton({
         </button>
       )}
 
-      {/* Modal / Dialog */}
+      
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
             className="w-full max-w-lg bg-white dark:bg-[#1f1f1f] rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
+            
             <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center font-bold text-lg">
@@ -163,9 +163,9 @@ export default function ContactSellerButton({
               </button>
             </div>
 
-            {/* Modal Body */}
+            
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
-              {/* Item Card Preview */}
+              
               <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-zinc-900/60 rounded-xl border border-gray-200/60 dark:border-zinc-800">
                 {listingImage ? (
                   <div className="w-14 h-14 relative rounded-lg overflow-hidden bg-gray-200 dark:bg-zinc-800 shrink-0">
@@ -222,7 +222,7 @@ export default function ContactSellerButton({
                 </div>
               ) : (
                 <>
-                  {/* Quick Prompts */}
+                  
                   <div>
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
                       Suggested questions:
@@ -241,7 +241,7 @@ export default function ContactSellerButton({
                     </div>
                   </div>
 
-                  {/* Message Input */}
+                  
                   <div className="space-y-2">
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Your message
@@ -261,7 +261,7 @@ export default function ContactSellerButton({
                     </div>
                   )}
 
-                  {/* Action Buttons */}
+                  
                   <div className="flex items-center justify-end gap-3 pt-2">
                     <button
                       type="button"

@@ -22,48 +22,96 @@ export async function GET(req: NextRequest) {
       auth: { persistSession: false },
     });
 
-    // 1. Fetch conversations for user
-    const { data: convs, error: convErr } = await admin
+    const { data: adminUserData } = await admin.auth.admin.getUserById(user.id);
+    const userMeta = adminUserData?.user?.user_metadata || user.user_metadata || {};
+    const businessInvites = Array.isArray(userMeta.business_invites) ? userMeta.business_invites : [];
+    const pendingInvites = businessInvites.filter((i: any) => i.status === 'pending');
+    const unreadInvites = pendingInvites.length;
+
+    const { data: convs } = await admin
       .from('conversations')
       .select('id, seller_id, buyer_id')
       .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
 
-    if (convErr || !convs || convs.length === 0) {
-      return NextResponse.json({ unreadCount: 0, unreadQuestions: 0 });
-    }
-
-    const convIds = convs.map(c => c.id);
-
-    // 2. Count unread messages from other users
-    const { count: unreadCount } = await admin
-      .from('messages')
-      .select('id', { count: 'exact', head: true })
-      .in('conversation_id', convIds)
-      .neq('sender_id', user.id)
-      .eq('is_read', false);
-
-    // 3. Count unread question messages for listings where current user is seller
-    const sellerConvIds = convs.filter(c => c.seller_id === user.id).map(c => c.id);
+    let unreadCount = 0;
     let unreadQuestions = 0;
+    let questionAlerts: any[] = [];
 
-    if (sellerConvIds.length > 0) {
-      const { count: qCount } = await admin
+    if (convs && convs.length > 0) {
+      const convIds = convs.map((c) => c.id);
+
+      const { count: mCount } = await admin
         .from('messages')
         .select('id', { count: 'exact', head: true })
-        .in('conversation_id', sellerConvIds)
+        .in('conversation_id', convIds)
         .neq('sender_id', user.id)
-        .like('content', 'QUESTION:%')
         .eq('is_read', false);
 
-      unreadQuestions = qCount || 0;
+      unreadCount = mCount || 0;
+
+      const sellerConvIds = convs.filter((c) => c.seller_id === user.id).map((c) => c.id);
+
+      if (sellerConvIds.length > 0) {
+        const { count: qCount } = await admin
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .in('conversation_id', sellerConvIds)
+          .neq('sender_id', user.id)
+          .like('content', 'QUESTION:%')
+          .eq('is_read', false);
+
+        unreadQuestions = qCount || 0;
+
+        if (unreadQuestions > 0) {
+          const { data: qMessages } = await admin
+            .from('messages')
+            .select('id, conversation_id, content, created_at')
+            .in('conversation_id', sellerConvIds)
+            .neq('sender_id', user.id)
+            .like('content', 'QUESTION:%')
+            .eq('is_read', false)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          questionAlerts = (qMessages || []).map((m) => {
+            let questionText = m.content.replace(/^QUESTION:/, '').trim();
+            let listingId = '';
+            try {
+              const parsed = JSON.parse(questionText);
+              questionText = parsed.question || questionText;
+              listingId = parsed.listingId || '';
+            } catch {}
+            return {
+              id: m.id,
+              conversationId: m.conversation_id,
+              question: questionText,
+              listingId,
+              createdAt: m.created_at,
+            };
+          });
+        }
+      }
     }
 
+    const totalNotifications = unreadQuestions + unreadInvites;
+
     return NextResponse.json({
-      unreadCount: unreadCount || 0,
+      unreadCount,
       unreadQuestions,
+      unreadInvites,
+      pendingInvites,
+      questionAlerts,
+      totalNotifications,
     });
   } catch (err: any) {
     console.error('unread-count API error:', err);
-    return NextResponse.json({ unreadCount: 0, unreadQuestions: 0 });
+    return NextResponse.json({
+      unreadCount: 0,
+      unreadQuestions: 0,
+      unreadInvites: 0,
+      pendingInvites: [],
+      questionAlerts: [],
+      totalNotifications: 0,
+    });
   }
 }

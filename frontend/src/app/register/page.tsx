@@ -50,7 +50,6 @@ export default function RegisterPage() {
     }
 
     if (trimmedPhone) {
-      // Ensure Irish prefix is applied to the raw number
       const formattedInput = trimmedPhone.startsWith('+353')
         ? trimmedPhone
         : `+353 ${trimmedPhone.replace(/^0/, '').trim()}`;
@@ -347,7 +346,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Legal Agreement & TOS Notification Checkbox */}
+            
             <div className="space-y-3 pt-2">
               <div className="flex items-start gap-2.5">
                 <input

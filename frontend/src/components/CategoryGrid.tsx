@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ShoppingBag, Users } from 'lucide-react';
 
 const categories = [
-  { name: 'Marketplace', icon: ShoppingBag, href: '/category/marketplace' },
+  { name: 'Marketplace', icon: ShoppingBag, href: '/marketplace' },
   { name: 'Community', icon: Users, href: '/community' },
 ];
 

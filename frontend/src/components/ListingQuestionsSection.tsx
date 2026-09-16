@@ -139,7 +139,7 @@ export default function ListingQuestionsSection({
   return (
     <div id="questions-and-answers" className="bg-white dark:bg-[#202020] rounded-2xl border border-gray-200 dark:border-[#333333] p-6 sm:p-8 space-y-6 shadow-xs">
       
-      {/* Header */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 dark:border-[#333333] pb-5">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl shrink-0">
@@ -158,14 +158,14 @@ export default function ListingQuestionsSection({
           </div>
         </div>
 
-        {/* Security / Privacy Warning */}
+        
         <div className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl">
           <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
           <span>Do not share phone numbers or personal addresses.</span>
         </div>
       </div>
 
-      {/* Questions List */}
+      
       <div className="space-y-4">
         {questions.length === 0 ? (
           <div className="py-8 text-center text-gray-500 dark:text-gray-400 text-sm space-y-2">
@@ -181,7 +181,7 @@ export default function ListingQuestionsSection({
                 key={q.id} 
                 className="p-4 rounded-xl border border-gray-200 dark:border-[#333333] bg-gray-50/60 dark:bg-[#252525]/60 space-y-3"
               >
-                {/* Question */}
+                
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden relative border border-zinc-200 dark:border-zinc-700">
                     {q.buyerAvatarUrl ? (
@@ -214,7 +214,7 @@ export default function ListingQuestionsSection({
                   </div>
                 </div>
 
-                {/* Seller Answer */}
+                
                 {q.answer ? (
                   <div className="ml-5 sm:ml-9 p-3.5 rounded-xl bg-white dark:bg-[#1e1e1e] border-l-4 border-l-primary border-y border-r border-gray-200 dark:border-[#383838] space-y-1.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
@@ -305,7 +305,7 @@ export default function ListingQuestionsSection({
         )}
       </div>
 
-      {/* "Ask a Question" Form / Gate */}
+      
       <div className="border-t border-gray-200 dark:border-[#333333] pt-6">
         {isOwnListing ? (
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#252525] text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-[#383838] flex items-center gap-2">

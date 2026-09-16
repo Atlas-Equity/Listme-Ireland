@@ -31,7 +31,7 @@ export default function ServiceFeeModal({
 
   return (
     <>
-      {/* Clickable Trigger on Listing */}
+      
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -54,7 +54,7 @@ export default function ServiceFeeModal({
         )}
       </button>
 
-      {/* Modal Dialog */}
+      
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div 
@@ -62,7 +62,7 @@ export default function ServiceFeeModal({
             onClick={(e) => e.stopPropagation()}
           >
             
-            {/* Modal Header */}
+            
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-zinc-800">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -82,14 +82,14 @@ export default function ServiceFeeModal({
               </button>
             </div>
 
-            {/* Modal Content */}
+            
             <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
               
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                 Our Service Fee helps keep our platform operating and means we can continue to offer local support and Buyer Protection up to €5,000. The fee is charged to buyers for payments made on Listme. It&apos;s calculated based on the purchase price.
               </p>
 
-              {/* Service Fee Table */}
+              
               <div className="rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-xs">
                 <table className="w-full text-left">
                   <thead className="bg-gray-50 dark:bg-zinc-900/80 border-b border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-gray-300 font-bold">
@@ -135,7 +135,7 @@ export default function ServiceFeeModal({
                 </table>
               </div>
 
-              {/* Special Account Credit Discount Callout */}
+              
               <div className="p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 flex items-start gap-2.5 text-xs text-zinc-800 dark:text-zinc-200">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
@@ -143,10 +143,10 @@ export default function ServiceFeeModal({
                 </div>
               </div>
 
-              {/* Specific Item Breakdown with Standard and With Credit */}
+              
               {isMixed && buyNowStandardCalc && buyNowCreditCalc ? (
                 <div className="space-y-3">
-                  {/* Auction Fee Breakdown */}
+                  
                   <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       Auction Fee Breakdown (Current Bid)
@@ -178,7 +178,7 @@ export default function ServiceFeeModal({
                     </div>
                   </div>
 
-                  {/* Buy Now Fee Breakdown */}
+                  
                   <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       Buy Now Fee Breakdown
@@ -240,7 +240,7 @@ export default function ServiceFeeModal({
                 </div>
               )}
 
-              {/* Protection Notice */}
+              
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>Your trade is protected under Listme Buyer Protection up to €5,000.</span>
@@ -248,7 +248,7 @@ export default function ServiceFeeModal({
 
             </div>
 
-            {/* Modal Actions */}
+            
             <div className="p-4 bg-gray-50 dark:bg-zinc-900/80 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
               <Link
                 href="/buyer-protection"

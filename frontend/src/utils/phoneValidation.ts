@@ -9,13 +9,6 @@ export interface PhoneValidationResult {
   error?: string;
 }
 
-/**
- * Validates and normalizes a phone number using libphonenumber-js.
- * Supports Irish local numbers by default (e.g. '087 123 4567')
- * and any international standard number (e.g. '+44 7911 123456', '+1 415 555 2671').
- *
- * Prevents arbitrary strings of digits like '1234567' or '9999999999' from passing.
- */
 export function validatePhoneNumber(
   input: string,
   defaultCountry: CountryCode = 'IE'
@@ -29,7 +22,6 @@ export function validatePhoneNumber(
     };
   }
 
-  // Reject clearly invalid patterns early (e.g., repeating identical digits, fewer than 6 digits)
   const digitsOnly = trimmed.replace(/\D/g, '');
   if (digitsOnly.length < 6) {
     return {
@@ -38,7 +30,6 @@ export function validatePhoneNumber(
     };
   }
 
-  // If input starts with +, parse without forcing default country
   try {
     const phoneNumber = parsePhoneNumberFromString(
       trimmed,
@@ -61,8 +52,8 @@ export function validatePhoneNumber(
 
     return {
       isValid: true,
-      e164: phoneNumber.number, // standard E.164 format: +353871234567
-      formatted: phoneNumber.formatInternational(), // readable: +353 87 123 4567
+      e164: phoneNumber.number,
+      formatted: phoneNumber.formatInternational(),
       country: phoneNumber.country,
     };
   } catch (err) {
@@ -73,9 +64,6 @@ export function validatePhoneNumber(
   }
 }
 
-/**
- * Formats a phone number for display if valid, or returns the original string if parsing fails.
- */
 export function formatPhoneDisplay(input: string, defaultCountry: CountryCode = 'IE'): string {
   if (!input) return '';
   const parsed = parsePhoneNumberFromString(

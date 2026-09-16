@@ -55,14 +55,10 @@ function saveDataFile(questions: ListingQuestion[]) {
   }
 }
 
-/**
- * Fetch all public questions and seller answers for a listing.
- */
 export async function getListingQuestions(listingId: string): Promise<ListingQuestion[]> {
   try {
     const fileQuestions = ensureDataFile().filter(q => q.listingId === listingId);
     
-    // Check Supabase messages
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -98,7 +94,6 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
     const questionMap = new Map<string, ListingQuestion>();
     fileQuestions.forEach(q => questionMap.set(q.id, q));
 
-    // First pass: collect questions
     for (const msg of messages) {
       if (msg.content.startsWith('QUESTION:')) {
         try {
@@ -108,12 +103,10 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
             questionMap.set(payload.id, payload);
           }
         } catch {
-          // Skip malformed
         }
       }
     }
 
-    // Second pass: attach answers from ANSWER: messages
     for (const msg of messages) {
       if (msg.content.startsWith('ANSWER:')) {
         try {
@@ -131,7 +124,6 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
             }
           }
         } catch {
-          // Skip malformed
         }
       }
     }
@@ -145,10 +137,6 @@ export async function getListingQuestions(listingId: string): Promise<ListingQue
   }
 }
 
-/**
- * Buyers ask 1 question on a listing.
- * TradeMe model: public to everyone, notified in chat.
- */
 export async function askListingQuestionAction({
   listingId,
   questionText,
@@ -173,7 +161,6 @@ export async function askListingQuestionAction({
       return { success: false, error: 'Question is too long (maximum 500 characters).' };
     }
 
-    // 1. Fetch listing
     const { data: listing, error: listErr } = await supabase
       .from('listings')
       .select('id, title, seller_id')
@@ -188,7 +175,6 @@ export async function askListingQuestionAction({
       return { success: false, error: 'You cannot ask a question on your own listing.' };
     }
 
-    // 2. Check if buyer already asked a question for this listing (TradeMe 1-question rule)
     const currentQuestions = ensureDataFile();
     const alreadyAsked = currentQuestions.some(
       q => q.listingId === listingId && q.buyerId === user.id
@@ -201,7 +187,6 @@ export async function askListingQuestionAction({
       };
     }
 
-    // 3. Get buyer's username/name and avatar
     const buyerUsername = user.user_metadata?.username || user.email?.split('@')[0] || 'Buyer';
     const buyerAvatarUrl = user.user_metadata?.avatar_url || '';
 

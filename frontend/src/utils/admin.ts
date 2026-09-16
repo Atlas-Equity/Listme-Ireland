@@ -1,12 +1,19 @@
-/**
- * ListMe Admin Utilities & Permission Checking
- * Controls platform-wide administration, support text channels, verified grants, and account suspensions.
- */
 
 export const ADMIN_EMAILS = [
+  'dahiruhammajam@gmail.com',
   'qrmooney@outlook.com',
   'admin@listme.ie',
   'support@listme.ie'
+];
+
+export const SUPPORT_OFFICER_USERNAMES = ['sahleyis', 'quinn'];
+export const SUPPORT_OFFICER_EMAILS = [
+  'dahiruhammajam@gmail.com',
+  'qrmooney@outlook.com',
+];
+export const SUPPORT_OFFICER_UIDS = [
+  '88beddab-0640-4f99-a04a-ff58c03704e4',
+  '387eb6d6-e83c-4414-b0e3-831d60cd1c16',
 ];
 
 export interface AdminCheckableUser {
@@ -20,6 +27,8 @@ export interface AdminCheckableUser {
     is_banned?: boolean;
     ban_reason?: string;
     is_verified?: boolean;
+    username?: string;
+    preferred_username?: string;
     [key: string]: any;
   };
   app_metadata?: {
@@ -28,9 +37,16 @@ export interface AdminCheckableUser {
   };
 }
 
-/**
- * Checks whether a given user object has platform administrator privileges.
- */
+export function isSupportOfficer(user: AdminCheckableUser | null | undefined): boolean {
+  if (!user) return false;
+  if (user.id && SUPPORT_OFFICER_UIDS.includes(user.id)) return true;
+  const email = user.email?.toLowerCase().trim();
+  if (email && SUPPORT_OFFICER_EMAILS.includes(email)) return true;
+  const username = (user.user_metadata?.username || user.user_metadata?.preferred_username || '')?.toLowerCase().trim();
+  if (username && SUPPORT_OFFICER_USERNAMES.includes(username)) return true;
+  return false;
+}
+
 export function isAdmin(user: AdminCheckableUser | null | undefined): boolean {
   if (!user) return false;
 
@@ -50,9 +66,6 @@ export function isAdmin(user: AdminCheckableUser | null | undefined): boolean {
   return false;
 }
 
-/**
- * Checks whether an account is currently suspended / banned.
- */
 export function isAccountBanned(userOrProfile: any): { isBanned: boolean; bannedUntil?: string; reason?: string } {
   if (!userOrProfile) return { isBanned: false };
 

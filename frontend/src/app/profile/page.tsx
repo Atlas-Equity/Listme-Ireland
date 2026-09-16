@@ -12,7 +12,6 @@ export default async function ProfileRedirectPage() {
     redirect('/login?next=/profile');
   }
 
-  // Check if profile exists and has a username
   const { data: profile } = await supabase
     .from('profiles')
     .select('username')
@@ -23,7 +22,6 @@ export default async function ProfileRedirectPage() {
     redirect('/auth/setup-username');
   }
 
-  // Redirect to deterministic member number URL
   const memberNum = getMemberNumber(user.id);
   redirect(`/member/${memberNum}`);
 }

@@ -13,12 +13,10 @@ export async function placeBid(listingId: string, amount: number) {
   }
 
   try {
-    // 1. eBay Buyer Verification: Must have card or wallet credit on file
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (stripeKey) {
       const stripe = new Stripe(stripeKey);
       
-      // Look up customer by email to check for active saved payment methods
       const customers = await stripe.customers.list({ email: user.email, limit: 3 });
       let hasCardOnFile = false;
 
@@ -34,7 +32,6 @@ export async function placeBid(listingId: string, amount: number) {
         }
       }
 
-      // Check if user has an active seller stripe account as alternative verified identity
       if (!hasCardOnFile) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -47,7 +44,6 @@ export async function placeBid(listingId: string, amount: number) {
         }
       }
 
-      // Check if user has verified Listme Account Credit or linked card
       if (!hasCardOnFile) {
         const linkedCard = user.user_metadata?.linked_card;
         const credit = user.user_metadata?.account_credit;
@@ -65,7 +61,6 @@ export async function placeBid(listingId: string, amount: number) {
       }
     }
 
-    // 2. Fetch current listing
     const { data: listing, error: listingError } = await supabase
       .from('listings')
       .select('price, seller_id, ends_at, price_type, description')
@@ -82,7 +77,6 @@ export async function placeBid(listingId: string, amount: number) {
       return { success: false, error: 'This auction has already closed.' };
     }
 
-    // 3. Fetch current highest bid
     const { data: highestBid } = await supabase
       .from('bids')
       .select('amount')
@@ -144,6 +138,7 @@ export async function placeBid(listingId: string, amount: number) {
     // 7. Revalidate all relevant pages so listings show identical price
     revalidatePath(`/listing/${listingId}`);
     revalidatePath('/');
+    revalidatePath('/marketplace');
     revalidatePath('/category/marketplace');
     revalidatePath('/search');
     revalidatePath('/browse');

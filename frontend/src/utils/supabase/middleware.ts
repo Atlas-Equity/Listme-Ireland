@@ -19,23 +19,18 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/wallet-setup');
   const isSignoutRoute = pathname.startsWith('/auth/signout');
 
-  // Check if any supabase auth cookie exists
   const hasAuthCookie = request.cookies.getAll().some(c => 
     c.name.includes('-auth-token')
   );
 
-  // Fast path: for public browsing routes (homepage, categories, search, listing view),
-  // if no auth cookie exists, do not block page navigation on a remote Supabase Auth network call!
   if (!isAuthRoute && !isOnboardingRoute && !isProtectedRoute && !isSignoutRoute && (!isApiRoute || !hasAuthCookie)) {
     return supabaseResponse;
   }
 
-  // If on an auth route and no auth cookie is present, allow immediate render without remote call
   if (isAuthRoute && !hasAuthCookie) {
     return supabaseResponse;
   }
 
-  // If on a protected route and no auth cookie is present, redirect to login immediately
   if (isProtectedRoute && !hasAuthCookie) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
@@ -75,20 +70,17 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If user is logged in, check if they have completed username & password setup (only for UI pages, never API calls)
   if (user && !isSignoutRoute && !isApiRoute) {
     const username = user.user_metadata?.username;
     const isEmailUser = user.app_metadata?.provider === 'email' || user.app_metadata?.providers?.includes('email');
     const hasPassword = isEmailUser || Boolean(user.user_metadata?.has_password);
     
-    // If they don't have a username or password and aren't already on the setup-username page, redirect them
     if ((!username || !hasPassword) && !isOnboardingRoute) {
       const url = request.nextUrl.clone()
       url.pathname = '/auth/setup-username'
       return NextResponse.redirect(url)
     }
 
-    // If they do have a username & password and try to access login/register/setup-username, send them home
     if (username && hasPassword && (isAuthRoute || isOnboardingRoute)) {
        const url = request.nextUrl.clone()
        url.pathname = '/'

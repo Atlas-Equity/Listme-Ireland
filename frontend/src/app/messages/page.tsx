@@ -474,7 +474,7 @@ function MessagesContent() {
     <div className="w-full bg-gray-50 dark:bg-black min-h-[calc(100vh-72px)] flex flex-col">
       <div className="max-w-7xl mx-auto w-full flex-1 px-2 sm:px-4 lg:px-8 py-4 sm:py-6 flex flex-col">
         
-        {/* Top Header */}
+        
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -495,7 +495,7 @@ function MessagesContent() {
           </Link>
         </div>
 
-        {/* Database setup alert if migration hasn't been run */}
+        
         {!tableReady && (
           <div className="mb-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-200 text-sm flex items-start justify-between">
             <div>
@@ -507,15 +507,15 @@ function MessagesContent() {
           </div>
         )}
 
-        {/* Chat Layout Box */}
+        
         <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800 flex-1 flex overflow-hidden min-h-[550px] max-h-[calc(100vh-160px)]">
           
-          {/* ================= LEFT SIDEBAR ================= */}
+          
           <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 dark:border-zinc-800 flex flex-col shrink-0 ${
             selectedConvId ? 'hidden md:flex' : 'flex'
           }`}>
             
-            {/* Search Bar */}
+            
             <div className="p-3 border-b border-gray-200 dark:border-zinc-800">
               <div className="relative">
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -528,7 +528,7 @@ function MessagesContent() {
                 />
               </div>
 
-              {/* Filter Tabs */}
+              
               <div className="flex gap-1 mt-2.5">
                 {(['all', 'buying', 'selling'] as const).map(tab => (
                   <button
@@ -547,7 +547,7 @@ function MessagesContent() {
               </div>
             </div>
 
-            {/* Conversations List */}
+            
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-zinc-800/60">
               {loadingList ? (
                 <div className="p-8 text-center text-gray-400 text-xs flex flex-col items-center gap-2">
@@ -582,7 +582,7 @@ function MessagesContent() {
                           : 'hover:bg-gray-50 dark:hover:bg-zinc-900/60'
                       }`}
                     >
-                      {/* Avatar / Listing Thumbnail */}
+                      
                       <div className="relative shrink-0">
                         {itemImg ? (
                           <div className="w-12 h-12 rounded-xl overflow-hidden relative bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
@@ -605,7 +605,7 @@ function MessagesContent() {
                         )}
                       </div>
 
-                      {/* Content Info */}
+                      
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
                           <span className="font-bold text-xs text-gray-900 dark:text-white truncate">
@@ -641,17 +641,17 @@ function MessagesContent() {
             </div>
           </div>
 
-          {/* ================= RIGHT CHAT WINDOW ================= */}
+          
           <div className={`flex-1 flex flex-col bg-white dark:bg-[#181818] min-w-0 ${
             !selectedConvId ? 'hidden md:flex' : 'flex'
           }`}>
             
             {selectedConvId ? (
               <>
-                {/* Chat Top Header */}
+                
                 <div className="p-3.5 sm:p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-[#181818] z-10 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Mobile Back Button */}
+                    
                     <button
                       type="button"
                       onClick={() => setSelectedConvId(null)}
@@ -674,9 +674,9 @@ function MessagesContent() {
                     </div>
                   </div>
 
-                  {/* Header Actions */}
+                  
                   <div className="flex items-center gap-2.5 shrink-0">
-                    {/* Call Option Button */}
+                    
                     <button
                       type="button"
                       disabled={callStatus !== 'idle'}
@@ -697,7 +697,7 @@ function MessagesContent() {
                       <span>Call</span>
                     </button>
 
-                    {/* Listing Quick Link */}
+                    
                     {activeConversation?.listing && (
                       <Link
                         href={`/listing/${activeConversation.listing.id}`}
@@ -711,7 +711,7 @@ function MessagesContent() {
                   </div>
                 </div>
 
-                {/* Attached Listing Banner */}
+                
                 {activeConversation?.listing && (
                   <div className="px-4 py-2.5 bg-gray-50 dark:bg-zinc-900/60 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between gap-3 shrink-0">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -748,7 +748,7 @@ function MessagesContent() {
                   </div>
                 )}
 
-                {/* Messages Body */}
+                
                 <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                   {loadingChat ? (
                     <div className="h-full flex items-center justify-center text-gray-400 text-xs">
@@ -826,7 +826,7 @@ function MessagesContent() {
                                 </p>
                               )}
 
-                              {/* Action buttons for seller if pending */}
+                              
                               {isPending && isSeller && (
                                 <div className="flex items-center gap-2 pt-2 border-t border-amber-200 dark:border-amber-800/40">
                                   <button
@@ -846,7 +846,7 @@ function MessagesContent() {
                                 </div>
                               )}
 
-                              {/* Status notices */}
+                              
                               {isPending && !isSeller && (
                                 <p className="text-[11px] text-amber-800 dark:text-amber-300/90 font-medium">
                                   Awaiting response from seller. You will be notified when they accept or decline.
@@ -926,7 +926,7 @@ function MessagesContent() {
                           <div key={msg.id} className="flex flex-col items-center my-3 px-2 animate-in fade-in duration-200">
                             <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gray-50/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 shadow-sm hover:border-gray-300 dark:hover:border-zinc-700 transition-all max-w-sm w-full backdrop-blur-sm">
                               <div className="flex items-center gap-3 min-w-0">
-                                {/* Call Status Icon Badge */}
+                                
                                 <div
                                   className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-inner ${
                                     isMissed
@@ -975,7 +975,7 @@ function MessagesContent() {
                                 </div>
                               </div>
 
-                              {/* Action: Call Back / Call Again Button */}
+                              
                               {activeConversation && (
                                 <button
                                   type="button"
@@ -1036,7 +1036,7 @@ function MessagesContent() {
                   )}
                 </div>
 
-                {/* Input Area */}
+                
                 <form
                   onSubmit={handleSendMessage}
                   className="p-3 border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] flex items-center gap-2 shrink-0"

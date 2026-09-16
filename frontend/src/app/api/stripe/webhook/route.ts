@@ -49,7 +49,6 @@ export async function POST(req: NextRequest) {
           const custId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
 
           if (userId) {
-            // Update auth metadata
             const { data: userRecord } = await supabaseAdmin.auth.admin.getUserById(userId);
             if (userRecord?.user) {
               const currentMeta = userRecord.user.user_metadata || {};
@@ -65,7 +64,6 @@ export async function POST(req: NextRequest) {
               });
             }
 
-            // Update profiles table
             await supabaseAdmin
               .from('profiles')
               .update({
@@ -161,7 +159,6 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        // Ignore unhandled event types
         break;
     }
 

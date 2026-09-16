@@ -27,7 +27,7 @@ export default function FeaturedCarousel() {
           </a>
         </div>
 
-        {/* Carousel Container */}
+        
         <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 gap-6 snap-x hide-scrollbar">
           
           {mockListings.map((listing) => (
@@ -40,7 +40,7 @@ export default function FeaturedCarousel() {
                   {listing.image}
                 </span>
                 
-                {/* Badges */}
+                
                 <div className="absolute top-3 left-3 flex gap-2">
                   <span className="bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
                     {listing.type.toUpperCase()}
@@ -57,7 +57,7 @@ export default function FeaturedCarousel() {
                   {listing.price}
                 </div>
 
-                {/* Listing Specific Footer */}
+                
                 <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                   {listing.type === 'auction' && (
                     <>

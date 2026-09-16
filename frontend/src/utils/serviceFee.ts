@@ -1,11 +1,3 @@
-/**
- * Listme Service Fee Calculation Utility
- * 
- * Fee Tiers:
- * - 4% for €10 – €50 (all purchases up to €50 incur 4%)
- * - 3.5% for €50.01 – €250
- * - 3% for €250+
- */
 
 export interface ServiceFeeResult {
   price: number;
@@ -41,7 +33,6 @@ export function calculateServiceFee(
     tierLabel = '€250.01+ (3%)';
   }
 
-  // 0.5% discount when paying with ListMe Account Credit
   const percentage = isCreditPayment ? Math.max(0, basePercentage - 0.5) : basePercentage;
 
   const fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;

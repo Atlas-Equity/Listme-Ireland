@@ -89,7 +89,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [callDuration, setCallDuration] = useState(0);
   const [messageToast, setMessageToast] = useState<MessageToast | null>(null);
 
-  // WebRTC refs
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -97,12 +96,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const outgoingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
-  // Dedicated signaling channel refs to guarantee 0 dropped signals & reliable ICE candidate delivery
   const targetChannelRef = useRef<any>(null);
   const targetQueueRef = useRef<any[]>([]);
   const isTargetChannelReadyRef = useRef<boolean>(false);
 
-  // Call session tracking & deduplication refs
   const isCallerRef = useRef<boolean>(false);
   const hasLoggedCallRef = useRef<boolean>(false);
   const callDurationRef = useRef<number>(0);
@@ -119,7 +116,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setCurrentParticipant(participant);
   };
 
-  // Close and cleanup target signaling channel
   const closeTargetChannel = useCallback(() => {
     if (targetChannelRef.current) {
       try {
@@ -131,7 +127,6 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     isTargetChannelReadyRef.current = false;
   }, [supabase]);
 
-  // Robust signal sender: subscribes target channel and flushes queued candidates automatically
   const sendSignal = useCallback(
     (targetUserId: string, payload: any) => {
       if (!currentUserId || !targetUserId) return;
@@ -890,7 +885,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
 
-      {/* Offscreen audio element for receiving remote peer audio */}
+      
       <audio
         ref={remoteAudioRef}
         autoPlay
@@ -899,7 +894,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none"
       />
 
-      {/* ================= IN-APP MESSAGE NOTIFICATION TOAST ================= */}
+      
       {messageToast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm w-full animate-in slide-in-from-top-4 fade-in duration-300">
           <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 flex items-start gap-3 backdrop-blur-md">
@@ -951,11 +946,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* ================= INCOMING CALL MODAL ================= */}
+      
       {callStatus === 'incoming' && currentParticipant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in">
           <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden">
-            {/* Pulsing visual circles */}
+            
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/10 rounded-full animate-ping pointer-events-none" />
 
             <div className="relative mb-6 flex flex-col items-center">
@@ -985,9 +980,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               </p>
             </div>
 
-            {/* Accept / Decline Action Buttons */}
+            
             <div className="flex items-center justify-center gap-6 relative">
-              {/* Decline Button */}
+              
               <div className="flex flex-col items-center gap-2">
                 <button
                   type="button"
@@ -1000,7 +995,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Decline</span>
               </div>
 
-              {/* Accept Button */}
+              
               <div className="flex flex-col items-center gap-2">
                 <button
                   type="button"
@@ -1017,11 +1012,11 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* ================= ACTIVE / OUTGOING CALL MODAL ================= */}
+      
       {(callStatus === 'calling' || callStatus === 'connected' || callStatus === 'ended') && currentParticipant && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-6 duration-300">
           <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-3xl p-5 shadow-2xl w-80 sm:w-88 flex flex-col items-center backdrop-blur-xl">
-            {/* Header info */}
+            
             <div className="w-full flex items-center justify-between mb-4">
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-zinc-700 uppercase tracking-wider">
                 Voice Call
@@ -1031,7 +1026,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               </span>
             </div>
 
-            {/* Avatar & status */}
+            
             <div className="flex flex-col items-center mb-6">
               <div className={`w-20 h-20 rounded-full overflow-hidden relative border-2 border-primary/40 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shadow-lg mb-3 ${
                 callStatus === 'calling' ? 'animate-pulse' : ''
@@ -1058,7 +1053,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
               {callStatus === 'connected' && (
                 <div className="flex items-center gap-1.5 mt-1.5 text-xs text-green-600 dark:text-green-400 font-medium">
-                  {/* Waveform graphic */}
+                  
                   <span className="inline-block w-1 h-3 bg-green-500 rounded-full animate-pulse" />
                   <span className="inline-block w-1 h-4 bg-green-500 rounded-full animate-pulse delay-75" />
                   <span className="inline-block w-1 h-2 bg-green-500 rounded-full animate-pulse delay-150" />
@@ -1079,9 +1074,9 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Controls */}
+            
             <div className="flex items-center justify-center gap-4 w-full pt-3 border-t border-gray-100 dark:border-zinc-800">
-              {/* Mute button */}
+              
               <button
                 type="button"
                 disabled={callStatus !== 'connected'}
@@ -1096,7 +1091,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
 
-              {/* Speaker Mute button */}
+              
               <button
                 type="button"
                 disabled={callStatus !== 'connected'}
@@ -1111,7 +1106,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
                 {isSpeakerMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </button>
 
-              {/* Hang up button */}
+              
               <button
                 type="button"
                 onClick={endCall}

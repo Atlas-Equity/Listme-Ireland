@@ -32,7 +32,7 @@ export default function CommunityNavDropdown() {
         <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : 'text-gray-400'}`} />
       </button>
 
-      {/* Flyout Menu */}
+      
       {isOpen && (
         <div className="absolute top-full left-0 w-72 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
 

@@ -4,7 +4,6 @@ declare global {
 }
 
 export function initDnsOptimizer() {
-  // Only execute in Node.js server runtime, never in Edge or Browser
   if (typeof window !== 'undefined') return;
   if (typeof process === 'undefined' || process.env.NEXT_RUNTIME === 'edge') return;
   if (globalThis.__dnsOptimizerInitialized) return;
@@ -47,7 +46,6 @@ export function initDnsOptimizer() {
         return callback(null, cached.ip, 4);
       }
 
-      // Fast-path resolve via c-ares (direct IPv4, bypasses blocking getaddrinfo AAAA queries)
       dns.resolve4(hostname, (err: any, addresses: string[]) => {
         if (!err && addresses && addresses.length > 0) {
           const ip = addresses[0];
@@ -58,15 +56,12 @@ export function initDnsOptimizer() {
           return callback(null, ip, 4);
         }
 
-        // Fallback to original lookup forced to family: 4
         const fallbackOpts = typeof options === 'object' && options !== null ? { ...options, family: 4 } : { family: 4 };
         return (originalLookup as any).call(dns, hostname, fallbackOpts, callback);
       });
     };
   } catch {
-    // Ignore in non-Node environments
   }
 }
 
-// Auto-run if in Node.js server runtime
 initDnsOptimizer();

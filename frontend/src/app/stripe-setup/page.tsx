@@ -31,14 +31,12 @@ export default function OnboardingPage() {
     setError('');
 
     try {
-      // 1. Primary path: Server Action (handles cookies natively with zero network header issues)
       const actionRes = await createStripeConnectAction();
       if (actionRes?.url) {
         window.location.href = actionRes.url;
         return;
       }
 
-      // 2. Fallback path: API route with explicit client session Bearer token
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
 

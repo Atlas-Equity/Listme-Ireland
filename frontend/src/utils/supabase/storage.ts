@@ -3,7 +3,6 @@ import { createClient } from './client';
 export async function uploadListingImage(file: File): Promise<string | null> {
   const supabase = createClient();
   
-  // Generate a unique file name to prevent collisions
   const fileExt = file.name.split('.').pop();
   const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
   const filePath = `public/${fileName}`;

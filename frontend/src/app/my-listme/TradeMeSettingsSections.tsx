@@ -21,7 +21,6 @@ export default function TradeMeSettingsSections() {
   const [searchHistoryDeleted, setSearchHistoryDeleted] = useState(false);
   const [recentlyViewedCleared, setRecentlyViewedCleared] = useState(false);
   
-  // Blocked users list state (strictly REAL data only - zero fake mock accounts)
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistInput, setBlacklistInput] = useState('');
   const [blacklistedUsers, setBlacklistedUsers] = useState<string[]>(() => {
@@ -38,7 +37,6 @@ export default function TradeMeSettingsSections() {
   });
   const [blacklistSuccess, setBlacklistSuccess] = useState<string | null>(null);
 
-  // Privacy
   const [optOutAnalytics, setOptOutAnalytics] = useState(false);
 
   const handleDeleteSearchHistory = () => {
@@ -83,7 +81,7 @@ export default function TradeMeSettingsSections() {
   return (
     <div className="space-y-6">
       
-      {/* 1. GENERAL SETTINGS */}
+      
       <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
         <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
           GENERAL SETTINGS
@@ -94,7 +92,7 @@ export default function TradeMeSettingsSections() {
 
         <div className="divide-y divide-gray-100 dark:divide-zinc-800 text-sm">
           
-          {/* Search History Toggle & Delete */}
+          
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p className="font-bold text-gray-900 dark:text-white text-xs">Search History</p>
@@ -130,7 +128,7 @@ export default function TradeMeSettingsSections() {
             </div>
           </div>
 
-          {/* Recently Viewed */}
+          
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p className="font-bold text-gray-900 dark:text-white text-xs">Recently Viewed Listings</p>
@@ -157,7 +155,7 @@ export default function TradeMeSettingsSections() {
         </div>
       </div>
 
-      {/* 2. SELLING OPTIONS & PRIVATE BLACKLIST */}
+      
       <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
         <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
           SELLING OPTIONS &amp; PRIVACY
@@ -168,7 +166,7 @@ export default function TradeMeSettingsSections() {
 
         <div className="divide-y divide-gray-100 dark:divide-zinc-800 text-sm">
           
-          {/* Blacklist */}
+          
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -191,7 +189,7 @@ export default function TradeMeSettingsSections() {
             </button>
           </div>
 
-          {/* In-Trade Declaration */}
+          
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p className="font-bold text-gray-900 dark:text-white text-xs">In-Trade Commercial Seller Status</p>
@@ -206,7 +204,7 @@ export default function TradeMeSettingsSections() {
             </span>
           </div>
 
-          {/* Privacy & Third-party opt-out */}
+          
           <div className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p className="font-bold text-gray-900 dark:text-white text-xs">Privacy &amp; Data Opt-Out</p>
@@ -229,7 +227,7 @@ export default function TradeMeSettingsSections() {
         </div>
       </div>
 
-      {/* Blacklist Modal */}
+      
       {isBlacklistModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-md bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6">
@@ -252,7 +250,7 @@ export default function TradeMeSettingsSections() {
               Users on your private blacklist are prevented from placing bids, sending offers, or contacting you on any of your listings.
             </p>
 
-            {/* Add User */}
+            
             <form onSubmit={handleAddBlacklist} className="flex gap-2 mb-4">
               <input
                 type="text"
@@ -275,7 +273,7 @@ export default function TradeMeSettingsSections() {
               </p>
             )}
 
-            {/* Blocked List */}
+            
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {blacklistedUsers.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">

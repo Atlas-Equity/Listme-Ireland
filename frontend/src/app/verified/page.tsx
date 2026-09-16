@@ -1,10 +1,10 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ShieldCheck, CheckCircle2, ArrowRight, Star, Zap, Lock } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, ArrowRight, TrendingUp, Lock } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import StripePricingTable from '@/components/StripePricingTable';
 import { createClient } from '@/utils/supabase/server';
+import VerifiedPricingCard from './VerifiedPricingCard';
 
 export const metadata: Metadata = {
   title: 'ListMe Verified | Get Verified for €4.99/month',
@@ -18,10 +18,10 @@ export default async function VerifiedPage() {
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-black py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-12">
-        {/* Header Hero */}
+        
         <div className="text-center space-y-4 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-bold border border-zinc-200 dark:border-zinc-700 shadow-xs">
-            <ShieldCheck className="w-4 h-4 text-primary" />
+            <VerifiedBadge size="xs" />
             <span>Official ListMe Trust &amp; Safety</span>
           </div>
 
@@ -38,11 +38,11 @@ export default async function VerifiedPage() {
           </p>
         </div>
 
-        {/* Benefits Grid */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-[#181818] border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
             <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
-              <Star className="w-5 h-5" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-base">
               Instant Trust Badge
@@ -54,7 +54,7 @@ export default async function VerifiedPage() {
 
           <div className="bg-white dark:bg-[#181818] border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
             <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
-              <Zap className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-base">
               Priority Ranking
@@ -66,7 +66,7 @@ export default async function VerifiedPage() {
 
           <div className="bg-white dark:bg-[#181818] border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xs flex flex-col gap-3">
             <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
-              <Lock className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
             </div>
             <h3 className="font-bold text-gray-900 dark:text-white text-base">
               Scam &amp; Fraud Shield
@@ -77,7 +77,7 @@ export default async function VerifiedPage() {
           </div>
         </div>
 
-        {/* Official Stripe Pricing Table Container */}
+        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-black text-gray-900 dark:text-white">
@@ -88,15 +88,7 @@ export default async function VerifiedPage() {
             </p>
           </div>
 
-          <div className="max-w-lg mx-auto">
-            <StripePricingTable
-              pricingTableId="prctbl_1UFYqWQ4vWyFpILpWMsKMVmf"
-              publishableKey="pk_live_51TlR2gQ4vWyFpILpKmPSa2iCMOGH5zCE0dracV3PaWTDk1uA4MGJtC0kcIPXIjgSUVNZ6s5WGPOKbqclUPxuwemA00UMLqRB6r"
-              clientReferenceId={user?.id}
-              customerEmail={user?.email}
-              className="min-h-[380px]"
-            />
-          </div>
+          <VerifiedPricingCard />
 
           <div className="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-center gap-6 text-xs text-gray-500 dark:text-gray-400">
             <div className="flex items-center gap-2">
@@ -114,7 +106,7 @@ export default async function VerifiedPage() {
           </div>
         </div>
 
-        {/* Free Veteran Notice */}
+        
         <div className="p-6 rounded-2xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h4 className="font-bold text-gray-900 dark:text-white text-sm">

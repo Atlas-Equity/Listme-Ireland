@@ -3,7 +3,7 @@
 import { createClient as createServerClient } from '@/utils/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { isAdmin, ADMIN_EMAILS } from '@/utils/admin';
+import { isAdmin, ADMIN_EMAILS, isSupportOfficer } from '@/utils/admin';
 import { getMemberNumber } from '@/utils/irelandLocations';
 
 function getAdminClient() {
@@ -17,9 +17,6 @@ function getAdminClient() {
   });
 }
 
-/**
- * Ensures the currently authenticated caller is an authorized Admin.
- */
 async function requireAdminCaller() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -31,9 +28,6 @@ async function requireAdminCaller() {
   return user;
 }
 
-/**
- * Assigns Admin role to a user account.
- */
 export async function assignAdminRoleAction(targetUserId: string) {
   try {
     await requireAdminCaller();
@@ -289,10 +283,14 @@ export async function unbanUserAccountAction(targetUserId: string) {
  */
 export async function getAllSupportTicketsAdminAction() {
   try {
-    await requireAdminCaller();
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !isSupportOfficer(user)) {
+      return { error: 'Unauthorized: Support officer privileges required.', tickets: [] };
+    }
+
     const adminClient = getAdminClient();
 
-    // List recent users to collect support tickets from metadata
     const { data: usersData, error } = await adminClient.auth.admin.listUsers({ perPage: 100 });
     if (error) {
       return { error: error.message, tickets: [] };
@@ -313,7 +311,6 @@ export async function getAllSupportTicketsAdminAction() {
       }
     }
 
-    // Sort tickets by created timestamp descending
     allTickets.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
     return { success: true, tickets: allTickets };
@@ -322,9 +319,6 @@ export async function getAllSupportTicketsAdminAction() {
   }
 }
 
-/**
- * Admin responds to a user's support ticket across channels.
- */
 export async function adminReplySupportTicketAction(
   targetUserId: string,
   ticketId: string,
@@ -332,7 +326,13 @@ export async function adminReplySupportTicketAction(
   newStatus?: string
 ) {
   try {
-    const adminCaller = await requireAdminCaller();
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !isSupportOfficer(user)) {
+      return { error: 'Unauthorized: Only authorized support officers (sahleyis, Quinn) may respond to support tickets.' };
+    }
+
+    const adminCaller = user;
     const adminClient = getAdminClient();
 
     const { data: targetUser, error: fetchErr } = await adminClient.auth.admin.getUserById(targetUserId);
@@ -348,13 +348,12 @@ export async function adminReplySupportTicketAction(
       return { error: 'Ticket not found on user account.' };
     }
 
-    const adminName = adminCaller.user_metadata?.full_name || 'ListMe Official Support';
-    const nowIso = new Date().toISOString();
+    const officerName = adminCaller.user_metadata?.username || adminCaller.user_metadata?.full_name || adminCaller.email?.split('@')[0] || 'Support Officer';
 
     const newMsg = {
       id: `msg-${Date.now()}`,
       sender: 'support',
-      senderName: `${adminName} (Admin)`,
+      senderName: `${officerName} (Support Officer)`,
       content: replyContent.trim(),
       timestamp: new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }),
     };

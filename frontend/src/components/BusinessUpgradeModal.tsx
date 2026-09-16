@@ -213,7 +213,7 @@ export default function BusinessUpgradeModal({
         className="relative w-full max-w-lg bg-white dark:bg-[#18181b] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-gray-900 dark:text-white"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
+        
         <button
           onClick={onClose}
           disabled={loading}
@@ -223,7 +223,7 @@ export default function BusinessUpgradeModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Modal Header */}
+        
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
             <Briefcase className="w-6 h-6" />
@@ -236,7 +236,7 @@ export default function BusinessUpgradeModal({
           </div>
         </div>
 
-        {/* Error Notification */}
+        
         {error && (
           <div className="mb-4 p-3.5 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 flex items-start gap-2.5 text-sm text-red-700 dark:text-red-300">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -244,7 +244,7 @@ export default function BusinessUpgradeModal({
           </div>
         )}
 
-        {/* SMS Provider Warning (Dev mode) */}
+        
         {smsProviderWarning && (
           <div className="mb-4 p-3.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
             <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
@@ -255,7 +255,7 @@ export default function BusinessUpgradeModal({
           </div>
         )}
 
-        {/* STEP 1: Phone Number Input */}
+        
         {step === 'input' && (
           <div>
             <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 mb-5">
@@ -345,7 +345,7 @@ export default function BusinessUpgradeModal({
           </div>
         )}
 
-        {/* STEP 2: 6-Digit OTP Input */}
+        
         {step === 'otp' && (
           <div>
             <div className="text-center mb-6">
@@ -416,7 +416,7 @@ export default function BusinessUpgradeModal({
                 )}
               </button>
 
-              {/* Development Bypass Button if SMS provider is not configured */}
+              
               {smsProviderWarning && (
                 <button
                   type="button"
@@ -440,7 +440,7 @@ export default function BusinessUpgradeModal({
           </div>
         )}
 
-        {/* STEP 3: Success State */}
+        
         {step === 'success' && (
           <div className="py-8 text-center space-y-3">
             <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/50 text-green-600 dark:text-green-400 flex items-center justify-center mx-auto animate-in zoom-in-50 duration-300">

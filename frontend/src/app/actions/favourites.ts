@@ -13,7 +13,6 @@ export async function toggleFavouriteSeller(sellerId: string, currentStatus: boo
 
   try {
     if (currentStatus) {
-      // Remove from favourites
       const { error } = await supabase
         .from('favourite_sellers')
         .delete()
@@ -22,7 +21,6 @@ export async function toggleFavouriteSeller(sellerId: string, currentStatus: boo
         
       if (error) throw error;
     } else {
-      // Add to favourites
       const { error } = await supabase
         .from('favourite_sellers')
         .insert([

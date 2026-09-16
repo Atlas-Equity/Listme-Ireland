@@ -4,7 +4,6 @@ import SectionHeader from "@/components/SectionHeader";
 import { ListingCard } from "@/components/ListingCard";
 import { fetchHomeListings } from "@/utils/backendApi";
 
-// ISR: revalidate homepage in the background every 30 seconds for blazing fast instant loads
 export const revalidate = 30;
 
 export default async function Home() {
@@ -17,7 +16,7 @@ export default async function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <PromoBanners />
 
-        {/* Closing Soon (1 Day or Less) Section */}
+        
         {closingSoonListings && closingSoonListings.length > 0 && (
           <>
             <SectionHeader title="Closing Soon (Under 24h)" viewAllLink="/marketplace" />
@@ -41,10 +40,10 @@ export default async function Home() {
           </>
         )}
 
-        {/* Cool Auctions Section */}
+        
         {auctionListings.length > 0 && (
           <>
-            <SectionHeader title="Cool auctions" viewAllLink="/category/marketplace" />
+            <SectionHeader title="Cool auctions" viewAllLink="/marketplace" />
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-8">
               {auctionListings.map((listing) => (
                 <ListingCard 
@@ -64,10 +63,10 @@ export default async function Home() {
           </>
         )}
 
-        {/* Latest Listings Section */}
+        
         {latestListings.length > 0 && (
           <>
-            <SectionHeader title="Latest listings" viewAllLink="/category/marketplace" />
+            <SectionHeader title="Latest listings" viewAllLink="/marketplace" />
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-12">
               {latestListings.map((listing) => (
                 <ListingCard 

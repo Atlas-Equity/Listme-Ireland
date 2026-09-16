@@ -21,7 +21,6 @@ const publicSupabase = createStatelessClient(
 
 const JAVA_BACKEND_URL = (process.env.JAVA_BACKEND_URL || 'https://listme-u0k4.onrender.com').replace(/\/$/, '');
 
-// In-memory cache with TTL persisted across hot-reloads on globalThis
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
@@ -53,7 +52,6 @@ function setCached<T>(key: string, data: T, ttlSeconds: number): void {
   });
 }
 
-// Circuit breaker for Java backend: disabled by default to avoid Render cold-start latency
 let javaBackendAvailable = true;
 let lastJavaBackendCheck = 0;
 
@@ -62,7 +60,7 @@ function canAttemptJavaBackend(): boolean {
   if (!JAVA_BACKEND_URL) return false;
   if (javaBackendAvailable) return true;
   if (Date.now() - lastJavaBackendCheck > 60000) {
-    javaBackendAvailable = true; // Retry after 60s
+    javaBackendAvailable = true;
     return true;
   }
   return false;
@@ -88,10 +86,6 @@ function normalizeListing(item: any): ListingCardData {
   };
 }
 
-/**
- * High-speed home page listings loader.
- * Serves from global in-memory cache in <1ms, or runs a single consolidated Supabase query.
- */
 export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; auctions: ListingCardData[]; closingSoon: ListingCardData[] }> {
   const cacheKey = 'home_listings';
   const cached = getCached<{ latest: ListingCardData[]; auctions: ListingCardData[]; closingSoon: ListingCardData[] }>(cacheKey);
@@ -99,7 +93,6 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
     return cached;
   }
 
-  // 1. Try Java Spring Boot backend if explicitly enabled
   if (canAttemptJavaBackend()) {
     try {
       const controller = new AbortController();

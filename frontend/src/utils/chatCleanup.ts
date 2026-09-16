@@ -2,17 +2,6 @@ import { createClient } from '@supabase/supabase-js';
 
 const INACTIVITY_DAYS = 3;
 
-/**
- * Permanently deletes all conversations, messages, and call logs
- * that have been inactive for more than 3 days.
- * 
- * Inactivity is defined as:
- * - last_message_at < (now - 3 days), OR
- * - (last_message_at IS NULL AND created_at < (now - 3 days))
- * 
- * Only affects chats (conversations and messages). Does not touch listings,
- * reviews, profiles, or bids.
- */
 export async function purgeInactiveChats(): Promise<{
   deletedConversations: number;
   deletedMessages: number;
@@ -33,7 +22,6 @@ export async function purgeInactiveChats(): Promise<{
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // 1. Fetch conversations inactive for >= 3 days
     const { data: inactiveConversations, error: fetchErr } = await adminClient
       .from('conversations')
       .select('id, last_message_at, created_at')

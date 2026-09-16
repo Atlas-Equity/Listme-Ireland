@@ -20,7 +20,6 @@ export default async function SetupUsernamePage({ searchParams }: SetupUsernameP
     redirect('/login');
   }
 
-  // Check if user already has both a valid username and a password
   const { data: profile } = await supabase
     .from('profiles')
     .select('username')
@@ -34,7 +33,6 @@ export default async function SetupUsernamePage({ searchParams }: SetupUsernameP
     redirect(nextParam);
   }
 
-  // Generate suggested username based on Google name / email
   const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
   const emailPrefix = user.email ? user.email.split('@')[0] : '';
   const rawSuggested = (fullName ? fullName.replace(/\s+/g, '_') : emailPrefix)

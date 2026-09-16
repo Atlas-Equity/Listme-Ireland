@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
     
-    // 1. Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
@@ -26,10 +25,8 @@ export async function POST(req: NextRequest) {
         returnUrl = body.returnUrl;
       }
     } catch {
-      // Body may be empty if called without JSON
     }
 
-    // 2. Fetch user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
@@ -38,7 +35,6 @@ export async function POST(req: NextRequest) {
 
     let customerId = user.user_metadata?.stripe_customer_id || profile?.stripe_customer_id;
 
-    // Look for existing Stripe customer by email if not saved on profile
     if (!customerId) {
       const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
       if (existingCustomers.data && existingCustomers.data.length > 0) {
@@ -46,7 +42,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Create Stripe Customer if none exists
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: profile?.email || user.email,
@@ -58,7 +53,6 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
-    // Attempt to save customerId to Supabase user_metadata and profiles
     try {
       await supabase.auth.updateUser({
         data: { stripe_customer_id: customerId },
@@ -68,10 +62,8 @@ export async function POST(req: NextRequest) {
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id);
     } catch (e) {
-      // Non-blocking if column doesn't exist
     }
 
-    // 4. Generate Checkout Session in 'setup' mode
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     
     const successRedirect = returnUrl.includes('?') 

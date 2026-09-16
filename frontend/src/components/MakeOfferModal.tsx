@@ -74,7 +74,6 @@ export default function MakeOfferModal({
       }
 
       onClose();
-      // Redirect straight to conversation
       if (res.conversationId) {
         router.push(`/messages?conversation=${res.conversationId}`);
       }
@@ -85,7 +84,7 @@ export default function MakeOfferModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
         
-        {/* Header */}
+        
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
           <div className="flex items-center gap-2 text-gray-900 dark:text-white font-bold text-lg">
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
@@ -102,9 +101,9 @@ export default function MakeOfferModal({
           </button>
         </div>
 
-        {/* Form Body */}
+        
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Listing Summary */}
+          
           <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-100 dark:border-zinc-800 flex items-center justify-between">
             <div className="min-w-0 pr-3">
               <div className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">
@@ -124,7 +123,7 @@ export default function MakeOfferModal({
             </div>
           </div>
 
-          {/* Quick Preset Buttons */}
+          
           <div>
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
               Quick Suggestions
@@ -154,7 +153,7 @@ export default function MakeOfferModal({
             </div>
           </div>
 
-          {/* Offer Input Field */}
+          
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Your Offer Amount (€)
@@ -191,7 +190,7 @@ export default function MakeOfferModal({
             )}
           </div>
 
-          {/* Note to Seller */}
+          
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Add a note for the seller (Optional)
@@ -205,7 +204,7 @@ export default function MakeOfferModal({
             />
           </div>
 
-          {/* Error message */}
+          
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 text-xs font-medium">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -213,7 +212,7 @@ export default function MakeOfferModal({
             </div>
           )}
 
-          {/* Action Buttons */}
+          
           <div className="flex items-center gap-3 pt-2">
             <button
               type="button"

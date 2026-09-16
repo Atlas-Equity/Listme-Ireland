@@ -7,6 +7,7 @@ import { Search, MapPin, Building2, ExternalLink, Briefcase, Plus } from 'lucide
 import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
+import CustomSelect from '@/components/CustomSelect';
 
 interface ServicesClientProps {
   initialBusinessPages: BusinessPageData[];
@@ -20,7 +21,6 @@ export default function ServicesClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('All');
 
-  // Filter service businesses (business_type === 'service' or all pages if search query matches)
   const servicePages = useMemo(() => {
     return initialBusinessPages.filter((page) => {
       const isService = page.business_type === 'service' || page.category?.toLowerCase().includes('service');
@@ -36,7 +36,6 @@ export default function ServicesClient({
     });
   }, [initialBusinessPages, searchQuery, selectedCounty]);
 
-  // Filter service listings
   const serviceListings = useMemo(() => {
     return initialListings.filter((item) => {
       const matchesCounty = selectedCounty === 'All' || item.location?.toLowerCase().includes(selectedCounty.toLowerCase());
@@ -52,7 +51,7 @@ export default function ServicesClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      {/* Header & Search */}
+      
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
@@ -75,7 +74,7 @@ export default function ServicesClient({
           </div>
         </div>
 
-        {/* Search Bar & County Filter */}
+        
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white dark:bg-[#181818] p-3 rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-xs">
           <div className="md:col-span-3 relative flex items-center">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
@@ -89,23 +88,16 @@ export default function ServicesClient({
           </div>
 
           <div>
-            <select
+            <CustomSelect
               value={selectedCounty}
-              onChange={(e) => setSelectedCounty(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-            >
-              <option value="All">All Counties (Ireland)</option>
-              {COUNTIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedCounty}
+              options={[{ value: 'All', label: 'All Counties (Ireland)' }, ...COUNTIES.map((c) => ({ value: c, label: c }))]}
+            />
           </div>
         </div>
       </div>
 
-      {/* SECTION 1: Registered Service Businesses ("Pages") */}
+      
       <section className="mb-12">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -197,7 +189,7 @@ export default function ServicesClient({
         )}
       </section>
 
-      {/* SECTION 2: Individual Service Listings */}
+      
       <section>
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>

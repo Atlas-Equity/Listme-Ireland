@@ -42,7 +42,6 @@ export default function PhoneVerificationModal({
   const targetE164 = validation.e164 || phone.trim();
   const displayPhone = validation.formatted || phone.trim();
 
-  // Handle countdown timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (resendCooldown > 0) {
@@ -64,7 +63,6 @@ export default function PhoneVerificationModal({
 
       if (otpError) {
         const msg = otpError.message.toLowerCase();
-        // Check for missing SMS provider / Twilio config
         if (
           msg.includes('sms provider') ||
           msg.includes('provider is not enabled') ||
@@ -89,7 +87,6 @@ export default function PhoneVerificationModal({
     }
   }, [targetE164, supabase.auth]);
 
-  // When modal opens, auto-trigger sending OTP
   useEffect(() => {
     if (isOpen && targetE164) {
       setStep('sending');
@@ -152,7 +149,7 @@ export default function PhoneVerificationModal({
         className="relative w-full max-w-md bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-zinc-800">
           <div className="flex items-center space-x-3">
             <div className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
@@ -175,7 +172,7 @@ export default function PhoneVerificationModal({
           </button>
         </div>
 
-        {/* Body */}
+        
         <div className="p-6">
           {step === 'sending' && (
             <div className="py-12 flex flex-col items-center justify-center space-y-4">
@@ -188,7 +185,7 @@ export default function PhoneVerificationModal({
 
           {step === 'otp' && (
             <form onSubmit={handleVerify} className="space-y-5">
-              {/* Notice if SMS provider is pending configuration */}
+              
               {smsProviderNotice && (
                 <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5 leading-relaxed">
                   <Info className="w-4 h-4 shrink-0 mt-0.5" />
@@ -198,7 +195,7 @@ export default function PhoneVerificationModal({
                 </div>
               )}
 
-              {/* Instructions */}
+              
               <div className="text-center space-y-1">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Enter the verification code sent to:
@@ -209,7 +206,7 @@ export default function PhoneVerificationModal({
                 </div>
               </div>
 
-              {/* Error display */}
+              
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 text-red-700 dark:text-red-400 text-sm flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -217,7 +214,7 @@ export default function PhoneVerificationModal({
                 </div>
               )}
 
-              {/* OTP Digit Input */}
+              
               <div className="py-2">
                 <OtpInput
                   length={otpLength}
@@ -230,7 +227,7 @@ export default function PhoneVerificationModal({
                 />
               </div>
 
-              {/* Action Buttons */}
+              
               <div className="space-y-3">
                 <button
                   type="submit"

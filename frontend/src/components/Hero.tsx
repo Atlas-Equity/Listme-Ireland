@@ -19,7 +19,7 @@ export default function Hero() {
     <section className="relative w-full bg-white dark:bg-black py-6 sm:py-8 border-b border-gray-200 dark:border-zinc-800">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
         
-        {/* Responsive Search Bar */}
+        
         <form
           onSubmit={handleSearch}
           className="w-full flex flex-col sm:flex-row gap-2 sm:gap-0 p-1.5 sm:p-0 rounded-2xl sm:rounded-full border border-gray-300 dark:border-zinc-700 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all bg-white dark:bg-zinc-900"

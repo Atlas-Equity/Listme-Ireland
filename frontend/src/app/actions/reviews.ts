@@ -33,7 +33,7 @@ export async function submitReview(formData: FormData) {
       });
 
     if (error) {
-      if (error.code === '23505') { // Unique violation
+      if (error.code === '23505') {
         return { success: false, error: 'You have already reviewed this transaction.' };
       }
       throw error;

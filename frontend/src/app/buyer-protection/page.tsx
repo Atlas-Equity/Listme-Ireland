@@ -25,14 +25,14 @@ export default function BuyerProtectionPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         
-        {/* Breadcrumb */}
+        
         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white font-medium">Buyer Protection</span>
         </div>
 
-        {/* Hero Banner */}
+        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 sm:p-10 shadow-xs relative overflow-hidden">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 mb-4">
@@ -59,7 +59,7 @@ export default function BuyerProtectionPage() {
           </div>
         </div>
 
-        {/* What Is Buyer Protection? */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             What Is Buyer Protection?
@@ -92,7 +92,7 @@ export default function BuyerProtectionPage() {
           </p>
         </section>
 
-        {/* What's Covered Table */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             What&apos;s Covered
@@ -127,7 +127,7 @@ export default function BuyerProtectionPage() {
           </div>
         </section>
 
-        {/* How It Works */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             How It Works
@@ -135,7 +135,7 @@ export default function BuyerProtectionPage() {
 
           <div className="space-y-6">
             
-            {/* Step 1 */}
+            
             <div className="flex gap-4">
               <div className="w-8 h-8 rounded-full bg-primary text-white font-bold flex items-center justify-center shrink-0 text-sm">
                 1
@@ -150,7 +150,7 @@ export default function BuyerProtectionPage() {
               </div>
             </div>
 
-            {/* Step 2 */}
+            
             <div className="flex gap-4">
               <div className="w-8 h-8 rounded-full bg-primary text-white font-bold flex items-center justify-center shrink-0 text-sm">
                 2
@@ -195,7 +195,7 @@ export default function BuyerProtectionPage() {
               </div>
             </div>
 
-            {/* Step 3 */}
+            
             <div className="flex gap-4">
               <div className="w-8 h-8 rounded-full bg-primary text-white font-bold flex items-center justify-center shrink-0 text-sm">
                 3
@@ -216,7 +216,7 @@ export default function BuyerProtectionPage() {
           </div>
         </section>
 
-        {/* Eligibility Requirements */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             Eligibility Requirements
@@ -244,7 +244,7 @@ export default function BuyerProtectionPage() {
           </ul>
         </section>
 
-        {/* Refund Process */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-3">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             Refund Process
@@ -257,7 +257,7 @@ export default function BuyerProtectionPage() {
           </p>
         </section>
 
-        {/* Scammer Penalties & Penalty Formula */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div>
             <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
@@ -283,7 +283,7 @@ export default function BuyerProtectionPage() {
             </ul>
           </div>
 
-          {/* How the Penalty Works */}
+          
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 space-y-2">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white">
               How the Penalty Works
@@ -296,7 +296,7 @@ export default function BuyerProtectionPage() {
             </p>
           </div>
 
-          {/* Penalty and Ban Table */}
+          
           <div>
             <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-3">
               Penalty and Ban Table
@@ -359,7 +359,7 @@ export default function BuyerProtectionPage() {
             </div>
           </div>
 
-          {/* Repeat Offenders */}
+          
           <div className="space-y-2">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white">
               Repeat Offenders
@@ -379,7 +379,7 @@ export default function BuyerProtectionPage() {
 
         </section>
 
-        {/* What We Need From You & Timeframe */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="space-y-3">
             <h2 className="text-xl font-black text-gray-900 dark:text-white">
@@ -411,7 +411,7 @@ export default function BuyerProtectionPage() {
             </p>
           </div>
 
-          {/* Timeframe */}
+          
           <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-2">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white">
               Timeframe
@@ -427,7 +427,7 @@ export default function BuyerProtectionPage() {
             </p>
           </div>
 
-          {/* Seller Responsibility */}
+          
           <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-2">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white">
               Seller Responsibility
@@ -438,7 +438,7 @@ export default function BuyerProtectionPage() {
           </div>
         </section>
 
-        {/* What Is Not Covered */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-3">
           <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
             <Ban className="w-5 h-5 text-red-500" />
@@ -468,7 +468,7 @@ export default function BuyerProtectionPage() {
           </ul>
         </section>
 
-        {/* Summary Table */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             Summary
@@ -527,7 +527,7 @@ export default function BuyerProtectionPage() {
           </div>
         </section>
 
-        {/* Contact Us */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             Contact Us

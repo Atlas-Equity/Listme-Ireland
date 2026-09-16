@@ -7,9 +7,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 export async function loginWithUsernameOrEmail(identifier: string, password: string) {
   let email = identifier;
 
-  // If identifier does not look like an email, assume it's a username
   if (!identifier.includes('@')) {
-    // We need the service role key to bypass RLS and look up the email
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!serviceRoleKey) {
@@ -34,7 +32,6 @@ export async function loginWithUsernameOrEmail(identifier: string, password: str
     email = data.email;
   }
 
-  // Now perform the standard login with the resolved email
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

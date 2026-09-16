@@ -39,7 +39,6 @@ export async function createListing(formData: CreateListingInput) {
     return { error: 'You must be logged in to create a listing.' };
   }
 
-  // Verify seller has completed Stripe onboarding (Quinn and sahleyis are whitelisted for testing)
   const { data: profile } = await supabase
     .from('profiles')
     .select('stripe_onboarding_complete, stripe_account_id, username')
@@ -60,10 +59,8 @@ export async function createListing(formData: CreateListingInput) {
     return { error: 'You must complete Stripe onboarding before creating a listing. Go to your profile to set up payments.' };
   }
 
-  // Calculate expiration date
   const expiresAt = new Date(Date.now() + formData.durationDays * 24 * 60 * 60 * 1000).toISOString();
 
-  // Construct description with rich TradeMe metadata tags
   let finalDescription = formData.description || '';
 
   if (formData.businessPageSlug) {
@@ -135,6 +132,7 @@ export async function createListing(formData: CreateListingInput) {
   // Revalidate relevant pages
   revalidatePath('/');
   revalidatePath('/browse');
+  revalidatePath('/marketplace');
   revalidatePath('/category/marketplace');
   revalidatePath('/category/jobs');
   revalidatePath('/category/services');

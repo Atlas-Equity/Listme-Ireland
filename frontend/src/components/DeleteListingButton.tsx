@@ -90,7 +90,7 @@ export default function DeleteListingButton({
         </button>
       )}
 
-      {/* Confirmation Modal */}
+      
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">

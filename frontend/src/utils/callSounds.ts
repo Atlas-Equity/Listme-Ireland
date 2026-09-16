@@ -1,5 +1,3 @@
-// Web Audio API sound synthesizer for call ringtones and message chimes
-// Works across all browsers with zero external audio assets or network latency
 
 let audioContext: AudioContext | null = null;
 
@@ -22,9 +20,6 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
-/**
- * Plays a pleasant double chime for new incoming messages.
- */
 export function playMessageChime() {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -32,7 +27,6 @@ export function playMessageChime() {
   try {
     const now = ctx.currentTime;
 
-    // First bell tone (F5 - 698.46 Hz)
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = 'sine';
@@ -44,7 +38,6 @@ export function playMessageChime() {
     osc1.start(now);
     osc1.stop(now + 0.35);
 
-    // Second bell tone (A5 - 880.00 Hz)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
@@ -60,9 +53,6 @@ export function playMessageChime() {
   }
 }
 
-/**
- * Ringtone loop management for incoming calls.
- */
 let ringtoneInterval: NodeJS.Timeout | null = null;
 let ringtoneActive = false;
 
@@ -70,9 +60,7 @@ function playSingleRingBurst(ctx: AudioContext) {
   try {
     const now = ctx.currentTime;
     
-    // Dual-tone US/European telephone standard: 440Hz + 480Hz
     [440, 480].forEach((freq) => {
-      // First pulse
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
@@ -85,7 +73,6 @@ function playSingleRingBurst(ctx: AudioContext) {
       osc1.start(now);
       osc1.stop(now + 0.45);
 
-      // Second pulse
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = 'sine';
@@ -109,10 +96,8 @@ export function startRingtone() {
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  // Play immediately
   playSingleRingBurst(ctx);
 
-  // Repeat every 3 seconds
   ringtoneInterval = setInterval(() => {
     if (!ringtoneActive) {
       if (ringtoneInterval) clearInterval(ringtoneInterval);
@@ -131,9 +116,6 @@ export function stopRingtone() {
   }
 }
 
-/**
- * Gentle tone played when call connects.
- */
 export function playCallConnectedTone() {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -143,8 +125,8 @@ export function playCallConnectedTone() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(523.25, now); // C5
-    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
+    osc.frequency.setValueAtTime(523.25, now);
+    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.15);
     gain.gain.setValueAtTime(0.1, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
     osc.connect(gain);
@@ -156,9 +138,6 @@ export function playCallConnectedTone() {
   }
 }
 
-/**
- * Short descending chime when call ends.
- */
 export function playCallEndedTone() {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -168,8 +147,8 @@ export function playCallEndedTone() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(440.0, now); // A4
-    osc.frequency.exponentialRampToValueAtTime(329.63, now + 0.2); // E4
+    osc.frequency.setValueAtTime(440.0, now);
+    osc.frequency.exponentialRampToValueAtTime(329.63, now + 0.2);
     gain.gain.setValueAtTime(0.12, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
     osc.connect(gain);

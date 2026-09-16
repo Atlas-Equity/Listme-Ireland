@@ -48,7 +48,7 @@ export default function MemberAdminActions({
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showBanModal, setShowBanModal] = useState(false);
-  const [banDuration, setBanDuration] = useState<number>(168); // Default 7 days (168h)
+  const [banDuration, setBanDuration] = useState<number>(168);
   const [banReason, setBanReason] = useState('Violation of ListMe Marketplace Community Standards');
 
   const handleGrantVerified = async () => {
@@ -166,9 +166,9 @@ export default function MemberAdminActions({
           )}
         </div>
 
-        {/* Action Controls */}
+        
         <div className="flex flex-wrap items-center gap-2">
-          {/* Verified Badge Grant / Revoke */}
+          
           {isCurrentlyVerified ? (
             <button
               type="button"
@@ -191,7 +191,7 @@ export default function MemberAdminActions({
             </button>
           )}
 
-          {/* Ban / Suspension Trigger */}
+          
           {banStatus.isBanned ? (
             <button
               type="button"
@@ -214,7 +214,7 @@ export default function MemberAdminActions({
             </button>
           )}
 
-          {/* Admin Role Toggle */}
+          
           <button
             type="button"
             onClick={handleToggleAdminRole}
@@ -231,7 +231,7 @@ export default function MemberAdminActions({
         </div>
       </div>
 
-      {/* Ban / Suspension Duration Modal */}
+      
       {showBanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-700 p-6 text-white shadow-2xl">

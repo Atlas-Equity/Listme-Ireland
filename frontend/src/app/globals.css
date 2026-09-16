@@ -21,6 +21,6 @@ body {
 }
 
 html {
-  /* This scales down all rem units (margins, paddings, fonts) to effectively zoom out the entire site */
+  
   font-size: 14px; 
 }

@@ -5,7 +5,6 @@ import CommunityHubClient from './CommunityHubClient';
 
 import { Metadata } from 'next';
 
-// Cache community page for 60s
 export const revalidate = 60;
 
 export const metadata: Metadata = {
@@ -30,7 +29,6 @@ const publicSupabase = createStatelessClient(
 );
 
 export default async function CommunityPage() {
-  // Fetch genuine statistics directly from Supabase (NO padding, NO fake numbers) and registered business pages
   const [listingsCountRes, profilesCountRes, businessPages] = await Promise.all([
     publicSupabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     publicSupabase.from('profiles').select('id', { count: 'exact', head: true }),

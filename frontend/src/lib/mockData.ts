@@ -51,8 +51,6 @@ export interface ServiceListing extends BaseListing {
 
 export type AnyListing = MarketplaceListing | MotorsListing | PropertyListing | JobListing | ServiceListing;
 
-// MOCK DATASETS
-
 export const mockMarketplace: MarketplaceListing[] = Array.from({ length: 8 }).map((_, i) => ({
   id: `mkt-${i}`,
   category: 'marketplace',

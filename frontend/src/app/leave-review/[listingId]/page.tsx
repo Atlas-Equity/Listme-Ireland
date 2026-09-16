@@ -16,7 +16,6 @@ export default async function LeaveReviewPage({ params }: { params: Promise<{ li
     redirect('/login');
   }
 
-  // Fetch listing and seller
   const { data: listing } = await supabase
     .from('listings')
     .select('title, seller_id')
@@ -33,7 +32,6 @@ export default async function LeaveReviewPage({ params }: { params: Promise<{ li
     .eq('id', listing.seller_id)
     .single();
 
-  // Check if they already reviewed
   const { data: existingReview } = await supabase
     .from('reviews')
     .select('id')

@@ -5,7 +5,6 @@ import { fetchCategoryListings } from '@/utils/backendApi';
 import { PackageX } from 'lucide-react';
 import Link from 'next/link';
 
-// Cache category pages for 60s for ultra-fast browsing
 export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -40,7 +39,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  if (slug.toLowerCase() === 'jobs' || slug.toLowerCase() === 'services') {
+  if (
+    slug.toLowerCase() === 'marketplace' ||
+    slug.toLowerCase() === 'jobs' ||
+    slug.toLowerCase() === 'services' ||
+    slug.toLowerCase() === 'motors' ||
+    slug.toLowerCase() === 'property'
+  ) {
     redirect('/marketplace');
   }
   
@@ -54,7 +59,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     <div className="min-h-screen bg-gray-50 dark:bg-black py-6 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Category Header */}
+        
         <div className="mb-6 sm:mb-8 border-b border-gray-200 dark:border-zinc-800 pb-5 sm:pb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white capitalize">
             {categoryName}
@@ -64,7 +69,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
           </p>
         </div>
 
-        {/* Listings Grid */}
+        
         {listings.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
             {listings.map((listing) => (

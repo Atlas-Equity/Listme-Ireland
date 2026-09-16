@@ -25,8 +25,10 @@ import {
   X
 } from 'lucide-react';
 
-import { isAdmin } from '@/utils/admin';
+import { isAdmin, isSupportOfficer } from '@/utils/admin';
 import { getAllSupportTicketsAdminAction, adminReplySupportTicketAction } from '@/app/actions/admin';
+import { sendDiscordTicketNotificationAction } from '@/app/actions/supportTickets';
+import CustomSelect from '@/components/CustomSelect';
 
 interface TicketMessage {
   id: string;
@@ -89,29 +91,24 @@ export default function HelpCentrePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
-  // Authenticated User & Profile Data (Real profile picture & name)
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<{ avatar_url?: string; username?: string; full_name?: string } | null>(null);
 
-  // Tickets State
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [showNewTicketModal, setShowNewTicketModal] = useState(false);
 
-  // Admin Capabilities State
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [ticketViewScope, setTicketViewScope] = useState<'my' | 'admin_all'>('my');
   const [adminAllTickets, setAdminAllTickets] = useState<SupportTicket[]>([]);
   const [adminLoading, setAdminLoading] = useState(false);
 
-  // New Ticket Form State
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketCategory, setTicketCategory] = useState('Buyer Protection Claim');
   const [ticketRef, setTicketRef] = useState('');
   const [ticketInitialMessage, setTicketInitialMessage] = useState('');
   const [ticketError, setTicketError] = useState<string | null>(null);
 
-  // Active Chat Message Input & Scroll Ref (Internal container scroll only)
   const [replyText, setReplyText] = useState('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -132,16 +129,14 @@ export default function HelpCentrePage() {
     }
   };
 
-  // Load real user profile & persisted tickets from Supabase metadata (fallback to localStorage)
   useEffect(() => {
     const loadUserAndTickets = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUser(user);
-        const adminCheck = isAdmin(user);
-        setIsAdminUser(adminCheck);
+        const officerCheck = isSupportOfficer(user);
+        setIsAdminUser(officerCheck);
 
-        // Fetch user profile for avatar and username
         const { data: profile } = await supabase
           .from('profiles')
           .select('avatar_url, username, full_name')
@@ -152,23 +147,21 @@ export default function HelpCentrePage() {
           setUserProfile(profile);
         }
 
-        // Check if user has tickets stored in Supabase user metadata
         const userSavedTickets = (user.user_metadata?.support_tickets || []) as SupportTicket[];
         if (Array.isArray(userSavedTickets) && userSavedTickets.length > 0) {
           setTickets(userSavedTickets);
-          if (!adminCheck) {
+          if (!officerCheck) {
             setActiveTicketId(userSavedTickets[0].id);
           }
         }
 
-        if (adminCheck) {
+        if (officerCheck) {
           setTicketViewScope('admin_all');
           loadAdminTickets();
           return;
         }
       }
 
-      // Fallback: check localStorage
       try {
         const stored = localStorage.getItem('listme_support_tickets');
         if (stored) {
@@ -190,7 +183,6 @@ export default function HelpCentrePage() {
     loadUserAndTickets();
   }, [supabase]);
 
-  // Persist tickets to both Supabase user metadata and localStorage
   const saveTickets = async (updated: SupportTicket[]) => {
     setTickets(updated);
     try {
@@ -208,15 +200,12 @@ export default function HelpCentrePage() {
     }
   };
 
-  // Active tickets list depending on view scope
   const displayTickets = (isAdminUser && ticketViewScope === 'admin_all') ? adminAllTickets : tickets;
 
-  // Status Filter and Search Query States
   const [statusFilter, setStatusFilter] = useState<'All' | 'Open' | 'In Review' | 'Resolved' | 'Closed'>('All');
   const [ticketSearchQuery, setTicketSearchQuery] = useState('');
   const [mobileTicketTab, setMobileTicketTab] = useState<'sidebar' | 'thread'>('thread');
 
-  // Exact breakdown counts for each status
   const counts = {
     All: displayTickets.length,
     Open: displayTickets.filter(t => t.status === 'Open').length,
@@ -247,7 +236,6 @@ export default function HelpCentrePage() {
     }
   };
 
-  // Scroll ONLY the message list container without ever scrolling the parent browser window!
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
@@ -308,6 +296,21 @@ export default function HelpCentrePage() {
     setTicketRef('');
     setTicketInitialMessage('');
     setTicketError(null);
+
+    try {
+      await sendDiscordTicketNotificationAction({
+        id: newId,
+        subject: newTicket.subject,
+        category: newTicket.category,
+        userDisplayName,
+        userEmail: currentUser?.email,
+        referenceId: newTicket.referenceId,
+        initialMessage: ticketInitialMessage.trim(),
+        createdAt: nowStr,
+      });
+    } catch (webhookErr) {
+      console.error('Failed to notify Discord webhook:', webhookErr);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -419,14 +422,14 @@ export default function HelpCentrePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         
-        {/* Breadcrumb */}
+        
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-6">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-gray-200 font-medium">Help Centre &amp; Support</span>
         </div>
 
-        {/* Header Title Section (Neutral styling, zero green background) */}
+        
         <div className="mb-10 pb-6 border-b border-gray-200 dark:border-zinc-800">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-bold mb-3 border border-gray-200 dark:border-zinc-700">
             <LifeBuoy className="w-3.5 h-3.5" />
@@ -445,10 +448,10 @@ export default function HelpCentrePage() {
           </div>
         </div>
 
-        {/* 2-Column Responsive Container */}
+        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Sticky Left Navigation Sidebar */}
+          
           <div className="lg:col-span-4 lg:sticky lg:top-20 space-y-4">
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xs">
               <h2 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 px-2">
@@ -495,7 +498,7 @@ export default function HelpCentrePage() {
               </div>
             </div>
 
-            {/* Direct Policy Fast-Links Box */}
+            
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xs">
               <h3 className="text-xs font-bold text-gray-900 dark:text-white mb-2">
                 Quick Marketplace Policies
@@ -529,14 +532,14 @@ export default function HelpCentrePage() {
             </div>
           </div>
 
-          {/* Main Content Area */}
+          
           <div className="lg:col-span-8 space-y-10">
             
-            {/* SECTION 1: DISCORD-STYLE SUPPORT TICKETS */}
+            
             <section id="tickets" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs">
                 
-                {/* Tickets Top Bar */}
+                
                 <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-zinc-900/40">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-zinc-800 text-white flex items-center justify-center shrink-0">
@@ -604,7 +607,7 @@ export default function HelpCentrePage() {
                   </div>
                 </div>
 
-                {/* If no tickets exist at all, show honest empty state */}
+                
                 {displayTickets.length === 0 ? (
                   <div className="p-8 sm:p-12 text-center bg-white dark:bg-[#151515]">
                     <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 flex items-center justify-center mx-auto mb-3">
@@ -633,12 +636,12 @@ export default function HelpCentrePage() {
                   /* Two-Pane Ticket Layout: Sidebar (Left) + Active Ticket Thread (Right) */
                   <div className="flex flex-col md:flex-row min-h-[580px]">
                     
-                    {/* LEFT SIDEBAR: Ticket Channels & Status Breakdown Counts */}
+                    
                     <div className={`w-full md:w-80 lg:w-80 shrink-0 border-b md:border-b-0 md:border-r border-gray-200 dark:border-zinc-800 flex flex-col bg-gray-50/70 dark:bg-[#151515] ${
                       mobileTicketTab === 'thread' ? 'hidden md:flex' : 'flex'
                     }`}>
                       
-                      {/* 1. Status Breakdown Counts ("a section of how many of each then u can get specific like resolved, in review, open or closed") */}
+                      
                       <div className="p-3 border-b border-gray-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -649,7 +652,7 @@ export default function HelpCentrePage() {
                           </span>
                         </div>
 
-                        {/* 5 Status Filter Buttons */}
+                        
                         <div className="grid grid-cols-5 gap-1 text-center">
                           {[
                             { key: 'All' as const, label: 'All', count: counts.All, color: 'bg-zinc-400 dark:bg-zinc-400' },
@@ -683,7 +686,7 @@ export default function HelpCentrePage() {
                         </div>
                       </div>
 
-                      {/* 2. Fast Filter / Search Box */}
+                      
                       <div className="p-2.5 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
                         <div className="relative">
                           <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
@@ -706,7 +709,7 @@ export default function HelpCentrePage() {
                         </div>
                       </div>
 
-                      {/* 3. Channels List */}
+                      
                       <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-zinc-800/70 max-h-[500px]">
                         {filteredTickets.length === 0 ? (
                           <div className="p-6 text-center text-xs text-gray-400">
@@ -782,16 +785,16 @@ export default function HelpCentrePage() {
 
                     </div>
 
-                    {/* RIGHT PANE: Active Ticket Chat & Controls */}
+                    
                     <div className={`flex-1 flex flex-col min-w-0 bg-white dark:bg-[#181818] ${
                       mobileTicketTab === 'sidebar' ? 'hidden md:flex' : 'flex'
                     }`}>
                       {activeTicket ? (
                         <>
-                          {/* Active Ticket Header */}
+                          
                           <div className="p-3.5 px-4 bg-gray-50/80 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              {/* Mobile Back Button */}
+                              
                               <button
                                 type="button"
                                 onClick={() => setMobileTicketTab('sidebar')}
@@ -822,7 +825,7 @@ export default function HelpCentrePage() {
                               )}
                             </div>
 
-                            {/* Status Switcher (Admin) or Status Badge + Mark as Resolved (User) */}
+                            
                             <div className="flex items-center gap-2 shrink-0">
                               {isAdminUser && ticketViewScope === 'admin_all' ? (
                                 <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -878,7 +881,7 @@ export default function HelpCentrePage() {
                             </div>
                           </div>
 
-                          {/* Message Stream */}
+                          
                           <div
                             ref={messagesContainerRef}
                             className="flex-1 p-4 sm:p-6 space-y-4 max-h-[440px] overflow-y-auto bg-white dark:bg-[#151515]"
@@ -892,7 +895,7 @@ export default function HelpCentrePage() {
                                     : ''
                                 }`}
                               >
-                                {/* Profile Picture of User on their messages */}
+                                
                                 {msg.sender === 'user' ? (
                                   msg.senderAvatar || userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url ? (
                                     <img
@@ -937,7 +940,7 @@ export default function HelpCentrePage() {
                             ))}
                           </div>
 
-                          {/* Reply Form */}
+                          
                           {activeTicket.status !== 'Resolved' && activeTicket.status !== 'Closed' ? (
                             <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#1a1a1a] flex gap-2">
                               <input
@@ -977,7 +980,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            {/* SECTION 2: BUYER PROTECTION & ESCROW */}
+            
             <section id="protection" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -1019,7 +1022,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            {/* SECTION 3: SELLING & MARKETPLACE FEES */}
+            
             <section id="fees" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -1066,7 +1069,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            {/* SECTION 4: ACCOUNT, CARDS & PIN SECURITY */}
+            
             <section id="security" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -1100,7 +1103,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            {/* SECTION 5: BUSINESS PAGES & STOREFRONTS */}
+            
             <section id="storefronts" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -1133,7 +1136,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            {/* SECTION 6: FAQS KNOWLEDGE BASE */}
+            
             <section id="faqs" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-4">
@@ -1150,7 +1153,7 @@ export default function HelpCentrePage() {
                   </span>
                 </div>
 
-                {/* Search */}
+                
                 <div className="relative mb-5">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
                   <input
@@ -1204,12 +1207,12 @@ export default function HelpCentrePage() {
 
       </div>
 
-      {/* CREATE NEW SUPPORT TICKET MODAL */}
+      
       {showNewTicketModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="relative w-full max-w-lg bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
             
-            {/* Modal Header */}
+            
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-5">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -1246,18 +1249,18 @@ export default function HelpCentrePage() {
                 <label className="block font-bold text-gray-900 dark:text-white mb-1">
                   Ticket Category / Department
                 </label>
-                <select
+                <CustomSelect
                   value={ticketCategory}
-                  onChange={(e) => setTicketCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-primary outline-none"
-                >
-                  <option value="Buyer Protection Claim">Buyer Protection Claim (Non-Delivery / Item Dispute)</option>
-                  <option value="Seller Support & Fees">Seller Support &amp; Payouts</option>
-                  <option value="Account & Card Verification">Account &amp; Card Security / PIN</option>
-                  <option value="Business Storefront Inquiry">Business Page &amp; Storefront Inquiry</option>
-                  <option value="Report User or Scam">Report Suspicious User or Scam Listing</option>
-                  <option value="General Technical Issue">General Technical Issue</option>
-                </select>
+                  onChange={setTicketCategory}
+                  options={[
+                    { value: 'Buyer Protection Claim', label: 'Buyer Protection Claim (Non-Delivery / Item Dispute)' },
+                    { value: 'Seller Support & Fees', label: 'Seller Support & Payouts' },
+                    { value: 'Account & Card Verification', label: 'Account & Card Security / PIN' },
+                    { value: 'Business Storefront Inquiry', label: 'Business Page & Storefront Inquiry' },
+                    { value: 'Report User or Scam', label: 'Report Suspicious User or Scam Listing' },
+                    { value: 'General Technical Issue', label: 'General Technical Issue' },
+                  ]}
+                />
               </div>
 
               <div>

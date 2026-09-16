@@ -21,7 +21,6 @@ import MemberAdminActions from '@/components/MemberAdminActions';
 import { isAdmin, isAccountBanned } from '@/utils/admin';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-// Cache member profile data for 30 seconds
 export const revalidate = 30;
 
 declare global {
@@ -43,7 +42,6 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
   const supabase = await createClient();
 
-  // 1. If accessed via UUID, seamlessly redirect to deterministic member number URL (#/id)
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   if (isUuid) {
     const memberNum = getMemberNumber(id);
@@ -264,7 +262,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
     <div className="min-h-screen bg-gray-50 dark:bg-black py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         
-        {/* Admin Moderation Panel (visible only to platform administrators) */}
+        
         {currentUserIsAdmin && !isOwnProfile && (
           <MemberAdminActions
             targetUserId={sellerId}
@@ -275,7 +273,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
           />
         )}
 
-        {/* Account Suspended Alert Banner */}
+        
         {banStatus.isBanned && (
           <div className="mb-6 p-4 rounded-2xl bg-red-950/60 border border-red-800 text-red-200 text-xs flex items-center gap-3">
             <span className="p-2 rounded-xl bg-red-900/80 font-bold">SUSPENDED</span>
@@ -289,23 +287,23 @@ export default async function MemberProfilePage({ params, searchParams }: Member
           </div>
         )}
 
-        {/* Breadcrumb Navigation */}
+        
         <nav className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-6 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
-          <Link href="/category/marketplace" className="hover:text-primary transition-colors">Members</Link>
+          <Link href="/marketplace" className="hover:text-primary transition-colors">Members</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white font-medium truncate">{displayName} (#{memberNumber})</span>
         </nav>
 
-        {/* TradeMe-Style Member Profile Card */}
+        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden mb-8">
           <div className="p-6 sm:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-zinc-800">
               
-              {/* Left Column: Avatar & Basic Details */}
+              
               <div className="flex items-center gap-5">
-                {/* TradeMe Circle Avatar */}
+                
                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative shadow-sm">
                   {avatarUrl ? (
                     <Image
@@ -381,7 +379,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                 </div>
               </div>
 
-              {/* Right Column: Actions */}
+              
               <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-3">
                 {isOwnProfile ? (
                   <div className="flex items-center gap-2">
@@ -407,7 +405,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               </div>
             </div>
 
-            {/* Middle Row: TradeMe Meta Information Table */}
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 text-sm">
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-100 dark:border-zinc-800/80">
                 <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
@@ -450,7 +448,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
             </div>
           </div>
 
-          {/* TradeMe Profile Navigation Tabs */}
+          
           <div className="border-t border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-[#151515] px-6 sm:px-8 flex space-x-8 text-sm font-semibold overflow-x-auto">
             <Link
               href={`/member/${memberNumber}?tab=listings`}
@@ -480,7 +478,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
           </div>
         </div>
 
-        {/* TAB 1: Active Listings */}
+        
         {activeTab === 'listings' && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -541,10 +539,10 @@ export default async function MemberProfilePage({ params, searchParams }: Member
           </div>
         )}
 
-        {/* TAB 2: Feedback & Reviews */}
+        
         {activeTab === 'feedback' && (
           <div className="space-y-6">
-            {/* Feedback Breakdown Stats */}
+            
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                 Feedback Summary
@@ -580,7 +578,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               </div>
             </div>
 
-            {/* Individual Reviews List */}
+            
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                 Recent Reviews ({reviews.length})

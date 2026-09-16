@@ -33,6 +33,7 @@ interface BusinessPageClientProps {
   businessPage: BusinessPageData;
   listings: any[];
   isOwner?: boolean;
+  isTrueOwner?: boolean;
   isAdmin?: boolean;
   isTeamMember?: boolean;
 }
@@ -41,6 +42,7 @@ export default function BusinessPageClient({
   businessPage,
   listings,
   isOwner = false,
+  isTrueOwner = false,
   isAdmin = false,
   isTeamMember = false,
 }: BusinessPageClientProps) {
@@ -68,7 +70,7 @@ export default function BusinessPageClient({
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-black py-4 sm:py-6">
       <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-6">
         
-        {/* Owner / Admin / Team Member Management Banner */}
+        
         {(isOwner || isAdmin || isTeamMember) && (
           <div className="mb-4 p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-2.5">
@@ -77,15 +79,19 @@ export default function BusinessPageClient({
                 <p className="text-xs font-bold text-gray-900 dark:text-white">
                   {isListMeOfficial 
                     ? 'Admin Mode: Managing Official ListMe Storefront' 
+                    : isTrueOwner
+                    ? 'You are viewing this page as the Primary Owner'
                     : isOwner 
-                    ? 'You are viewing this page as the Owner' 
+                    ? 'You are viewing this page as a Co-Owner' 
                     : 'You are viewing this page as an authorized Team Staff Member'}
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   {isListMeOfficial 
                     ? 'You have administrator privileges to edit announcements, platform details, and storefront info.' 
+                    : isTrueOwner
+                    ? 'You have full management authority including editing details, managing team roles, transferring ownership, and deleting this page.'
                     : isOwner 
-                    ? 'You can edit opening hours, announcement, business model, manage team staff, or delete this page.' 
+                    ? 'You have full owner permissions to edit opening hours, announcement, profile picture, storefront details, and manage staff.' 
                     : 'You have staff access to view announcements, storefront details, and inventory.'}
                 </p>
               </div>
@@ -93,17 +99,17 @@ export default function BusinessPageClient({
 
             <div className="flex items-center gap-2">
               {(isOwner || isAdmin) && <CreateBusinessPageModal initialData={businessPage} />}
-              {isOwner && !isListMeOfficial && (
+              {isTrueOwner && !isListMeOfficial && (
                 <DeleteBusinessPageButton slug={businessPage.slug} pageName={businessPage.name} />
               )}
             </div>
           </div>
         )}
 
-        {/* Flat Main Profile Header Container */}
+        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden mb-6">
           
-          {/* 1. Cover Photo Banner (Displays official ListMe banner by default, or custom cover only if verified) */}
+          
           <div className="h-44 sm:h-60 w-full bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 relative overflow-hidden">
             <Image
               src={bannerImage}
@@ -114,14 +120,14 @@ export default function BusinessPageClient({
               className="object-cover object-center"
             />
             
-            {/* Top Right Verified Pill & Business Model Declaration */}
+            
             <div className="absolute top-3 right-3 flex flex-wrap items-center gap-2 z-10">
               <span className="px-2.5 py-1 rounded-md bg-black/80 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
                 <Store className="w-3.5 h-3.5 text-zinc-300" />
                 <span>{isListMeOfficial ? 'Official Platform' : 'Marketplace Store'}</span>
               </span>
 
-              {/* Top Right Verified Pill (ONLY IF ACTUALLY VERIFIED) */}
+              
               {(isListMeOfficial || businessPage.is_verified) ? (
                 <span className="px-2.5 py-1 rounded-md bg-black/80 text-white text-xs font-semibold border border-white/10 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
@@ -139,14 +145,14 @@ export default function BusinessPageClient({
             </div>
           </div>
 
-          {/* 2. Overlapping Profile Avatar + Info & Action Buttons */}
+          
           <div className="px-6 sm:px-8 pb-4 relative">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 -mt-14 sm:-mt-18 pb-6 border-b border-gray-100 dark:border-zinc-800">
               
-              {/* Profile Avatar & Details */}
+              
               <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4">
                 
-                {/* Profile Avatar / Logo (Modern rounded squircle for proper logo scaling) */}
+                
                 <div className="relative group">
                   <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white dark:bg-[#181818] p-1.5 shadow-md ring-4 ring-white dark:ring-[#181818]">
                     <div className="w-full h-full rounded-xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-gray-800 dark:text-gray-200 font-bold text-3xl uppercase select-none overflow-hidden relative">
@@ -166,7 +172,7 @@ export default function BusinessPageClient({
                   </div>
                 </div>
 
-                {/* Name, Handle, Metrics */}
+                
                 <div className="min-w-0 pt-2">
                   <div className="flex items-center justify-center sm:justify-start gap-2">
                     <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
@@ -195,7 +201,7 @@ export default function BusinessPageClient({
                 </div>
               </div>
 
-              {/* Action Buttons: Message button only if enabled in settings */}
+              
               <div className="flex items-center justify-center sm:justify-end gap-2.5 shrink-0">
                 {!isListMeOfficial && businessPage.allow_direct_messaging && (
                   <Link
@@ -207,7 +213,7 @@ export default function BusinessPageClient({
                   </Link>
                 )}
 
-                {/* Share Button */}
+                
                 <button
                   type="button"
                   onClick={handleShare}
@@ -220,7 +226,7 @@ export default function BusinessPageClient({
 
             </div>
 
-            {/* 3. Horizontal Navigation Tabs */}
+            
             <div className="flex items-center gap-2 pt-2 text-xs font-bold">
               {!isListMeOfficial && (
                 <button
@@ -252,13 +258,13 @@ export default function BusinessPageClient({
           </div>
         </div>
 
-        {/* Two-Column Layout */}
+        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* LEFT COLUMN: Intro Card & Opening Hours */}
+          
           <div className="lg:col-span-4 space-y-6">
             
-            {/* Intro Details Box */}
+            
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -277,7 +283,7 @@ export default function BusinessPageClient({
 
               <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 space-y-3.5 text-xs text-gray-700 dark:text-gray-300">
                 
-                {/* Business Type */}
+                
                 <div className="flex items-center gap-3">
                   <Store className="w-4 h-4 text-gray-400 shrink-0" />
                   <span>
@@ -285,7 +291,7 @@ export default function BusinessPageClient({
                   </span>
                 </div>
 
-                {/* Opening Hours */}
+                
                 <div className="flex items-start gap-3">
                   <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                   <div>
@@ -296,13 +302,13 @@ export default function BusinessPageClient({
                   </div>
                 </div>
 
-                {/* Location */}
+                
                 <div className="flex items-center gap-3">
                   <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
                   <span>Based in <strong>{businessPage.county}, Ireland</strong></span>
                 </div>
 
-                {/* Phone */}
+                
                 {businessPage.phone && (
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-gray-400 shrink-0" />
@@ -310,7 +316,7 @@ export default function BusinessPageClient({
                   </div>
                 )}
 
-                {/* Email */}
+                
                 {businessPage.email && (
                   <div className="flex items-center gap-3">
                     <Mail className="w-4 h-4 text-gray-400 shrink-0" />
@@ -320,7 +326,7 @@ export default function BusinessPageClient({
                   </div>
                 )}
 
-                {/* Website */}
+                
                 {businessPage.website && (
                   <div className="flex items-center gap-3">
                     <Globe className="w-4 h-4 text-gray-400 shrink-0" />
@@ -338,7 +344,7 @@ export default function BusinessPageClient({
 
               </div>
 
-              {/* Social Links Row */}
+              
               {(businessPage.facebook || businessPage.linkedin) && (
                 <div className="pt-3 border-t border-gray-100 dark:border-zinc-800/80">
                   <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -375,7 +381,7 @@ export default function BusinessPageClient({
 
             </div>
 
-            {/* Buyer Protection Card */}
+            
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
               <div className="text-xs">
@@ -391,11 +397,12 @@ export default function BusinessPageClient({
               </div>
             </div>
 
-            {/* Business Team & Staff Section (Owner & Authorized Staff) */}
+            
             {(isOwner || isAdmin || isTeamMember) && !isListMeOfficial && (
               <BusinessTeamManagement
                 pageSlug={businessPage.slug}
                 isOwner={isOwner}
+                isTrueOwner={isTrueOwner}
                 isAdmin={isAdmin}
                 teamMembers={businessPage.team_members}
                 pendingInvites={businessPage.pending_invites}
@@ -404,10 +411,10 @@ export default function BusinessPageClient({
 
           </div>
 
-          {/* RIGHT COLUMN: Announcement Banner & Content */}
+          
           <div className="lg:col-span-8 space-y-6">
             
-            {/* Announcement Banner */}
+            
             {businessPage.announcement && (
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs">
                 <div className="flex items-start gap-3">

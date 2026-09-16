@@ -22,7 +22,6 @@ export async function createStripeConnectAction() {
     const headerList = await headers();
     const origin = headerList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.listme.ie';
 
-    // Helper to create a new connected account and save to Supabase profile
     const createNewAccount = async () => {
       let accountId: string;
 
@@ -34,7 +33,6 @@ export async function createStripeConnectAction() {
         console.warn('Could not retrieve platform country, defaulting to IE:', e.message);
       }
 
-      // Try Accounts v2 first
       try {
         const v2Account = await stripe.v2.core.accounts.create({
           contact_email: user.email,
@@ -68,7 +66,6 @@ export async function createStripeConnectAction() {
         accountId = v1Account.id;
       }
 
-      // Update profile in Supabase
       await supabase
         .from('profiles')
         .upsert({
@@ -82,7 +79,6 @@ export async function createStripeConnectAction() {
       return accountId;
     };
 
-    // Helper to create onboarding link
     const createLinkForAccount = async (accId: string) => {
       try {
         const link = await stripe.accountLinks.create({

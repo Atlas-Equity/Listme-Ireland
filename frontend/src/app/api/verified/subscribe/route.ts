@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
     const stripe = new Stripe(stripeKey);
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-    // 1. Get or create Stripe Customer
     let customerId = user.user_metadata?.stripe_customer_id;
 
     if (!customerId) {
@@ -54,7 +53,6 @@ export async function POST(req: NextRequest) {
         customerId = newCustomer.id;
       }
 
-      // Save customer ID to user metadata and profiles
       try {
         await supabase.auth.updateUser({
           data: { stripe_customer_id: customerId },
@@ -64,11 +62,9 @@ export async function POST(req: NextRequest) {
           .update({ stripe_customer_id: customerId })
           .eq('id', user.id);
       } catch {
-        // Non-blocking
       }
     }
 
-    // 2. Build line items for €4.99/mo subscription
     const configuredPriceOrProduct = (
       process.env.STRIPE_VERIFIED_PRICE_ID || 
       process.env.NEXT_PUBLIC_STRIPE_VERIFIED_PRICE_ID || 
@@ -80,7 +76,6 @@ export async function POST(req: NextRequest) {
 
     if (configuredPriceOrProduct) {
       if (configuredPriceOrProduct.startsWith('price_') || configuredPriceOrProduct.startsWith('plan_')) {
-        // Direct Stripe Price ID
         lineItems = [
           {
             price: configuredPriceOrProduct,
@@ -88,7 +83,6 @@ export async function POST(req: NextRequest) {
           },
         ];
       } else if (configuredPriceOrProduct.startsWith('prod_')) {
-        // Product ID was passed: search for an existing recurring monthly price on this product
         try {
           const prices = await stripe.prices.list({
             product: configuredPriceOrProduct,
@@ -101,7 +95,6 @@ export async function POST(req: NextRequest) {
           if (monthlyPrice) {
             lineItems = [{ price: monthlyPrice.id, quantity: 1 }];
           } else {
-            // Dynamic price on the existing product
             lineItems = [
               {
                 price_data: {
@@ -117,7 +110,6 @@ export async function POST(req: NextRequest) {
             ];
           }
         } catch {
-          // Fallback to inline price
           lineItems = [
             {
               price_data: {
@@ -136,7 +128,6 @@ export async function POST(req: NextRequest) {
           ];
         }
       } else {
-        // Assume price ID if format unknown
         lineItems = [
           {
             price: configuredPriceOrProduct,
@@ -145,12 +136,11 @@ export async function POST(req: NextRequest) {
         ];
       }
     } else {
-      // Automatic inline recurring price data (€4.99/month)
       lineItems = [
         {
           price_data: {
             currency: 'eur',
-            unit_amount: 499, // €4.99
+            unit_amount: 499,
             recurring: {
               interval: 'month',
             },
@@ -164,7 +154,6 @@ export async function POST(req: NextRequest) {
       ];
     }
 
-    // 3. Create Stripe Checkout Session in subscription mode
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],

@@ -31,6 +31,7 @@ import { createListing } from './actions';
 import { IRELAND_LOCATIONS, COUNTIES } from '@/utils/irelandLocations';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import Image from 'next/image';
+import CustomSelect from '@/components/CustomSelect';
 
 type ListingBranch = 'item' | 'job' | 'service';
 
@@ -80,17 +81,13 @@ export default function SellPage() {
   const [currentUsername, setCurrentUsername] = useState<string>('me');
   const [error, setError] = useState<string | null>(null);
 
-  // TradeMe Branch Selection ('item' | 'job' | 'service')
   const [listingBranch, setListingBranch] = useState<ListingBranch>('item');
 
-  // Business Page Association (Must be an owned marketplace page)
   const [selectedBusinessSlug, setSelectedBusinessSlug] = useState<string>('');
 
-  // Wizard Step (1: Basics, 2: Photos, 3: Pricing & Terms, 4: Review)
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Common Form State
   const [title, setTitle] = useState('');
   const [county, setCounty] = useState('Dublin');
   const [description, setDescription] = useState('');
@@ -98,7 +95,6 @@ export default function SellPage() {
   const [images, setImages] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  // Item-specific State
   const [itemCategory, setItemCategory] = useState(ITEM_SUBCATEGORIES[0]);
   const [itemCondition, setItemCondition] = useState(ITEM_CONDITIONS[0]);
   const [priceType, setPriceType] = useState('Fixed Price');
@@ -106,13 +102,11 @@ export default function SellPage() {
   const [buyNowPrice, setBuyNowPrice] = useState('');
   const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash', 'stripe']);
 
-  // Job-specific State
   const [companyName, setCompanyName] = useState('');
   const [jobType, setJobType] = useState(JOB_TYPES[0]);
   const [salary, setSalary] = useState('€40,000 - €50,000 / year');
   const [applicationMethod, setApplicationMethod] = useState('ListMe Messages');
 
-  // Service-specific State
   const [serviceCategory, setServiceCategory] = useState(SERVICE_CATEGORIES[0]);
   const [pricingModel, setPricingModel] = useState('Hourly Rate');
   const [serviceRate, setServiceRate] = useState('€45 / hr');
@@ -136,7 +130,6 @@ export default function SellPage() {
       const isBiz = accountType === 'business';
       setIsBusiness(isBiz);
 
-      // Check linked credit card requirement across linked_cards array or legacy linked_card
       const linkedCards: any[] = Array.isArray(userMeta.linked_cards)
         ? userMeta.linked_cards
         : (userMeta.linked_card ? [userMeta.linked_card] : []);
@@ -155,7 +148,6 @@ export default function SellPage() {
         return isCredit && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
       });
 
-      // Whitelist Quinn (@Quinn) and sahleyis (@sahleyis) to post without requiring a credit card
       const username = (profile?.username || userMeta.username || '').toLowerCase();
       const userEmail = (user.email || '').toLowerCase();
       const isExempt = 
@@ -169,7 +161,6 @@ export default function SellPage() {
       setHasCreditCard(cardValid || isExempt);
       setLinkedDebitCard(isExempt ? null : (detectedDebit || null));
 
-      // Check all owned and assigned business pages
       const userPages = (userMeta.business_pages || []) as BusinessPageData[];
       const assigned = (userMeta.assigned_business_pages || []) as any[];
       const combinedPages: BusinessPageData[] = [...userPages];
@@ -191,7 +182,6 @@ export default function SellPage() {
       const resolvedUsername = profile?.username || userMeta.username || user.email?.split('@')[0] || 'Member';
       setCurrentUsername(resolvedUsername);
 
-      // Default company name if user has profile info
       setCompanyName(profile?.full_name || profile?.username || userMeta.full_name || userMeta.username || '');
 
       setLoading(false);
@@ -294,7 +284,6 @@ export default function SellPage() {
     setError(null);
 
     try {
-      // 1. Upload Images
       setUploadingImages(true);
       const uploadedUrls: string[] = [];
       for (const file of images) {
@@ -303,10 +292,8 @@ export default function SellPage() {
       }
       setUploadingImages(false);
 
-      // Find matching business page name if selected
       const chosenPage = marketplacePages.find(p => p.slug === selectedBusinessSlug);
 
-      // 2. Prepare Payload according to TradeMe Branch
       let categoryName = 'Marketplace';
       let numericPrice = 0;
       let finalCondition = 'New';
@@ -356,7 +343,6 @@ export default function SellPage() {
         setError(result.error);
         setIsSubmitting(false);
       } else {
-        // Success!
         if (selectedBusinessSlug) {
           router.push(`/page/${selectedBusinessSlug}`);
         } else {
@@ -377,7 +363,7 @@ export default function SellPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Top Header */}
+        
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
@@ -389,7 +375,7 @@ export default function SellPage() {
             </span>
           </div>
           
-          {/* Selling Identity Customizer: Sell as Myself vs Sell on Storefront */}
+          
           {marketplacePages.length > 0 && (
             <div className="mt-4 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] space-y-3">
               <div>
@@ -402,7 +388,7 @@ export default function SellPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Option A: Myself */}
+                
                 <button
                   type="button"
                   onClick={() => setSelectedBusinessSlug('')}
@@ -427,7 +413,7 @@ export default function SellPage() {
                   </div>
                 </button>
 
-                {/* Option B: Business Storefront */}
+                
                 <div className={`p-3 rounded-xl border transition-all ${
                   selectedBusinessSlug
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
@@ -458,17 +444,16 @@ export default function SellPage() {
                   </button>
 
                   {selectedBusinessSlug && marketplacePages.length > 1 && (
-                    <select
-                      value={selectedBusinessSlug}
-                      onChange={(e) => setSelectedBusinessSlug(e.target.value)}
-                      className="mt-2 w-full px-2.5 py-1.5 text-xs border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {marketplacePages.map((page) => (
-                        <option key={page.slug} value={page.slug}>
-                          {page.name} (/page/{page.slug})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="mt-2">
+                      <CustomSelect
+                        value={selectedBusinessSlug}
+                        onChange={setSelectedBusinessSlug}
+                        options={marketplacePages.map((page) => ({
+                          value: page.slug,
+                          label: `${page.name} (/page/${page.slug})`,
+                        }))}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -484,7 +469,7 @@ export default function SellPage() {
             </div>
           )}
 
-          {/* Progress Bar */}
+          
           <div className="mt-6 flex items-center justify-between relative">
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 dark:bg-zinc-800 rounded-full z-0"></div>
             <div 
@@ -522,11 +507,11 @@ export default function SellPage() {
 
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
           
-          {/* STEP 1: BASICS */}
+          
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
               
-              {/* Branch 1: ITEM Basics */}
+              
               {listingBranch === 'item' && (
                 <>
                   <div>
@@ -543,33 +528,25 @@ export default function SellPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Subcategory</label>
-                      <select
+                      <CustomSelect
                         value={itemCategory}
-                        onChange={(e) => setItemCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                      >
-                        {ITEM_SUBCATEGORIES.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
+                        onChange={setItemCategory}
+                        options={ITEM_SUBCATEGORIES.map(cat => ({ value: cat, label: cat }))}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Condition</label>
-                      <select
+                      <CustomSelect
                         value={itemCondition}
-                        onChange={(e) => setItemCondition(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                      >
-                        {ITEM_CONDITIONS.map(cond => (
-                          <option key={cond} value={cond}>{cond}</option>
-                        ))}
-                      </select>
+                        onChange={setItemCondition}
+                        options={ITEM_CONDITIONS.map(cond => ({ value: cond, label: cond }))}
+                      />
                     </div>
                   </div>
                 </>
               )}
 
-              {/* Branch 2: JOB Basics */}
+              
               {listingBranch === 'job' && (
                 <>
                   <div>
@@ -596,15 +573,11 @@ export default function SellPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Job Type</label>
-                      <select
+                      <CustomSelect
                         value={jobType}
-                        onChange={(e) => setJobType(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                      >
-                        {JOB_TYPES.map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
+                        onChange={setJobType}
+                        options={JOB_TYPES.map(type => ({ value: type, label: type }))}
+                      />
                     </div>
                   </div>
 
@@ -621,20 +594,20 @@ export default function SellPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Application Method</label>
-                      <select
+                      <CustomSelect
                         value={applicationMethod}
-                        onChange={(e) => setApplicationMethod(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                      >
-                        <option value="ListMe Messages">ListMe Direct Messaging (Recommended)</option>
-                        <option value="Email / External CV">Email / External Submission</option>
-                      </select>
+                        onChange={setApplicationMethod}
+                        options={[
+                          { value: 'ListMe Messages', label: 'ListMe Direct Messaging (Recommended)' },
+                          { value: 'Email / External CV', label: 'Email / External Submission' },
+                        ]}
+                      />
                     </div>
                   </div>
                 </>
               )}
 
-              {/* Branch 3: SERVICE Basics */}
+              
               {listingBranch === 'service' && (
                 <>
                   <div>
@@ -643,7 +616,7 @@ export default function SellPage() {
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g., Certified Electrician - Domestic &amp; Commercial Services"
+                      placeholder="e.g., Certified Electrician - Domestic & Commercial Services"
                       className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                     />
                   </div>
@@ -651,27 +624,23 @@ export default function SellPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Service Category</label>
-                      <select
+                      <CustomSelect
                         value={serviceCategory}
-                        onChange={(e) => setServiceCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                      >
-                        {SERVICE_CATEGORIES.map(sc => (
-                          <option key={sc} value={sc}>{sc}</option>
-                        ))}
-                      </select>
+                        onChange={setServiceCategory}
+                        options={SERVICE_CATEGORIES.map(sc => ({ value: sc, label: sc }))}
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Pricing Model</label>
-                      <select
+                      <CustomSelect
                         value={pricingModel}
-                        onChange={(e) => setPricingModel(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                      >
-                        <option value="Hourly Rate">Hourly Rate</option>
-                        <option value="Fixed Price Quote">Fixed Price Quote</option>
-                        <option value="Free Consultation / Quote">Free Consultation / Free Quote</option>
-                      </select>
+                        onChange={setPricingModel}
+                        options={[
+                          { value: 'Hourly Rate', label: 'Hourly Rate' },
+                          { value: 'Fixed Price Quote', label: 'Fixed Price Quote' },
+                          { value: 'Free Consultation / Quote', label: 'Free Consultation / Free Quote' },
+                        ]}
+                      />
                     </div>
                   </div>
 
@@ -688,26 +657,22 @@ export default function SellPage() {
                 </>
               )}
 
-              {/* County Location (Common to all) */}
+              
               <div>
                 <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1.5">
                   Location (County)
                 </label>
-                <select
+                <CustomSelect
                   value={county}
-                  onChange={(e) => setCounty(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                >
-                  {COUNTIES.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                  onChange={setCounty}
+                  options={COUNTIES.map(c => ({ value: c, label: c }))}
+                />
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   All 32 Irish counties supported.
                 </p>
               </div>
 
-              {/* Description (Common to all) */}
+              
               <div>
                 <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">
                   {listingBranch === 'job' 
@@ -733,7 +698,7 @@ export default function SellPage() {
             </div>
           )}
 
-          {/* STEP 2: PHOTOS */}
+          
           {step === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="text-center">
@@ -784,11 +749,11 @@ export default function SellPage() {
             </div>
           )}
 
-          {/* STEP 3: PRICING & TERMS */}
+          
           {step === 3 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
               
-              {/* Branch 1: ITEM Pricing */}
+              
               {listingBranch === 'item' && (
                 <>
                   <div>
@@ -897,7 +862,7 @@ export default function SellPage() {
                 </>
               )}
 
-              {/* Branch 2: JOB Pricing / Terms */}
+              
               {listingBranch === 'job' && (
                 <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
@@ -913,7 +878,7 @@ export default function SellPage() {
                 </div>
               )}
 
-              {/* Branch 3: SERVICE Pricing */}
+              
               {listingBranch === 'service' && (
                 <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 space-y-3">
                   <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
@@ -929,25 +894,25 @@ export default function SellPage() {
                 </div>
               )}
 
-              {/* Duration (Common to all) */}
-              <div>
+              
+              <div className="max-w-xs">
                 <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Listing Duration</label>
-                <select
+                <CustomSelect
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="w-full max-w-xs px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
-                >
-                  <option value="3">3 days</option>
-                  <option value="5">5 days</option>
-                  <option value="7">7 days</option>
-                  <option value="14">14 days</option>
-                  <option value="30">30 days</option>
-                </select>
+                  onChange={setDuration}
+                  options={[
+                    { value: '3', label: '3 days' },
+                    { value: '5', label: '5 days' },
+                    { value: '7', label: '7 days' },
+                    { value: '14', label: '14 days' },
+                    { value: '30', label: '30 days' },
+                  ]}
+                />
               </div>
             </div>
           )}
 
-          {/* STEP 4: REVIEW */}
+          
           {step === 4 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="bg-gray-50 dark:bg-zinc-900/50 rounded-2xl p-6 border border-gray-200 dark:border-zinc-800">
@@ -1035,7 +1000,7 @@ export default function SellPage() {
             </div>
           )}
 
-          {/* Navigation Controls */}
+          
           <div className="mt-8 pt-5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
             {step > 1 ? (
               <button

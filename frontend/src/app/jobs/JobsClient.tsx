@@ -7,6 +7,7 @@ import { Search, MapPin, Briefcase, UserCheck, Building2, ExternalLink, Plus } f
 import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
+import CustomSelect from '@/components/CustomSelect';
 
 interface JobCandidate {
   id: string;
@@ -34,7 +35,6 @@ export default function JobsClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('All');
 
-  // Filter hiring businesses
   const filteredBusinesses = useMemo(() => {
     return initialHiringBusinesses.filter((b) => {
       const matchesCounty = selectedCounty === 'All' || b.county?.toLowerCase() === selectedCounty.toLowerCase();
@@ -49,7 +49,6 @@ export default function JobsClient({
     });
   }, [initialHiringBusinesses, searchQuery, selectedCounty]);
 
-  // Filter candidates looking for work
   const filteredCandidates = useMemo(() => {
     return initialJobCandidates.filter((c) => {
       const matchesCounty = selectedCounty === 'All' || c.location?.toLowerCase().includes(selectedCounty.toLowerCase());
@@ -63,7 +62,6 @@ export default function JobsClient({
     });
   }, [initialJobCandidates, searchQuery, selectedCounty]);
 
-  // Filter listings tagged with Jobs
   const filteredListings = useMemo(() => {
     return initialJobListings.filter((item) => {
       const matchesCounty = selectedCounty === 'All' || item.location?.toLowerCase().includes(selectedCounty.toLowerCase());
@@ -78,7 +76,7 @@ export default function JobsClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      {/* Header */}
+      
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
@@ -101,7 +99,7 @@ export default function JobsClient({
           </div>
         </div>
 
-        {/* Filter Controls */}
+        
         <div className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white dark:bg-[#181818] p-3 rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-xs">
             <div className="md:col-span-3 relative flex items-center">
@@ -116,20 +114,15 @@ export default function JobsClient({
             </div>
 
             <div>
-              <select
+              <CustomSelect
                 value={selectedCounty}
-                onChange={(e) => setSelectedCounty(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-              >
-                <option value="All">All Counties (Ireland)</option>
-                {COUNTIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+                onChange={setSelectedCounty}
+                options={[{ value: 'All', label: 'All Counties (Ireland)' }, ...COUNTIES.map((c) => ({ value: c, label: c }))]}
+              />
             </div>
           </div>
 
-          {/* View Segment Switcher */}
+          
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -170,7 +163,7 @@ export default function JobsClient({
         </div>
       </div>
 
-      {/* SECTION 1: Businesses Hiring (Service Businesses & Marketplaces) */}
+      
       {(tab === 'all' || tab === 'hiring') && (
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -254,7 +247,7 @@ export default function JobsClient({
         </section>
       )}
 
-      {/* SECTION 2: People Looking for Work */}
+      
       {(tab === 'all' || tab === 'candidates') && (
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -342,7 +335,7 @@ export default function JobsClient({
         </section>
       )}
 
-      {/* SECTION 3: Active Job Listings from Database */}
+      
       {filteredListings.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">

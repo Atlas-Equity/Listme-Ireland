@@ -12,7 +12,7 @@ export default function HeaderNotificationsBadge({
   currentUserId,
   inline = false,
 }: HeaderNotificationsBadgeProps) {
-  const [unreadQuestions, setUnreadQuestions] = useState<number>(0);
+  const [notificationsCount, setNotificationsCount] = useState<number>(0);
   const pathname = usePathname();
 
   const fetchCount = useCallback(async () => {
@@ -21,7 +21,10 @@ export default function HeaderNotificationsBadge({
       const res = await fetch('/api/messages/unread-count');
       if (res.ok) {
         const data = await res.json();
-        setUnreadQuestions(data.unreadQuestions || 0);
+        const count = typeof data.totalNotifications === 'number'
+          ? data.totalNotifications
+          : (data.unreadQuestions || 0) + (data.unreadInvites || 0);
+        setNotificationsCount(count);
       }
     } catch {}
   }, [currentUserId]);
@@ -36,25 +39,27 @@ export default function HeaderNotificationsBadge({
     };
     window.addEventListener('messages_read', handleRefresh);
     window.addEventListener('new_message_received', handleRefresh);
+    window.addEventListener('business_invite_updated', handleRefresh);
     return () => {
       window.removeEventListener('messages_read', handleRefresh);
       window.removeEventListener('new_message_received', handleRefresh);
+      window.removeEventListener('business_invite_updated', handleRefresh);
     };
   }, [fetchCount]);
 
-  if (unreadQuestions <= 0) return null;
+  if (notificationsCount <= 0) return null;
 
   if (inline) {
     return (
-      <span className="ml-auto px-1.5 py-0.5 rounded-full bg-primary text-white text-[10px] font-bold min-w-[18px] text-center leading-tight shadow-xs">
-        {unreadQuestions > 99 ? '99+' : unreadQuestions}
+      <span className="ml-auto px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black min-w-[18px] text-center leading-tight shadow-xs">
+        {notificationsCount > 99 ? '99+' : notificationsCount}
       </span>
     );
   }
 
   return (
-    <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs leading-none pointer-events-none animate-in zoom-in">
-      {unreadQuestions > 99 ? '99+' : unreadQuestions}
+    <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none pointer-events-none animate-in zoom-in">
+      {notificationsCount > 99 ? '99+' : notificationsCount}
     </span>
   );
 }

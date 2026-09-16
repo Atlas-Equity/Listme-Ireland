@@ -7,11 +7,11 @@ export default function Footer() {
     <footer className="bg-gray-50 dark:bg-[#202020] border-t border-gray-200 dark:border-[#333333] text-gray-600 dark:text-gray-400 text-sm mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {/* Main Footer Links - 4 Columns */}
-        {/* Main Footer Links */}
+        
+        
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
           
-          {/* Marketplace */}
+          
           <div>
             <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
               <ShoppingBag className="w-4 h-4 mr-2 text-primary" /> Marketplace
@@ -24,7 +24,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Community */}
+          
           <div>
             <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
               <Users className="w-4 h-4 mr-2 text-primary" /> Community
@@ -39,13 +39,13 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
+        
         <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-gray-200 dark:border-[#333333] text-xs gap-4">
           <div className="text-gray-500">
             © 2026 ListMe Limited
           </div>
 
-          {/* Social Channels */}
+          
           <div className="flex items-center gap-6">
             <a
               href="https://www.facebook.com/profile.php?id=61594336620072"

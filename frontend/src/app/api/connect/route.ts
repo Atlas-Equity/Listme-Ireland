@@ -11,11 +11,9 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
   const stripe = new Stripe(stripeKey);
   const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-  // Helper to create a new connected account and save to Supabase profile
   const createNewAccount = async () => {
     let accountId: string;
 
-    // Retrieve platform account country to match supported Express onboarding countries
     let platformCountry = 'IE';
     try {
       const platform = await (stripe.accounts as any).retrieve();
@@ -24,7 +22,6 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
       console.warn('Could not retrieve platform country, defaulting to IE:', e.message);
     }
 
-    // Try Accounts v2 first (Stripe requirement for new Connect platforms)
     try {
       const v2Account = await stripe.v2.core.accounts.create({
         contact_email: user.email,
@@ -44,7 +41,6 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
       accountId = v2Account.id;
     } catch (v2Err: any) {
       console.warn('Stripe Accounts v2 creation fallback to Accounts v1:', v2Err.message);
-      // Fallback to Accounts v1
       const v1Account = await stripe.accounts.create({
         type: 'express',
         email: user.email,
@@ -59,7 +55,6 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
       accountId = v1Account.id;
     }
 
-    // Update profile in Supabase
     await supabase
       .from('profiles')
       .update({ stripe_account_id: accountId, stripe_onboarding_complete: false })
@@ -68,7 +63,6 @@ async function createDirectStripeConnect(req: NextRequest, user: any, supabase: 
     return accountId;
   };
 
-  // Helper to create onboarding link (tries standard accountLinks, then v2 accountLinks)
   const createLinkForAccount = async (accId: string) => {
     try {
       const link = await stripe.accountLinks.create({

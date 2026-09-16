@@ -90,7 +90,7 @@ export default function RelistNotificationCard({ listing }: RelistNotificationCa
     <div className="bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xs transition-all hover:shadow-sm">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         
-        {/* Left: Image & Info */}
+        
         <div className="flex items-center gap-4 min-w-0">
           <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-800 relative shrink-0 border border-gray-200 dark:border-zinc-700">
             <Image
@@ -128,7 +128,7 @@ export default function RelistNotificationCard({ listing }: RelistNotificationCa
           </div>
         </div>
 
-        {/* Right: Actions */}
+        
         <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
           <button
             type="button"

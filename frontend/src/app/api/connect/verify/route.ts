@@ -24,11 +24,9 @@ export async function POST() {
       return NextResponse.json({ verified: false, error: 'No Stripe account found' });
     }
 
-    // Actually check with Stripe if the account is fully onboarded
     const account = await stripe.accounts.retrieve(profile.stripe_account_id);
 
     if (account.charges_enabled && account.details_submitted) {
-      // Mark as complete in DB
       await supabase
         .from('profiles')
         .update({ stripe_onboarding_complete: true })

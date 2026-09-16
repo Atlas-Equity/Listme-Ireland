@@ -42,7 +42,6 @@ export async function submitOfferAction({
   }
 
   try {
-    // 1. Fetch listing details
     const { data: listing, error: listingError } = await supabase
       .from('listings')
       .select('id, title, price')
@@ -55,7 +54,6 @@ export async function submitOfferAction({
 
     const buyerName = user.user_metadata?.username || user.email?.split('@')[0] || 'Buyer';
 
-    // 2. Build structured offer payload
     const offerPayload: OfferPayload = {
       id: `off_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       amount: Number(amount.toFixed(2)),

@@ -48,12 +48,10 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
 
-  // Close mobile menu on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -64,7 +62,6 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Prevent background scrolling when menu is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -87,7 +84,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
 
   return (
     <div className="lg:hidden">
-      {/* Hamburger Toggle Button */}
+      
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -97,11 +94,11 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
         <Menu className="w-6 h-6" />
       </button>
 
-      {/* Backdrop & Drawer Animated with Framer Motion */}
+      
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-[100] flex">
-            {/* Backdrop Overlay */}
+            
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -111,7 +108,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
               onClick={() => setIsOpen(false)}
             />
 
-            {/* Drawer Content */}
+            
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -121,7 +118,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
               onClick={(e) => e.stopPropagation()}
             >
               <div>
-                {/* Drawer Top Header */}
+                
                 <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
                 <Link
                   href="/"
@@ -153,7 +150,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                 </div>
               </div>
 
-              {/* User Profile Summary */}
+              
               <div className="p-4 bg-gray-50 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800">
                 {user ? (
                   <div className="space-y-3">
@@ -244,7 +241,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                 )}
               </div>
 
-              {/* Main Navigation Links */}
+              
               <div className="p-3 border-b border-gray-200 dark:border-zinc-800">
                 <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   Navigation
@@ -301,14 +298,14 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                 </nav>
               </div>
 
-              {/* Browse & Community */}
+              
               <div className="p-3">
                 <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   Explore &amp; Community
                 </p>
                 <nav className="space-y-1">
                   <Link
-                    href="/category/marketplace"
+                    href="/marketplace"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
@@ -335,7 +332,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
               </div>
             </div>
 
-            {/* Logout footer */}
+            
             {user && (
               <div className="p-4 border-t border-gray-200 dark:border-zinc-800">
                 <form action="/auth/signout" method="POST">

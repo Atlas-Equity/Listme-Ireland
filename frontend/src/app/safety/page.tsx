@@ -115,14 +115,14 @@ export default function SafetyPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-10 sm:py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         
-        {/* Breadcrumb Navigation */}
+        
         <nav className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white font-medium">Scam Prevention &amp; Advice</span>
         </nav>
 
-        {/* Page Hero Header */}
+        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-10 shadow-xs space-y-4">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
             <ShieldCheck className="w-4 h-4 text-primary" />
@@ -152,7 +152,7 @@ export default function SafetyPage() {
           </div>
         </div>
 
-        {/* SECTION 1: SAFE BUYING TIPS */}
+        
         <section className="space-y-4">
           <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
@@ -189,7 +189,7 @@ export default function SafetyPage() {
           </div>
         </section>
 
-        {/* SECTION 2: EXAMPLES OF SUSPICIOUS BEHAVIOUR */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-5">
           <div className="border-b border-gray-100 dark:border-zinc-800 pb-3">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
@@ -211,7 +211,7 @@ export default function SafetyPage() {
           </ul>
         </section>
 
-        {/* SECTION 3: WHAT TO DO IF YOU SPOT SOMETHING SUSPICIOUS */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-gray-100 dark:border-zinc-800 pb-3">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
@@ -262,7 +262,7 @@ export default function SafetyPage() {
           </div>
         </section>
 
-        {/* SECTION 4: WHAT HAPPENS NEXT */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-gray-100 dark:border-zinc-800 pb-3">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
@@ -306,7 +306,7 @@ export default function SafetyPage() {
           </div>
         </section>
 
-        {/* SECTION 5: CONTACT US */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             Contact Us

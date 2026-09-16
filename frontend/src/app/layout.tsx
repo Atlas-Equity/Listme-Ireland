@@ -152,7 +152,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen flex flex-col bg-white text-gray-900 dark:bg-black dark:text-white">
-        {/* Google tag (gtag.js) */}
+        
         <Script
           strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-06HGSQYVLM"

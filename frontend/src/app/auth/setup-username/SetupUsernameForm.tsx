@@ -30,7 +30,6 @@ export default function SetupUsernameForm({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(existingUsername ? true : null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Password fields
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,7 +39,6 @@ export default function SetupUsernameForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Debounced check for availability
   useEffect(() => {
     const trimmed = username.trim();
     if (!trimmed) {
@@ -144,7 +142,7 @@ export default function SetupUsernameForm({
 
   return (
     <div className="w-full max-w-md bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-      {/* Brand & Welcoming Header */}
+      
       <div className="text-center space-y-2">
         <div className="inline-flex items-center justify-center gap-2 mb-1">
           <span className="font-extrabold text-3xl tracking-tight text-primary">
@@ -172,7 +170,7 @@ export default function SetupUsernameForm({
         </p>
       </div>
 
-      {/* Account Info Pill */}
+      
       {(fullName || initialEmail) && (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-100 dark:border-zinc-800">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-700 flex items-center justify-center shrink-0 relative border border-gray-200 dark:border-zinc-600">
@@ -207,9 +205,9 @@ export default function SetupUsernameForm({
         </div>
       )}
 
-      {/* Form */}
+      
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Username Field */}
+        
         <div>
           <label
             htmlFor="username-input"
@@ -267,7 +265,7 @@ export default function SetupUsernameForm({
           </div>
         </div>
 
-        {/* Password Field */}
+        
         <div>
           <label
             htmlFor="password-input"
@@ -303,7 +301,7 @@ export default function SetupUsernameForm({
           </div>
         </div>
 
-        {/* Confirm Password Field */}
+        
         <div>
           <label
             htmlFor="confirm-password-input"
@@ -346,12 +344,12 @@ export default function SetupUsernameForm({
           )}
         </div>
 
-        {/* Password Notice Box */}
+        
         <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
           <strong>Tip:</strong> This password allows you to log in with your email or username at any time, even without Google.
         </div>
 
-        {/* Validation Errors */}
+        
         {passwordError && (
           <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />

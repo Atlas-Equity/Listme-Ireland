@@ -4,10 +4,6 @@ import { createClient } from '@/utils/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
-/**
- * 1-Click Relist action for closed/unsold listings.
- * Extends listing for 7 days, sets status back to 'active', resets created_at.
- */
 export async function relistListingAction(listingId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -16,7 +12,6 @@ export async function relistListingAction(listingId: string) {
     return { error: 'You must be logged in to relist an item.' };
   }
 
-  // Fetch listing to verify ownership
   const { data: listing, error: fetchErr } = await supabase
     .from('listings')
     .select('id, seller_id, title')
@@ -31,7 +26,6 @@ export async function relistListingAction(listingId: string) {
     return { error: 'You are not authorized to relist this listing.' };
   }
 
-  // 7 days extension from right now
   const newClosesAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const now = new Date().toISOString();
 

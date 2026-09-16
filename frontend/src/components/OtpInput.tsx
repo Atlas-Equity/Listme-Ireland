@@ -27,7 +27,6 @@ export default function OtpInput({
 }: OtpInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Split the value string into an array of length
   const digits = Array.from({ length }, (_, i) => value[i] || '');
 
   useEffect(() => {
@@ -38,11 +37,9 @@ export default function OtpInput({
 
   const handleChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value;
-    // Only keep numeric digits
     const cleaned = rawVal.replace(/\D/g, '');
 
     if (!cleaned) {
-      // Clear current digit
       const nextDigits = [...digits];
       nextDigits[index] = '';
       const nextVal = nextDigits.join('');
@@ -50,7 +47,6 @@ export default function OtpInput({
       return;
     }
 
-    // If pasted or multi-character typed
     if (cleaned.length > 1) {
       let targetLen = length;
       if (cleaned.length >= 8 && length !== 8 && onLengthChange) {
@@ -71,7 +67,6 @@ export default function OtpInput({
       return;
     }
 
-    // Single character entered
     const single = cleaned[cleaned.length - 1];
     const nextDigits = [...digits];
     nextDigits[index] = single;
@@ -82,7 +77,6 @@ export default function OtpInput({
       onComplete(nextVal);
     }
 
-    // Advance focus to next input
     if (index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }

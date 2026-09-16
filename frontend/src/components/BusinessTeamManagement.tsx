@@ -11,16 +11,22 @@ import {
   ShieldCheck, 
   Loader2, 
   AlertCircle,
-  Crown
+  Crown,
+  ArrowRightLeft,
+  Shield,
+  UserCheck
 } from 'lucide-react';
 import { 
   inviteBusinessTeamMemberAction, 
-  removeBusinessTeamMemberAction 
+  removeBusinessTeamMemberAction,
+  updateBusinessTeamMemberRoleAction,
+  transferBusinessPageOwnershipAction
 } from '@/app/actions/businessPages';
 
 interface BusinessTeamManagementProps {
   pageSlug: string;
   isOwner: boolean;
+  isTrueOwner?: boolean;
   isAdmin?: boolean;
   teamMembers?: any[];
   pendingInvites?: { username: string; user_id?: string; invited_at: string }[];
@@ -29,6 +35,7 @@ interface BusinessTeamManagementProps {
 export default function BusinessTeamManagement({
   pageSlug,
   isOwner,
+  isTrueOwner = false,
   isAdmin = false,
   teamMembers = [],
   pendingInvites = [],
@@ -38,8 +45,13 @@ export default function BusinessTeamManagement({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [transferringId, setTransferringId] = useState<string | null>(null);
 
   const [pendingRemovalMember, setPendingRemovalMember] = useState<{ id: string; name: string } | null>(null);
+  const [pendingTransferMember, setPendingTransferMember] = useState<{ id: string; name: string } | null>(null);
+
+  const canManageTeam = isOwner || isTrueOwner || isAdmin;
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +103,52 @@ export default function BusinessTeamManagement({
     }
   };
 
+  const handleToggleRole = async (memberUserId: string, currentRole: string, memberName: string) => {
+    const newRole: 'owner' | 'staff' = currentRole === 'owner' ? 'staff' : 'owner';
+    setUpdatingRoleId(memberUserId);
+    setFeedback(null);
+    try {
+      const res = await updateBusinessTeamMemberRoleAction(pageSlug, memberUserId, newRole);
+      if (res.error) {
+        setFeedback({ type: 'error', message: res.error });
+      } else {
+        setFeedback({
+          type: 'success',
+          message: `@${memberName} is now ${newRole === 'owner' ? 'a Co-Owner' : 'Staff'}.`,
+        });
+        router.refresh();
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Failed to update member role.' });
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  };
+
+  const executeTransferOwnership = async () => {
+    if (!pendingTransferMember) return;
+    const { id: memberUserId, name: memberName } = pendingTransferMember;
+    setTransferringId(memberUserId);
+    setFeedback(null);
+    try {
+      const res = await transferBusinessPageOwnershipAction(pageSlug, memberUserId);
+      if (res.error) {
+        setFeedback({ type: 'error', message: res.error });
+      } else {
+        setFeedback({
+          type: 'success',
+          message: res.message || `Ownership transferred to @${memberName}.`,
+        });
+        setPendingTransferMember(null);
+        router.refresh();
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Failed to transfer ownership.' });
+    } finally {
+      setTransferringId(null);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs space-y-5">
       <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
@@ -103,7 +161,7 @@ export default function BusinessTeamManagement({
               Business Team &amp; Staff
             </h3>
             <p className="text-[11px] text-gray-500 dark:text-gray-400">
-              Invite team members by their @username to manage this page together.
+              Invite team members by @username. Owners have full editing access.
             </p>
           </div>
         </div>
@@ -117,12 +175,12 @@ export default function BusinessTeamManagement({
         <div
           className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
             feedback.type === 'success'
-              ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-200'
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
               : 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
           }`}
         >
           {feedback.type === 'success' ? (
-            <Check className="w-4 h-4 shrink-0 text-zinc-400" />
+            <Check className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           ) : (
             <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
           )}
@@ -130,8 +188,7 @@ export default function BusinessTeamManagement({
         </div>
       )}
 
-      {/* Invite Member Input (Only owner / admin) */}
-      {(isOwner || isAdmin) && (
+      {canManageTeam && (
         <form onSubmit={handleInvite} className="space-y-2">
           <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
             Add Team Member by @Username
@@ -164,63 +221,106 @@ export default function BusinessTeamManagement({
             </button>
           </div>
           <p className="text-[10px] text-gray-400 leading-snug">
-            Enter any registered user&apos;s username. The invite will be delivered to their Notifications tab where they can accept it.
+            Enter any registered user&apos;s username. The invite will appear in their notifications.
           </p>
         </form>
       )}
 
-      {/* Current Team Members List */}
       <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-          Current Roster
+          Team Roster
         </span>
 
         <div className="space-y-2">
-          {/* Owner Entry */}
-          <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs">
+          <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 flex items-center justify-center font-bold text-xs">
-                <Crown className="w-3.5 h-3.5 text-zinc-300" />
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-center font-bold text-xs">
+                <Crown className="w-4 h-4 text-amber-500" />
               </div>
               <div>
-                <span className="font-bold text-gray-900 dark:text-white block">
-                  Page Owner
+                <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  <span>Page Owner</span>
+                  <span className="text-[10px] px-1.5 py-0.2 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded font-semibold">Creator</span>
                 </span>
-                <span className="text-[10px] text-gray-400">Primary Administrator</span>
+                <span className="text-[10px] text-gray-400">Primary Administrator &amp; Sole Authority to Delete</span>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
-              Owner
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20">
+              Primary Owner
             </span>
           </div>
 
-          {/* Additional Team Members */}
           {teamMembers.map((member: any, idx: number) => {
             const memberId = typeof member === 'string' ? member : member?.user_id;
             const memberName = typeof member === 'object' && member?.username ? member.username : `Member ${idx + 1}`;
+            const role = (typeof member === 'object' && member?.role ? member.role : 'staff').toLowerCase();
+            const isMemberOwner = role === 'owner';
+
             return (
               <div
                 key={memberId || idx}
-                className="p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs"
+                className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${
+                    isMemberOwner
+                      ? 'bg-amber-100 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-500'
+                      : 'bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300'
+                  }`}>
                     {memberName.substring(0, 2).toUpperCase()}
                   </div>
-                  <div>
-                    <span className="font-bold text-gray-900 dark:text-white block">
+                  <div className="min-w-0">
+                    <span className="font-bold text-gray-900 dark:text-white truncate block">
                       @{memberName}
                     </span>
-                    <span className="text-[10px] text-gray-400">Team Staff Member</span>
+                    <span className="text-[10px] text-gray-400">
+                      {isMemberOwner ? 'Co-Owner (Full Edit Permissions)' : 'Staff Member'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
-                    Staff
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                    isMemberOwner
+                      ? 'text-amber-500 bg-amber-500/10 border-amber-500/20'
+                      : 'text-zinc-400 bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700'
+                  }`}>
+                    {isMemberOwner ? 'Co-Owner' : 'Staff'}
                   </span>
 
-                  {(isOwner || isAdmin) && memberId && (
+                  {(isTrueOwner || isAdmin) && memberId && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRole(memberId, role, memberName)}
+                        disabled={updatingRoleId === memberId}
+                        className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title={isMemberOwner ? 'Demote to Staff' : 'Promote to Co-Owner'}
+                      >
+                        {updatingRoleId === memberId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : isMemberOwner ? (
+                          <Shield className="w-3 h-3 text-zinc-400" />
+                        ) : (
+                          <ShieldCheck className="w-3 h-3 text-amber-500" />
+                        )}
+                        <span>{isMemberOwner ? 'Set as Staff' : 'Make Co-Owner'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPendingTransferMember({ id: memberId, name: memberName })}
+                        disabled={transferringId === memberId}
+                        className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        title="Transfer Primary Ownership"
+                      >
+                        <ArrowRightLeft className="w-3 h-3" />
+                        <span>Transfer Ownership</span>
+                      </button>
+                    </>
+                  )}
+
+                  {canManageTeam && memberId && (
                     <button
                       type="button"
                       onClick={() => handlePromptRemoval(memberId, memberName)}
@@ -242,7 +342,6 @@ export default function BusinessTeamManagement({
         </div>
       </div>
 
-      {/* In-App Confirmation Modal (Replaces browser "www.listme.ie says" confirm) */}
       {pendingRemovalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-sm bg-white dark:bg-[#1c1c1e] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
@@ -289,7 +388,56 @@ export default function BusinessTeamManagement({
         </div>
       )}
 
-      {/* Pending Invites List */}
+      {pendingTransferMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-[#1c1c1e] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white">
+                  Transfer Primary Ownership
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Transfer full ownership of this page to <span className="font-bold text-gray-900 dark:text-white">@{pendingTransferMember.name}</span>?
+                </p>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-zinc-900 p-2.5 rounded-xl border border-gray-200 dark:border-zinc-800 leading-relaxed">
+              You will become a <strong>Co-Owner</strong> with full editing privileges, but only <strong>@{pendingTransferMember.name}</strong> will hold the sole right to delete the page or transfer ownership in the future.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setPendingTransferMember(null)}
+                disabled={transferringId !== null}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-xs font-semibold text-gray-700 dark:text-zinc-300 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeTransferOwnership}
+                disabled={transferringId !== null}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {transferringId ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Transferring...</span>
+                  </>
+                ) : (
+                  <span>Confirm Transfer</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingInvites.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -301,7 +449,7 @@ export default function BusinessTeamManagement({
             {pendingInvites.map((invite, idx) => (
               <div
                 key={idx}
-                className="p-2 rounded-lg bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs"
+                className="p-2.5 rounded-lg bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs"
               >
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-semibold text-gray-800 dark:text-gray-200">

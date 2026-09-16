@@ -20,7 +20,6 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const [watchlistIds, setWatchlistIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Initial hydration: verify auth state, load from server if logged in, otherwise clear
   useEffect(() => {
     const hasAuthCookie = typeof document !== 'undefined' && document.cookie.includes('-auth-token');
 
@@ -54,7 +53,6 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
-    // Listen to Supabase auth events (e.g. user signs out in another tab or clicks Sign Out)
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
@@ -91,7 +89,6 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       const currentlySaved = watchlistIds.includes(listingId);
       const nextStatus = !currentlySaved;
 
-      // Optimistic update
       setWatchlistIds((prev) => {
         const updated = nextStatus
           ? Array.from(new Set([...prev, listingId]))
@@ -105,7 +102,6 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await toggleWatchlistServer(listingId, nextStatus);
         if (!res.success) {
-          // Revert optimistic update
           setWatchlistIds((prev) => {
             const reverted = currentlySaved
               ? Array.from(new Set([...prev, listingId]))
@@ -125,7 +121,6 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
         return nextStatus;
       } catch (err) {
         console.error('Failed to toggle watchlist:', err);
-        // Revert optimistic update
         setWatchlistIds((prev) => {
           const reverted = currentlySaved
             ? Array.from(new Set([...prev, listingId]))
@@ -158,7 +153,6 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
 export function useWatchlist() {
   const context = useContext(WatchlistContext);
   if (!context) {
-    // Fallback safe dummy context if outside provider
     return {
       isWatchlisted: () => false,
       toggleWatchlist: async () => false,

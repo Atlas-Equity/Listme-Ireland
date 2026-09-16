@@ -22,11 +22,9 @@ export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'password' | 'otp'>('password');
   const [otpChannel, setOtpChannel] = useState<'email' | 'phone'>('email');
 
-  // Password login state
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
 
-  // OTP login state
   const [otpTarget, setOtpTarget] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpLength, setOtpLength] = useState<number>(6);
@@ -48,7 +46,6 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  // Handle password login
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -66,7 +63,6 @@ export default function LoginPage() {
     }
   };
 
-  // Handle sending OTP (Email or Phone)
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
@@ -96,7 +92,6 @@ export default function LoginPage() {
         setLoading(false);
       }
     } else {
-      // Phone channel
       const digits = trimmed.replace(/\D/g, '');
       if (!trimmed || digits.length < 7) {
         setError('Please enter a valid phone number (e.g. +353 87 123 4567).');
@@ -139,7 +134,6 @@ export default function LoginPage() {
     }
   };
 
-  // Handle verifying OTP code
   const handleVerifyOtp = async (codeToVerify?: string) => {
     const code = codeToVerify || otpCode;
     if (code.length < 6) {
@@ -167,9 +161,7 @@ export default function LoginPage() {
         router.refresh();
       }
     } else {
-      // Phone verification
       if (smsWarning && (code === '123456' || code === '000000')) {
-        // Fallback for dev environments without active SMS credits
         router.push('/');
         router.refresh();
         return;
@@ -210,7 +202,7 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 dark:bg-black px-4 py-12">
       <div className="max-w-md w-full space-y-6 bg-white dark:bg-[#1a1a1a] p-8 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800">
         
-        {/* Header */}
+        
         <div className="text-center">
           <h2 className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">
             Log in to Listme
@@ -223,7 +215,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Error notification */}
+        
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-md flex items-start">
             <AlertCircle className="w-5 h-5 text-red-500 mr-2 shrink-0" />
@@ -231,7 +223,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* SMS warning in dev mode */}
+        
         {smsWarning && (
           <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 p-4 rounded-md flex items-start text-xs text-amber-800 dark:text-amber-300">
             <Info className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" />
@@ -242,7 +234,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Google Login */}
+        
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
@@ -281,7 +273,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Mode Selector Toggle: Password vs OTP */}
+        
         <div className="flex rounded-lg p-1 bg-gray-100 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700/60 text-xs font-semibold">
           <button
             type="button"
@@ -315,7 +307,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* MODE 1: PASSWORD LOGIN */}
+        
         {authMode === 'password' && (
           <form className="space-y-4" onSubmit={handlePasswordLogin}>
             <div>
@@ -373,13 +365,13 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* MODE 2: OTP (EMAIL OR PHONE) LOGIN */}
+        
         {authMode === 'otp' && (
           <div className="space-y-4">
-            {/* Step 1: Input Channel & Target */}
+            
             {otpStep === 'input' && (
               <form onSubmit={handleSendOtp} className="space-y-4">
-                {/* Channel Selector: Email vs Phone */}
+                
                 <div className="flex rounded-md shadow-sm" role="group">
                   <button
                     type="button"
@@ -480,7 +472,7 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* Step 2: OTP Verification */}
+            
             {otpStep === 'verify' && (
               <div className="space-y-5">
                 <div className="text-center">

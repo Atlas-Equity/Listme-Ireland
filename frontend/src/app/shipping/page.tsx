@@ -13,7 +13,7 @@ export default function ShippingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-[#181818] py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
 
-        {/* Breadcrumbs */}
+        
         <nav className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
@@ -22,7 +22,7 @@ export default function ShippingPage() {
           <span className="text-gray-900 dark:text-gray-200 font-medium">Shipping Options</span>
         </nav>
 
-        {/* Header */}
+        
         <div className="border-b border-gray-200 dark:border-[#333333] pb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 mb-3">
             <Truck className="w-3.5 h-3.5" />
@@ -36,7 +36,7 @@ export default function ShippingPage() {
           </p>
         </div>
 
-        {/* CRITICAL DISCLAIMER CALLOUT */}
+        
         <div className="p-6 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200">
           <div className="flex items-start gap-4">
             <div className="p-2.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
@@ -53,7 +53,7 @@ export default function ShippingPage() {
           </div>
         </div>
 
-        {/* SECTION 1: Estimated Delivery Times */}
+        
         <section className="bg-white dark:bg-[#202020] rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-[#333333] shadow-sm space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl">
@@ -74,7 +74,7 @@ export default function ShippingPage() {
           </div>
         </section>
 
-        {/* SECTION 2: Combined Shipping & Cart Purchases */}
+        
         <section className="bg-white dark:bg-[#202020] rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-[#333333] shadow-sm space-y-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-xl">
@@ -101,7 +101,7 @@ export default function ShippingPage() {
           </div>
         </section>
 
-        {/* SECTION 3: 'To Be Arranged' Shipping */}
+        
         <section className="bg-white dark:bg-[#202020] rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-[#333333] shadow-sm space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl">
@@ -127,7 +127,7 @@ export default function ShippingPage() {
           </div>
         </section>
 
-        {/* SECTION 4: View a Listing's Shipping Options */}
+        
         <section className="bg-white dark:bg-[#202020] rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-[#333333] shadow-sm space-y-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             View a Listing&apos;s Shipping Options
@@ -147,7 +147,7 @@ export default function ShippingPage() {
           </p>
         </section>
 
-        {/* SECTION 5: Listme.ie Does Not Handle Shipping */}
+        
         <section className="bg-red-500/5 dark:bg-red-500/10 rounded-2xl p-6 sm:p-8 border border-red-500/20 shadow-sm space-y-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Listme.ie Does Not Handle Shipping
@@ -181,7 +181,7 @@ export default function ShippingPage() {
           </p>
         </section>
 
-        {/* SECTION 6: Contact Us & Tickets */}
+        
         <section className="bg-white dark:bg-[#202020] rounded-2xl p-6 sm:p-8 border border-gray-200 dark:border-[#333333] shadow-sm space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -212,7 +212,7 @@ export default function ShippingPage() {
           </div>
         </section>
 
-        {/* Footer Policy Notice */}
+        
         <div className="text-center text-xs text-gray-500 dark:text-gray-400 pt-4 pb-10 flex items-center justify-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           <span>This Shipping Options page forms part of our <Link href="/terms" className="text-primary hover:underline font-semibold">Terms of Service</Link> and <Link href="/buyer-protection" className="text-primary hover:underline font-semibold">Buyer Protection</Link> policy.</span>

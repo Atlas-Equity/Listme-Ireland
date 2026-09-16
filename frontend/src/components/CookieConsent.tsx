@@ -6,7 +6,6 @@ export default function CookieConsent() {
   const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
-    // Check if the user has already consented
     const consent = localStorage.getItem('cookie_consent');
     if (!consent) {
       setShowConsent(true);

@@ -238,7 +238,6 @@ export const IRELAND_LOCATIONS: Record<string, string[]> = {
     'Manorhamilton',
     'Other / All Leitrim',
   ],
-  // Northern Ireland (6 Counties)
   'Antrim': [
     'Belfast (North / West)',
     'Lisburn',
@@ -288,9 +287,6 @@ export const IRELAND_LOCATIONS: Record<string, string[]> = {
 
 export const COUNTIES = Object.keys(IRELAND_LOCATIONS);
 
-/**
- * Normalizes any specific Irish address or location string to its core county (e.g. "Dublin", "Cork", "Galway").
- */
 export function getCoreLocation(locationStr?: string | null): string {
   if (!locationStr || typeof locationStr !== 'string') return 'Dublin';
   const trimmed = locationStr.trim();
@@ -298,7 +294,6 @@ export function getCoreLocation(locationStr?: string | null): string {
 
   const lower = trimmed.toLowerCase();
 
-  // 1. Direct county match
   for (const county of COUNTIES) {
     if (new RegExp(`\\b${county}\\b`, 'i').test(lower)) {
       return county;

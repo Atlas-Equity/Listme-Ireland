@@ -55,7 +55,7 @@ export default function ListingCarousel({ title, images }: { title: string, imag
         )}
       </div>
       
-      {/* Thumbnail strip */}
+      
       {images && images.length > 1 && (
         <div className="flex gap-2 p-2 overflow-x-auto bg-[#1a1a1a]">
           {images.map((img: string, idx: number) => (

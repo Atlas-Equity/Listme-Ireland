@@ -14,19 +14,36 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/category/marketplace',
+        destination: '/marketplace',
+        permanent: true,
+      },
+      {
         source: '/motors',
-        destination: '/category/marketplace',
+        destination: '/marketplace',
         permanent: true,
       },
       {
         source: '/property',
-        destination: '/category/marketplace',
+        destination: '/marketplace',
+        permanent: true,
+      },
+      {
+        source: '/category/motors',
+        destination: '/marketplace',
+        permanent: true,
+      },
+      {
+        source: '/category/property',
+        destination: '/marketplace',
         permanent: true,
       },
     ];
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
+    serverActions: {
+      bodySizeLimit: '15mb',
+    },
   },
   images: {
     formats: ['image/avif', 'image/webp'],

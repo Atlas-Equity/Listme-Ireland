@@ -35,7 +35,6 @@ export async function POST(req: NextRequest) {
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const amountInCents = Math.round(amount * 100);
 
-    // 1. Look up or create Stripe Customer for user
     let customerId: string | undefined = user.user_metadata?.stripe_customer_id;
 
     if (!customerId) {
@@ -58,7 +57,6 @@ export async function POST(req: NextRequest) {
       try {
         const existingCustomers = await stripe.customers.list({ email: user.email, limit: 10 });
         if (existingCustomers.data && existingCustomers.data.length > 0) {
-          // Prioritize the customer with a default payment method or existing cards
           let bestCustomer = existingCustomers.data[0];
           for (const cust of existingCustomers.data) {
             if (cust.invoice_settings?.default_payment_method) {
@@ -83,7 +81,6 @@ export async function POST(req: NextRequest) {
           customerId = newCustomer.id;
         }
 
-        // Persist resolved customerId to user_metadata and profiles
         if (customerId) {
           await supabase.auth.updateUser({
             data: { stripe_customer_id: customerId },
@@ -97,7 +94,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Resolve saved payment method from Stripe, selected card, or user_metadata
     let savedPaymentMethodId: string | undefined = body.paymentMethodId;
 
     if (!savedPaymentMethodId && (body.cardId || typeof body.cardIndex === 'number')) {
@@ -127,14 +123,12 @@ export async function POST(req: NextRequest) {
           const pms = await stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 5 });
           if (pms.data && pms.data.length > 0) {
             savedPaymentMethodId = pms.data[0].id;
-            // Set as default for customer
             await stripe.customers.update(customerId, {
               invoice_settings: { default_payment_method: savedPaymentMethodId },
             });
           }
         }
 
-        // If a payment method was found in Stripe, sync it into Supabase user_metadata if missing
         if (savedPaymentMethodId && !user.user_metadata?.linked_card?.stripePaymentMethodId) {
           try {
             const pmObj = await stripe.paymentMethods.retrieve(savedPaymentMethodId);

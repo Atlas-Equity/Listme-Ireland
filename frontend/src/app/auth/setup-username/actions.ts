@@ -94,7 +94,6 @@ export async function setupAccountAction({
     return { error: 'This username is reserved. Please choose another.' };
   }
 
-  // Password requirement (OAuth accounts must set a password for username/email login)
   if (!password || password.length < 6) {
     return { error: 'Password must be at least 6 characters long.' };
   }
@@ -110,7 +109,6 @@ export async function setupAccountAction({
     return { error: 'You must be signed in to complete account setup.' };
   }
 
-  // 1. Double check username uniqueness
   const { data: existing } = await supabase
     .from('profiles')
     .select('id')
@@ -122,7 +120,6 @@ export async function setupAccountAction({
     return { error: 'This username is already taken. Please pick a different one.' };
   }
 
-  // 2. Update Supabase Auth user password & metadata
   const { error: authError } = await supabase.auth.updateUser({
     password: password,
     data: {
@@ -135,7 +132,6 @@ export async function setupAccountAction({
     console.warn('supabase.auth.updateUser warning:', authError.message);
   }
 
-  // Guarantee password is set via Admin API if service role key exists
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -160,7 +156,6 @@ export async function setupAccountAction({
     }
   }
 
-  // 3. Upsert into public.profiles
   const { error: profileError } = await supabase
     .from('profiles')
     .upsert({
@@ -177,7 +172,6 @@ export async function setupAccountAction({
     return { error: 'Failed to save username. Please try again.' };
   }
 
-  // Clear in-memory caches
   if (globalThis.__allProfilesCache) {
     globalThis.__allProfilesCache = undefined;
   }
@@ -192,7 +186,6 @@ export async function setupAccountAction({
   return { success: true };
 }
 
-// Backwards-compatible wrapper
 export async function setUsername(rawUsername: string) {
   return setupAccountAction({ rawUsername });
 }

@@ -26,6 +26,7 @@ import {
 import { COUNTIES } from '@/utils/irelandLocations';
 import { createOrUpdateBusinessPage, BusinessPageData } from '@/app/actions/businessPages';
 import { uploadAvatarAction } from '@/app/my-listme/actions';
+import CustomSelect from '@/components/CustomSelect';
 
 const BIZ_CATEGORIES = [
   'Services & Trades',
@@ -73,7 +74,6 @@ export default function CreateBusinessPageModal({
   const [category, setCategory] = useState(initialData?.category || 'Retail & Local Storefront');
   const [county, setCounty] = useState(initialData?.county || 'Dublin');
   
-  // Irish phone locking: ensure '+353 ' prefix
   const initialPhone = initialData?.phone 
     ? (initialData.phone.startsWith('+353 ') ? initialData.phone : `+353 ${initialData.phone.replace(/^\+?353\s?|^0/, '')}`)
     : '+353 ';
@@ -108,27 +108,111 @@ export default function CreateBusinessPageModal({
     setPhone(val);
   };
 
-  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const compressAvatar = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            const maxDim = 800;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(file);
+              return;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), {
+                    type: 'image/webp',
+                    lastModified: Date.now(),
+                  });
+                  resolve(compressedFile);
+                } else {
+                  resolve(file);
+                }
+              },
+              'image/webp',
+              0.88
+            );
+          } catch {
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
 
-    // Show preview immediately
-    const previewUrl = URL.createObjectURL(file);
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+
+    const previewUrl = URL.createObjectURL(rawFile);
     setAvatarUrl(previewUrl);
 
     setIsUploadingImage(true);
     setErrorMessage(null);
     try {
+      const fileToUpload = await compressAvatar(rawFile);
       const formData = new FormData();
-      formData.append('avatar', file);
-      const res = await uploadAvatarAction(formData);
-      if (res.error || !res.publicUrl) {
-        setErrorMessage(res.error || 'Failed to upload image. Please try again.');
-      } else {
-        setAvatarUrl(res.publicUrl);
+      formData.append('avatar', fileToUpload);
+
+      let publicUrl: string | null = null;
+      let uploadErr: string | null = null;
+
+      try {
+        const res = await fetch('/api/upload/avatar', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.publicUrl) {
+          publicUrl = data.publicUrl;
+        } else if (data.error) {
+          uploadErr = data.error;
+        }
+      } catch (fetchEx) {
+        console.warn('API avatar upload note, trying server action fallback:', fetchEx);
       }
-    } catch {
-      setErrorMessage('Failed to upload image. Please try again.');
+
+      if (!publicUrl) {
+        const actionRes = await uploadAvatarAction(formData);
+        if (actionRes.publicUrl) {
+          publicUrl = actionRes.publicUrl;
+        } else if (actionRes.error) {
+          uploadErr = actionRes.error;
+        }
+      }
+
+      if (publicUrl) {
+        setAvatarUrl(publicUrl);
+      } else {
+        setErrorMessage(uploadErr || 'Failed to upload image. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Image upload exception:', err);
+      setErrorMessage(err?.message || 'Failed to upload image. Please try again.');
     } finally {
       setIsUploadingImage(false);
     }
@@ -249,7 +333,7 @@ export default function CreateBusinessPageModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
             
-            {/* Modal Header */}
+            
             <div className="p-5 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 flex items-center justify-center">
@@ -274,7 +358,7 @@ export default function CreateBusinessPageModal({
               </button>
             </div>
 
-            {/* Modal Body */}
+            
             <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
               
               {errorMessage && (
@@ -284,9 +368,7 @@ export default function CreateBusinessPageModal({
                 </div>
               )}
 
-
-
-              {/* Profile Picture / Logo */}
+              
               <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/60 space-y-3">
                 <label className="block text-xs font-bold text-gray-900 dark:text-white">
                   Page Profile Picture / Logo (PFP) *
@@ -338,7 +420,7 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              {/* Basic Details */}
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -414,7 +496,7 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              {/* Business Pitch / About This */}
+              
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                   Business Pitch / About This *
@@ -429,32 +511,28 @@ export default function CreateBusinessPageModal({
                 />
               </div>
 
-              {/* Opening Hours */}
+              
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-primary" />
                   <span>Opening Hours *</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <select
+                  <CustomSelect
                     value={isCustomHours ? 'custom' : openingHours}
-                    onChange={(e) => {
-                      if (e.target.value === 'custom') {
+                    onChange={(val) => {
+                      if (val === 'custom') {
                         setIsCustomHours(true);
                       } else {
                         setIsCustomHours(false);
-                        setOpeningHours(e.target.value);
+                        setOpeningHours(val);
                       }
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
-                  >
-                    {OPENING_HOURS_PRESETS.map((preset) => (
-                      <option key={preset} value={preset}>
-                        {preset}
-                      </option>
-                    ))}
-                    <option value="custom">Custom Hours...</option>
-                  </select>
+                    options={[
+                      ...OPENING_HOURS_PRESETS.map((preset) => ({ value: preset, label: preset })),
+                      { value: 'custom', label: 'Custom Hours...' },
+                    ]}
+                  />
 
                   {isCustomHours && (
                     <input
@@ -468,7 +546,7 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              {/* County & Locked Phone (+353 ) */}
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -490,21 +568,15 @@ export default function CreateBusinessPageModal({
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                     Primary County Location
                   </label>
-                  <select
+                  <CustomSelect
                     value={county}
-                    onChange={(e) => setCounty(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
-                  >
-                    {COUNTIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setCounty}
+                    options={COUNTIES.map((c) => ({ value: c, label: c }))}
+                  />
                 </div>
               </div>
 
-              {/* Email & Website */}
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -533,7 +605,7 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              {/* Social Links */}
+              
               <div className="pt-2 border-t border-gray-100 dark:border-zinc-800 space-y-3">
                 <span className="block text-xs font-bold text-gray-900 dark:text-white">
                   Social Links
@@ -566,9 +638,7 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-
-
-              {/* Direct Messaging Toggle */}
+              
               <div className="p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
@@ -588,7 +658,7 @@ export default function CreateBusinessPageModal({
                 </label>
               </div>
 
-              {/* Submit Buttons */}
+              
               <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-end gap-3">
                 <button
                   type="button"

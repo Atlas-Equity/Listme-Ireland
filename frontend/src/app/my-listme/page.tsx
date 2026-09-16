@@ -71,7 +71,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     redirect('/login');
   }
 
-  // Concurrently fetch profile, user reviews, and all user listings in a single ultra-fast batch
   const now = new Date();
   const [profileRes, reviewsRes, userListingsRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
@@ -86,11 +85,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const profile = profileRes.data;
   const accountType = profile?.account_type || 'personal';
 
-  // Extract user metadata - strictly NO bio
   const userMetadata = user.user_metadata || {};
   const dismissedNotificationIds: string[] = userMetadata.dismissed_notifications || [];
 
-  // In-memory categorization of user listings (runs in 0.1ms without remote roundtrips)
   const allUserListings = userListingsRes.data || [];
   const userListings = allUserListings.filter(l => 
     l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
@@ -110,7 +107,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const assignedBusinessPages = (userMetadata.assigned_business_pages || []) as any[];
   const pendingBusinessInvites = ((userMetadata.business_invites || []) as any[]).filter((i: any) => i.status === 'pending');
 
-  // Fetch pending question messages on seller's listings
   const sellerListingIds = allUserListings.map(l => l.id);
   let listingQuestionsNotifications: any[] = [];
   if (sellerListingIds.length > 0) {
@@ -157,7 +153,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
-  // Stripe Top-Up Session Verification
   let topupNotification: { success: boolean; message: string } | null = null;
   const topupSessionId = typeof params?.topup_session_id === 'string' ? params.topup_session_id : undefined;
 
@@ -183,13 +178,11 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             currentAccountCredit = Math.round((currentAccountCredit + paidAmount) * 100) / 100;
             const updatedProcessed = [...processed, session.id];
 
-            // Extract customer ID from session
             const sessionCust = session.customer;
             const resolvedCustomerId = typeof sessionCust === 'string'
               ? sessionCust
               : (sessionCust as Stripe.Customer)?.id || userMetadata.stripe_customer_id;
 
-            // Extract and vault card payment method from successful topup
             let updatedLinkedCard = userMetadata.linked_card;
             const pi = session.payment_intent as Stripe.PaymentIntent | undefined;
             const pm = (pi?.payment_method as Stripe.PaymentMethod | undefined);
@@ -567,7 +560,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Breadcrumb Navigation */}
+        
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
@@ -595,11 +588,11 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* TradeMe-Style Sidebar Navigation */}
+          
           <div className="w-full lg:w-64 shrink-0">
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
               
-              {/* Member Quick Summary */}
+              
               <div className="p-4 bg-gray-50/70 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative">
                   {avatarUrl ? (
@@ -632,7 +625,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
               <nav className="flex flex-col py-1">
                 
-                {/* Account Details */}
+                
                 <Link
                   href="/my-listme?tab=account"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -645,7 +638,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Account details</span>
                 </Link>
 
-                {/* Notifications (TradeMe Screenshot 1) */}
+                
                 <Link
                   href="/my-listme?tab=notifications"
                   className={`flex items-center justify-between px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -665,7 +658,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   )}
                 </Link>
 
-                {/* Watchlist */}
+                
                 <Link
                   href="/my-listme?tab=watchlist"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -678,7 +671,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Watchlist</span>
                 </Link>
 
-                {/* Favourite Sellers */}
+                
                 <Link
                   href="/my-listme?tab=favourite-sellers"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -691,7 +684,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Favourite Sellers</span>
                 </Link>
 
-                {/* My Listings */}
+                
                 <Link
                   href="/my-listme?tab=listings"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -704,7 +697,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Items I&apos;m selling</span>
                 </Link>
 
-                {/* Business Pages & Services */}
+                
                 <Link
                   href="/my-listme?tab=pages"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -717,7 +710,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Business Pages</span>
                 </Link>
 
-                {/* Settings */}
+                
                 <Link
                   href="/my-listme?tab=settings"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -732,7 +725,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                 <div className="border-t border-gray-200 dark:border-zinc-800 my-1"></div>
 
-                {/* Log Out */}
+                
                 <form action="/auth/signout" method="POST">
                   <button
                     type="submit"
@@ -746,14 +739,14 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          {/* Main Content Area */}
+          
           <div className="flex-1 min-w-0">
 
-            {/* TAB: TradeMe-Style Account Details */}
+            
             {currentTab === 'account' && (
               <div className="space-y-6">
 
-                {/* Stripe Top-Up Notification Banner */}
+                
                 {topupNotification && (
                   <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
                     topupNotification.success 
@@ -784,7 +777,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                {/* Stripe Verification Notification Banner */}
+                
                 {verificationNotification && (
                   <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
                     verificationNotification.success 
@@ -815,7 +808,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
                 
-                {/* TradeMe ACCOUNT DETAILS Table Card */}
+                
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
                   <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-6">
                     <div>
@@ -835,10 +828,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </Link>
                   </div>
 
-                  {/* TradeMe Key-Value Table */}
+                  
                   <div className="divide-y divide-gray-100 dark:divide-zinc-800/80 text-sm">
                     
-                    {/* Member Number */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Member #
@@ -850,7 +843,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Name */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Name
@@ -865,7 +858,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Email */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Email
@@ -881,7 +874,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Core Location */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Core Location
@@ -894,7 +887,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Member Since */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Member since
@@ -904,7 +897,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Authentication Status */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Authentication Status
@@ -917,7 +910,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Account Verification (Verified Badge & €4.99/mo Subscription) */}
+                    
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 dark:border-zinc-800/80">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Account Verification
@@ -974,7 +967,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                   </div>
 
-                  {/* Links Row */}
+                  
                   <div className="mt-6 pt-4 border-t border-gray-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs font-semibold text-[#0073e6]">
                     <Link href="/my-listme?tab=settings" className="hover:underline">
                       Update my details &rarr;
@@ -985,8 +978,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-
-                {/* Account Type Switch Card */}
+                
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
                   <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
                     ACCOUNT TYPE
@@ -997,7 +989,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <AccountTypeSwitch currentType={accountType} userPhone={phone} />
                 </div>
 
-                {/* Linked Credit Card & Scam Prevention UI (Matching User Screenshot 1) */}
+                
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-6">
                     <div>
@@ -1037,7 +1029,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     );
                   })()}
 
-                  {/* Optional Seller Payouts for Business Accounts */}
+                  
                   {accountType === 'business' && (
                     <div className="mt-6 pt-6 border-t border-gray-100 dark:border-zinc-800">
                       <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
@@ -1079,7 +1071,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: NOTIFICATIONS (TradeMe Screenshot 1 & 3-Day Relist Flow) */}
+            
             {currentTab === 'notifications' && (
               <div className="space-y-6">
                 
@@ -1105,7 +1097,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                {/* Business Team Invitations Section */}
+                
                 {pendingBusinessInvites.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -1120,7 +1112,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                {/* Questions on your listings */}
+                
                 {listingQuestionsNotifications.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -1198,7 +1190,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                {/* If closed unsold listings exist, render 1-click relist cards */}
+                
                 {closedListings.length > 0 ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 flex items-center justify-between">
@@ -1227,7 +1219,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     
-                    {/* Stylized Binoculars illustration */}
+                    
                     <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-600 dark:text-gray-300 shadow-inner">
                       <Compass className="w-10 h-10 text-primary dark:text-green-400 animate-pulse" />
                     </div>
@@ -1241,7 +1233,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </p>
 
                     <Link
-                      href="/category/marketplace"
+                      href="/marketplace"
                       className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-xs transition-colors shadow-xs"
                     >
                       Browse Marketplace &rarr;
@@ -1252,7 +1244,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: Watchlist */}
+            
             {currentTab === 'watchlist' && (
               <div className="space-y-6">
                 
@@ -1281,7 +1273,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       Click the yellow corner bookmark or heart on any listing to save items, track auctions, and make direct offers!
                     </p>
                     <Link
-                      href="/category/marketplace"
+                      href="/marketplace"
                       className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-green-700 text-white font-bold transition-colors shadow-xs text-xs"
                     >
                       Browse Marketplace
@@ -1326,7 +1318,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: My Listings */}
+            
             {currentTab === 'listings' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -1398,7 +1390,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: Favourite Sellers */}
+            
             {currentTab === 'favourite-sellers' && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
@@ -1426,7 +1418,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       Save your favourite traders, shops, and verified members to keep track of their latest listings.
                     </p>
                     <Link
-                      href="/category/marketplace"
+                      href="/marketplace"
                       className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary hover:bg-green-700 text-white font-bold transition-colors shadow-xs text-xs"
                     >
                       Browse Marketplace
@@ -1476,7 +1468,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: Business Pages (Facebook-Style Subsidiary Pages) */}
+            
             {currentTab === 'pages' && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
@@ -1618,7 +1610,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                {/* Team & Staff Assigned Business Pages */}
+                
                 {assignedBusinessPages.length > 0 && (
                   <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
                     <div>
@@ -1676,11 +1668,11 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            {/* TAB: TradeMe Settings */}
+            
             {currentTab === 'settings' && (
               <div className="space-y-6">
                 
-                {/* Header */}
+                
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
                   <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
                     SETTINGS
@@ -1690,10 +1682,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </p>
                 </div>
 
-                {/* Personal Information & Core County Form (Strictly locked to 32 counties, photo compressor, no bio) */}
+                
                 <ProfileSettingsForm initialData={settingsInitialData} accountType={accountType} />
 
-                {/* General Settings, Search History, and Private Blacklist */}
+                
                 <TradeMeSettingsSections />
 
               </div>

@@ -41,7 +41,6 @@ export default function CheckoutButton({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // User payment state
   const [credit, setCredit] = useState(0);
   const [linkedCard, setLinkedCard] = useState<LinkedCardData | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<'account_credit' | 'stripe'>('stripe');
@@ -143,12 +142,12 @@ export default function CheckoutButton({
         )}
       </button>
 
-      {/* Payment Selection Modal */}
+      
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="relative w-full max-w-lg bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
             
-            {/* Header */}
+            
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-5">
               <div>
                 <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
@@ -168,7 +167,7 @@ export default function CheckoutButton({
               </button>
             </div>
 
-            {/* Error Message */}
+            
             {errorMessage && (
               <div className="mb-4 p-3 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
@@ -176,7 +175,7 @@ export default function CheckoutButton({
               </div>
             )}
 
-            {/* Order Breakdown Card */}
+            
             <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 mb-6 space-y-2 text-xs">
               <div className="font-bold text-sm text-gray-900 dark:text-white truncate mb-2">
                 {listingTitle}
@@ -198,13 +197,13 @@ export default function CheckoutButton({
               </div>
             </div>
 
-            {/* Form & Payment Options */}
+            
             <form onSubmit={handleConfirmPayment} className="space-y-3">
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
                 Select Payment Method
               </label>
 
-              {/* Option 1: Credit / Debit Card (Powered by Stripe) */}
+              
               <div
                 onClick={() => setSelectedMethod('stripe')}
                 className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 ${
@@ -242,7 +241,7 @@ export default function CheckoutButton({
                 </p>
               </div>
 
-              {/* Option 2: Listme Account Credit */}
+              
               <div
                 onClick={() => setSelectedMethod('account_credit')}
                 className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
@@ -277,7 +276,7 @@ export default function CheckoutButton({
                 />
               </div>
 
-              {/* Buyer Protection Banner */}
+              
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2.5 mt-4">
                 <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <span>
@@ -285,7 +284,7 @@ export default function CheckoutButton({
                 </span>
               </div>
 
-              {/* Submit & Cancel Buttons */}
+              
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-zinc-800 mt-4">
                 <button
                   type="button"

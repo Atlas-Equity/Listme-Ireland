@@ -41,9 +41,6 @@ export interface BusinessPageData {
 
 const OFFICIAL_FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61594336620072';
 
-/**
- * Creates or updates a subsidiary business page under the user's account.
- */
 export async function createOrUpdateBusinessPage(data: BusinessPageData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -63,7 +60,6 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     return { error: 'Please enter a valid page name or handle slug.' };
   }
 
-  // 1. Reserved platform slugs check
   const RESERVED_SLUGS = new Set([
     'listme', 'official', 'admin', 'administrator', 'support', 'help',
     'api', 'auth', 'login', 'signup', 'register', 'settings', 'account',
@@ -80,7 +76,6 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     return { error: `The handle "${cleanSlug}" is reserved by the ListMe platform. Please choose a different handle.` };
   }
 
-  // Fetch freshest user metadata via admin client if available
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   let currentUserMeta = user.user_metadata || {};
@@ -100,22 +95,41 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
 
   const existingPages: BusinessPageData[] = currentUserMeta?.business_pages || [];
 
-  // 2. Strict Uniqueness Check across ALL registered pages in Supabase (ALWAYS bypass cache)
   const allRegistered = await getAllRegisteredBusinessPages({ bypassCache: true });
 
   const isEditing = Boolean(data.id);
-  const existingUserPageIndex = isEditing ? existingPages.findIndex(p => p.id === data.id) : -1;
+  let targetOwnerId = user.id;
+  let currentBusiness: BusinessPageData | null = null;
+  const existingUserPageIndex = isEditing ? existingPages.findIndex(p => p.id === data.id || p.slug === data.slug) : -1;
 
   if (isEditing) {
-    if (existingUserPageIndex === -1) {
-      return { error: 'The business page you are trying to edit was not found in your account.' };
+    if (existingUserPageIndex >= 0) {
+      currentBusiness = existingPages[existingUserPageIndex];
+      cleanSlug = currentBusiness.slug;
+      targetOwnerId = user.id;
+    } else {
+      const foundInAll = allRegistered.find(p => p.id === data.id || p.slug === data.slug);
+      if (foundInAll) {
+        const isTrueOwner = foundInAll.owner_id === user.id || (foundInAll.slug === 'listme' && userIsAdmin);
+        const isCoOwner = (foundInAll.team_members || []).some((m: any) => {
+          const uid = typeof m === 'string' ? m : m?.user_id;
+          return uid === user.id && m?.role?.toLowerCase() === 'owner';
+        }) || (currentUserMeta?.assigned_business_pages as any[])?.some((ap: any) => 
+          ap.slug === foundInAll.slug && ap.role?.toLowerCase() === 'owner'
+        );
+
+        if (!isTrueOwner && !isCoOwner && !userIsAdmin) {
+          return { error: 'You do not have Owner permissions to edit this business page.' };
+        }
+
+        currentBusiness = foundInAll;
+        cleanSlug = foundInAll.slug;
+        targetOwnerId = foundInAll.owner_id || user.id;
+      } else {
+        return { error: 'The business page you are trying to edit was not found.' };
+      }
     }
-    const currentBusiness = existingPages[existingUserPageIndex];
-    // In edit mode, business name and custom URL slug are strictly locked and immutable
-    cleanSlug = currentBusiness.slug;
   } else {
-    // Creating a brand new business page:
-    // It must NOT match ANY existing handle globally or locally!
     const collision = allRegistered.find(p => p.slug === cleanSlug);
     if (collision) {
       if (collision.owner_id === user.id) {
@@ -123,33 +137,27 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
       }
       return { error: `The handle "${cleanSlug}" is already taken by another registered business. Please choose a different name or handle.` };
     }
-    // Also double check locally in user's own pages
     const localCollision = existingPages.find(p => p.slug === cleanSlug);
     if (localCollision) {
       return { error: `You already have a business page with the handle "${cleanSlug}". Please click "Edit" on that card to update it.` };
     }
   }
 
-  // Format phone to Irish standard
   let formattedPhone = (data.phone || '').trim();
   if (formattedPhone && !formattedPhone.startsWith('+353')) {
     formattedPhone = `+353 ${formattedPhone.replace(/^\+?353\s?|^0/, '')}`.trim();
   }
 
-  // Truncate announcement to 250 characters max
   const cleanAnnouncement = (data.announcement || '').trim().slice(0, 250);
 
-  // Avatar protection: NEVER store temporary blob URLs in Supabase!
   let safeAvatarUrl = (data.avatarUrl || '').trim();
   if (safeAvatarUrl.startsWith('blob:')) {
-    safeAvatarUrl = (isEditing && existingPages[existingUserPageIndex]?.avatarUrl) 
-      ? existingPages[existingUserPageIndex].avatarUrl!
-      : (currentUserMeta?.avatar_url || '');
+    safeAvatarUrl = currentBusiness?.avatarUrl || (existingUserPageIndex >= 0 ? existingPages[existingUserPageIndex].avatarUrl : '') || (currentUserMeta?.avatar_url || '');
   }
 
-  const newPageId = isEditing && data.id ? data.id : `biz_${Date.now()}`;
-  const lockedName = (isEditing && existingPages[existingUserPageIndex]) ? existingPages[existingUserPageIndex].name : data.name.trim();
-  const lockedSlug = (isEditing && existingPages[existingUserPageIndex]) ? existingPages[existingUserPageIndex].slug : cleanSlug;
+  const newPageId = isEditing && data.id ? data.id : (currentBusiness?.id || `biz_${Date.now()}`);
+  const lockedName = (isEditing && currentBusiness) ? currentBusiness.name : data.name.trim();
+  const lockedSlug = (isEditing && currentBusiness) ? currentBusiness.slug : cleanSlug;
   const newPage: BusinessPageData = {
     id: newPageId,
     name: lockedName,
@@ -170,30 +178,51 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     plan: data.is_verified ? 'Verified Pro Page' : 'Commercial Storefront',
     is_verified: Boolean(data.is_verified),
     allow_direct_messaging: Boolean(data.allow_direct_messaging),
-    created_at: (isEditing && existingPages[existingUserPageIndex]?.created_at) || data.created_at || new Date().toISOString(),
-    owner_id: user.id,
+    created_at: currentBusiness?.created_at || (isEditing && existingPages[existingUserPageIndex]?.created_at) || data.created_at || new Date().toISOString(),
+    owner_id: targetOwnerId,
     is_hiring: Boolean(data.is_hiring),
-    team_members: Array.isArray(data.team_members) ? data.team_members : (isEditing ? existingPages[existingUserPageIndex]?.team_members || [] : []),
-    pending_invites: Array.isArray(data.pending_invites) ? data.pending_invites : (isEditing ? existingPages[existingUserPageIndex]?.pending_invites || [] : []),
+    team_members: Array.isArray(data.team_members) ? data.team_members : (currentBusiness?.team_members || (isEditing ? existingPages[existingUserPageIndex]?.team_members || [] : [])),
+    pending_invites: Array.isArray(data.pending_invites) ? data.pending_invites : (currentBusiness?.pending_invites || (isEditing ? existingPages[existingUserPageIndex]?.pending_invites || [] : [])),
   };
 
   let updatedPages: BusinessPageData[];
   if (isEditing && existingUserPageIndex >= 0) {
     updatedPages = [...existingPages];
     updatedPages[existingUserPageIndex] = { ...existingPages[existingUserPageIndex], ...newPage };
-  } else {
+  } else if (!isEditing) {
     updatedPages = [...existingPages, newPage];
+  } else {
+    updatedPages = existingPages;
   }
 
-  // Update user metadata via Admin API for 100% reliable persistence
   if (adminClient) {
     try {
-      await adminClient.auth.admin.updateUserById(user.id, {
-        user_metadata: {
-          ...currentUserMeta,
-          business_pages: updatedPages,
-        },
-      });
+      if (targetOwnerId === user.id) {
+        await adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...currentUserMeta,
+            business_pages: updatedPages,
+          },
+        });
+      } else {
+        const { data: ownerUser } = await adminClient.auth.admin.getUserById(targetOwnerId);
+        if (ownerUser?.user) {
+          const ownerMeta = ownerUser.user.user_metadata || {};
+          const ownerPages: BusinessPageData[] = Array.isArray(ownerMeta.business_pages) ? [...ownerMeta.business_pages] : [];
+          const oIdx = ownerPages.findIndex((p: any) => p.id === newPage.id || p.slug === newPage.slug);
+          if (oIdx >= 0) {
+            ownerPages[oIdx] = { ...ownerPages[oIdx], ...newPage };
+          } else {
+            ownerPages.push(newPage);
+          }
+          await adminClient.auth.admin.updateUserById(targetOwnerId, {
+            user_metadata: {
+              ...ownerMeta,
+              business_pages: ownerPages,
+            },
+          });
+        }
+      }
     } catch (adminErr) {
       console.error('Error updating business page via adminClient:', adminErr);
     }
@@ -861,5 +890,216 @@ export async function removeBusinessTeamMemberAction(pageSlug: string, memberUse
   return { success: true };
 }
 
+export async function updateBusinessTeamMemberRoleAction(
+  pageSlug: string,
+  memberUserId: string,
+  newRole: 'owner' | 'staff'
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'You must be signed in.' };
+  }
 
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!serviceKey || !supabaseUrl) return { error: 'Server configuration error.' };
+
+  const adminClient = createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+  const allPages = await getAllRegisteredBusinessPages();
+  const page = allPages.find((p) => p.slug === pageSlug);
+  if (!page) {
+    return { error: 'Business page not found.' };
+  }
+
+  const userIsAdmin = isAdmin(user);
+  const isTrueOwner = page.owner_id === user.id || (page.slug === 'listme' && userIsAdmin);
+  const isCoOwner = (page.team_members || []).some((m: any) => {
+    const uid = typeof m === 'string' ? m : m?.user_id;
+    return uid === user.id && m?.role?.toLowerCase() === 'owner';
+  });
+
+  if (!isTrueOwner && !isCoOwner && !userIsAdmin) {
+    return { error: 'Only business page owners can update team member roles.' };
+  }
+
+  if (page.owner_id === memberUserId) {
+    return { error: 'Cannot alter the role of the primary page owner.' };
+  }
+
+  if (page.owner_id) {
+    const { data: ownerUser } = await adminClient.auth.admin.getUserById(page.owner_id);
+    const ownerMeta = ownerUser?.user?.user_metadata || {};
+    const ownerPages: BusinessPageData[] = ownerMeta.business_pages || [];
+    const pIdx = ownerPages.findIndex((p) => p.slug === pageSlug);
+
+    if (pIdx >= 0) {
+      const curPage = ownerPages[pIdx];
+      const updatedMembers = (curPage.team_members || []).map((m: any) => {
+        const uid = typeof m === 'string' ? m : m?.user_id;
+        if (uid === memberUserId) {
+          return typeof m === 'string'
+            ? { user_id: m, username: 'Team Member', role: newRole }
+            : { ...m, role: newRole };
+        }
+        return m;
+      });
+
+      ownerPages[pIdx] = {
+        ...curPage,
+        team_members: updatedMembers,
+      };
+
+      await adminClient.auth.admin.updateUserById(page.owner_id, {
+        user_metadata: {
+          ...ownerMeta,
+          business_pages: ownerPages,
+        },
+      });
+    }
+  }
+
+  const { data: memberUser } = await adminClient.auth.admin.getUserById(memberUserId);
+  if (memberUser?.user) {
+    const memberMeta = memberUser.user.user_metadata || {};
+    const assigned = (memberMeta.assigned_business_pages || []).map((ap: any) => {
+      if (ap.slug === pageSlug) {
+        return { ...ap, role: newRole };
+      }
+      return ap;
+    });
+
+    await adminClient.auth.admin.updateUserById(memberUserId, {
+      user_metadata: {
+        ...memberMeta,
+        assigned_business_pages: assigned,
+      },
+    });
+  }
+
+  invalidateBusinessPagesCache();
+  revalidatePath('/my-listme');
+  revalidatePath(`/page/${pageSlug}`);
+  return { success: true };
+}
+
+export async function transferBusinessPageOwnershipAction(
+  pageSlug: string,
+  newOwnerUserId: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'You must be signed in.' };
+  }
+
+  if (user.id === newOwnerUserId) {
+    return { error: 'You are already the primary owner of this page.' };
+  }
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!serviceKey || !supabaseUrl) return { error: 'Server configuration error.' };
+
+  const adminClient = createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+  const allPages = await getAllRegisteredBusinessPages();
+  const page = allPages.find((p) => p.slug === pageSlug);
+  if (!page) {
+    return { error: 'Business page not found.' };
+  }
+
+  const userIsAdmin = isAdmin(user);
+  const isTrueOwner = page.owner_id === user.id || (page.slug === 'listme' && userIsAdmin);
+
+  if (!isTrueOwner && !userIsAdmin) {
+    return { error: 'Only the primary owner can transfer ownership of this business page.' };
+  }
+
+  const { data: newOwnerData } = await adminClient.auth.admin.getUserById(newOwnerUserId);
+  if (!newOwnerData?.user) {
+    return { error: 'Target recipient user not found.' };
+  }
+
+  const currentOwnerId = page.owner_id || user.id;
+  const { data: curOwnerData } = await adminClient.auth.admin.getUserById(currentOwnerId);
+  const curOwnerMeta = curOwnerData?.user?.user_metadata || {};
+  const curOwnerPages: BusinessPageData[] = curOwnerMeta.business_pages || [];
+  const targetPageIdx = curOwnerPages.findIndex((p) => p.slug === pageSlug);
+
+  if (targetPageIdx === -1) {
+    return { error: 'Page not found in owner registry.' };
+  }
+
+  const pageToTransfer = { ...curOwnerPages[targetPageIdx], owner_id: newOwnerUserId };
+
+  const curOwnerUsername = curOwnerMeta.username || curOwnerData?.user?.email?.split('@')[0] || 'Previous Owner';
+  const newOwnerUsername = newOwnerData.user.user_metadata?.username || newOwnerData.user.email?.split('@')[0] || 'New Owner';
+
+  const updatedTeamMembers = (pageToTransfer.team_members || [])
+    .filter((m: any) => {
+      const uid = typeof m === 'string' ? m : m?.user_id;
+      return uid !== newOwnerUserId;
+    })
+    .map((m: any) => typeof m === 'string' ? { user_id: m, username: 'Team Member', role: 'staff' } : m);
+
+  updatedTeamMembers.push({
+    user_id: currentOwnerId,
+    username: curOwnerUsername,
+    role: 'owner',
+    joined_at: new Date().toISOString(),
+  });
+
+  pageToTransfer.team_members = updatedTeamMembers;
+
+  const remainingCurOwnerPages = curOwnerPages.filter((p) => p.slug !== pageSlug);
+  const curOwnerAssigned = Array.isArray(curOwnerMeta.assigned_business_pages)
+    ? [...curOwnerMeta.assigned_business_pages]
+    : [];
+
+  if (!curOwnerAssigned.some((ap: any) => ap.slug === pageSlug)) {
+    curOwnerAssigned.push({
+      slug: pageSlug,
+      name: pageToTransfer.name,
+      role: 'owner',
+      joined_at: new Date().toISOString(),
+    });
+  }
+
+  await adminClient.auth.admin.updateUserById(currentOwnerId, {
+    user_metadata: {
+      ...curOwnerMeta,
+      business_pages: remainingCurOwnerPages,
+      assigned_business_pages: curOwnerAssigned,
+    },
+  });
+
+  const newOwnerMeta = newOwnerData.user.user_metadata || {};
+  const newOwnerPages: BusinessPageData[] = Array.isArray(newOwnerMeta.business_pages)
+    ? [...newOwnerMeta.business_pages]
+    : [];
+  newOwnerPages.push(pageToTransfer);
+
+  const newOwnerAssigned = (newOwnerMeta.assigned_business_pages || []).filter(
+    (ap: any) => ap.slug !== pageSlug
+  );
+
+  await adminClient.auth.admin.updateUserById(newOwnerUserId, {
+    user_metadata: {
+      ...newOwnerMeta,
+      business_pages: newOwnerPages,
+      assigned_business_pages: newOwnerAssigned,
+    },
+  });
+
+  try {
+    await adminClient.from('business_pages').update({ owner_id: newOwnerUserId }).eq('slug', pageSlug);
+  } catch {}
+
+  invalidateBusinessPagesCache();
+  revalidatePath('/my-listme');
+  revalidatePath(`/page/${pageSlug}`);
+  return { success: true, message: `Full ownership transferred to @${newOwnerUsername}.` };
+}
 

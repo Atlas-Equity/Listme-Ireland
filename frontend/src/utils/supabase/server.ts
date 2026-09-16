@@ -2,7 +2,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import '@/utils/dnsOptimizer';
 
-
 export async function createClient() {
   const cookieStore = await cookies()
 
@@ -20,9 +19,6 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch (error) {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
           }
         },
       },

@@ -52,7 +52,6 @@ export default function LinkedCardCard({
   defaultCardholderName = 'Cardholder',
   accountBalance = 0.00,
 }: LinkedCardProps) {
-  // Normalize initial cards list (max 2 cards)
   const initialCardsList: LinkedCardData[] = initialCards.length > 0 
     ? initialCards 
     : (initialCard ? [initialCard] : []);
@@ -74,11 +73,9 @@ export default function LinkedCardCard({
   const [cards, setCards] = useState<LinkedCardData[]>(initialCardsList);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number>(0);
   
-  // Card nickname in-place editing
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editNicknameValue, setEditNicknameValue] = useState('');
 
-  // Add / Edit Card Modal & Stripe Elements
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddingSecondCard, setIsAddingSecondCard] = useState(false);
   const [formHolderName, setFormHolderName] = useState(defaultCardholderName);
@@ -96,7 +93,6 @@ export default function LinkedCardCard({
   const cardCvcRef = useRef<HTMLDivElement | null>(null);
   const [isStripeReady, setIsStripeReady] = useState(false);
 
-  // Top Up state
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('50');
   const [customTopUp, setCustomTopUp] = useState('');
@@ -129,7 +125,6 @@ export default function LinkedCardCard({
     }
   };
 
-  // Ensure cards are strictly scoped to the logged-in user from the server props
   useEffect(() => {
     try {
       localStorage.removeItem('listme_linked_cards');
@@ -138,7 +133,6 @@ export default function LinkedCardCard({
     setCards(initialCardsList);
   }, [initialCards, initialCard]);
 
-  // Open modal to add card (either first or second card)
   const handleOpenAddModal = (asSecondCard = false) => {
     setIsAddingSecondCard(asSecondCard);
     setFormHolderName(defaultCardholderName);
@@ -158,7 +152,6 @@ export default function LinkedCardCard({
     setIsModalOpen(true);
   };
 
-  // Mount official Stripe Split Elements (Card Number, Expiry, CVC) when modal opens
   useEffect(() => {
     if (!isModalOpen) {
       if (cardNumberElement) {
@@ -242,7 +235,6 @@ export default function LinkedCardCard({
     };
   }, [isModalOpen]);
 
-  // Save card via client-side Stripe tokenization
   const handleSaveCard = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -275,7 +267,6 @@ export default function LinkedCardCard({
         const isDebitInput = funding === 'debit' || funding === 'prepaid';
         const isCreditInput = !isDebitInput;
 
-        // Constraint: Maximum 1 Credit Card and 1 Debit Card in wallet
         const hasExistingCredit = cards.some(isCardCredit);
         const hasExistingDebit = cards.some(isCardDebit);
 
@@ -488,7 +479,7 @@ export default function LinkedCardCard({
   return (
     <div className="space-y-6">
       
-      {/* Toast Alert */}
+      
       {successToast && (
         <div className="p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
@@ -505,7 +496,7 @@ export default function LinkedCardCard({
         </div>
       )}
 
-      {/* Header Banner: 2-Card Capacity & 1 Credit + 1 Debit Policy */}
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
         <div className="flex items-center gap-2.5 flex-wrap">
           <CreditCard className="w-4 h-4 text-primary shrink-0" />
@@ -541,13 +532,13 @@ export default function LinkedCardCard({
         )}
       </div>
 
-      {/* Cards Display Grid (Supports up to 2 cards side-by-side or placeholder) */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* CARD 1 (Primary or Placeholder) */}
+        
         {cards[0] ? (
           <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700/80 p-6 sm:p-7 flex flex-col justify-between shadow-lg text-white select-none">
-            {/* Header: Nickname & Primary Badge */}
+            
             <div className="flex flex-col gap-2.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -596,7 +587,7 @@ export default function LinkedCardCard({
               </div>
             </div>
 
-            {/* EMV Chip & Card Type Badge */}
+            
             <div className="mt-6 mb-5 flex items-center justify-between">
               <div className="w-11 h-8 rounded-md bg-amber-400/80 border border-amber-500/50 flex items-center justify-center shadow-xs">
                 <div className="w-8 h-5 border border-amber-900/30 rounded-xs grid grid-cols-2 grid-rows-2"></div>
@@ -614,7 +605,7 @@ export default function LinkedCardCard({
               )}
             </div>
 
-            {/* Masked Card Number */}
+            
             <div className="my-5 py-1 flex items-center gap-3 sm:gap-4 text-xl sm:text-2xl font-mono font-black tracking-widest text-zinc-100">
               <span className="text-zinc-500">••••</span>
               <span className="text-zinc-500">••••</span>
@@ -622,7 +613,7 @@ export default function LinkedCardCard({
               <span>{cards[0].cardNumberBlocks?.[3] || '1234'}</span>
             </div>
 
-            {/* Expiry & Brand Footer */}
+            
             <div className="flex items-end justify-between pt-4 pb-1 border-t border-zinc-800/80 text-xs">
               <div>
                 <span className="block text-[10px] text-zinc-400 font-mono tracking-wider">EXPIRES</span>
@@ -635,7 +626,7 @@ export default function LinkedCardCard({
               </div>
             </div>
 
-            {/* Debit Card Warning Banner if applicable */}
+            
             {isCardDebit(cards[0]) && (
               <div className="mt-4 p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 flex items-start gap-2.5 text-xs text-amber-200/90 leading-relaxed">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -645,7 +636,7 @@ export default function LinkedCardCard({
               </div>
             )}
 
-            {/* Action Bar */}
+            
             <div className="mt-5 pt-3.5 border-t border-zinc-800/80 flex items-center justify-between text-xs">
               <span className="text-xs text-zinc-400">Card 1 of {cards.length}</span>
               <button
@@ -677,10 +668,10 @@ export default function LinkedCardCard({
           </div>
         )}
 
-        {/* CARD 2 (Secondary Card or Add Slot) */}
+        
         {cards[1] ? (
           <div className="relative w-full rounded-2xl bg-[#141414] border border-zinc-700/80 p-6 sm:p-7 flex flex-col justify-between shadow-lg text-white select-none">
-            {/* Header: Nickname & Actions */}
+            
             <div className="flex flex-col gap-2.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -729,7 +720,7 @@ export default function LinkedCardCard({
               </div>
             </div>
 
-            {/* EMV Chip & Card Type Badge */}
+            
             <div className="mt-6 mb-5 flex items-center justify-between">
               <div className="w-11 h-8 rounded-md bg-amber-400/80 border border-amber-500/50 flex items-center justify-center shadow-xs">
                 <div className="w-8 h-5 border border-amber-900/30 rounded-xs grid grid-cols-2 grid-rows-2"></div>
@@ -747,7 +738,7 @@ export default function LinkedCardCard({
               )}
             </div>
 
-            {/* Masked Card Number */}
+            
             <div className="my-5 py-1 flex items-center gap-3 sm:gap-4 text-xl sm:text-2xl font-mono font-black tracking-widest text-zinc-100">
               <span className="text-zinc-500">••••</span>
               <span className="text-zinc-500">••••</span>
@@ -755,7 +746,7 @@ export default function LinkedCardCard({
               <span>{cards[1].cardNumberBlocks?.[3] || '5678'}</span>
             </div>
 
-            {/* Expiry & Brand Footer */}
+            
             <div className="flex items-end justify-between pt-4 pb-1 border-t border-zinc-800/80 text-xs">
               <div>
                 <span className="block text-[10px] text-zinc-400 font-mono tracking-wider">EXPIRES</span>
@@ -768,7 +759,7 @@ export default function LinkedCardCard({
               </div>
             </div>
 
-            {/* Debit Card Warning Banner if applicable */}
+            
             {isCardDebit(cards[1]) && (
               <div className="mt-4 p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 flex items-start gap-2.5 text-xs text-amber-200/90 leading-relaxed">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -778,7 +769,7 @@ export default function LinkedCardCard({
               </div>
             )}
 
-            {/* Action Bar */}
+            
             <div className="mt-5 pt-3.5 border-t border-zinc-800/80 flex items-center justify-between text-xs">
               <button
                 type="button"
@@ -830,7 +821,7 @@ export default function LinkedCardCard({
 
       </div>
 
-      {/* Security Info Boxes (Flat neutral styling - NO gradients) */}
+      
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
           <div className="flex items-center gap-2 mb-1 text-sm font-bold text-gray-900 dark:text-white">
@@ -853,7 +844,7 @@ export default function LinkedCardCard({
         </div>
       </div>
 
-      {/* Account Credit & Top Up Section */}
+      
       <div className="p-5 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -877,7 +868,7 @@ export default function LinkedCardCard({
         </button>
       </div>
 
-      {/* Top Up Form (Supports Custom Amounts up to €25,000 and choice between 2 cards) */}
+      
       {isTopUpOpen && (
         <form onSubmit={handleTopUp} className="p-5 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-zinc-800">
@@ -905,7 +896,7 @@ export default function LinkedCardCard({
             </div>
           )}
 
-          {/* Quick Amount Buttons */}
+          
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -933,7 +924,7 @@ export default function LinkedCardCard({
             </div>
           </div>
 
-          {/* Custom Amount Input Field (Up to €25,000) */}
+          
           <div>
             <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Or Enter Custom Amount (€)
@@ -955,7 +946,7 @@ export default function LinkedCardCard({
             </div>
           </div>
 
-          {/* Card Selection (if user has 2 cards) */}
+          
           {hasCards && (
             <div className="space-y-2 pt-2">
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -995,7 +986,7 @@ export default function LinkedCardCard({
             </div>
           )}
 
-          {/* Submit Top Up */}
+          
           {topUpSuccess ? (
             <div className="p-3 rounded-xl bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 text-xs font-bold flex items-center justify-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-primary" />
@@ -1018,7 +1009,7 @@ export default function LinkedCardCard({
         </form>
       )}
 
-      {/* Link Card Modal */}
+      
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="relative w-full max-w-lg bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
@@ -1072,7 +1063,7 @@ export default function LinkedCardCard({
                 />
               </div>
 
-              {/* Line 1: Card Number */}
+              
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Card Number
@@ -1088,7 +1079,7 @@ export default function LinkedCardCard({
                 </div>
               </div>
 
-              {/* Line 2: Expiry Date */}
+              
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Expiry Date (MM / YY)
@@ -1098,7 +1089,7 @@ export default function LinkedCardCard({
                 </div>
               </div>
 
-              {/* Line 3: Security Code (CVC) */}
+              
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Security Code (CVC)

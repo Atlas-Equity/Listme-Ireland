@@ -6,7 +6,7 @@ export default function PromoBanners() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6 sm:my-8">
       
-      {/* Banner 1: Selling on ListMe */}
+      
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 p-6 flex flex-col justify-between min-h-[200px] sm:min-h-[220px] group shadow-xs hover:shadow-md transition-shadow">
         <div className="relative z-10 w-full sm:w-3/4">
           <p className="text-primary font-bold text-xs uppercase tracking-wider mb-1">Selling on ListMe</p>
@@ -26,7 +26,7 @@ export default function PromoBanners() {
         </div>
       </div>
 
-      {/* Banner 2: Buyer Protection */}
+      
       <div className="relative overflow-hidden rounded-2xl bg-[#064e3b] dark:bg-[#064e3b] border border-emerald-600/30 p-6 flex flex-col justify-between min-h-[200px] sm:min-h-[220px] group shadow-xs hover:shadow-md transition-shadow">
         <div className="relative z-10 w-full sm:w-3/4">
           <p className="text-emerald-200 font-bold text-xs uppercase tracking-wider mb-1">Safe Trading</p>
@@ -46,7 +46,7 @@ export default function PromoBanners() {
         </div>
       </div>
 
-      {/* Banner 3: Watchlists */}
+      
       <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 p-6 flex flex-col justify-between min-h-[200px] sm:min-h-[220px] group shadow-xs hover:shadow-md transition-shadow">
         <div className="relative z-10 w-full sm:w-3/4">
           <p className="text-primary font-bold text-xs uppercase tracking-wider mb-1">Marketplace Feature</p>

@@ -7,6 +7,7 @@ import { Search, MapPin, Store, ExternalLink, Tag, Plus, Clock, Check } from 'lu
 import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
+import CustomSelect from '@/components/CustomSelect';
 
 interface MarketplaceClientProps {
   initialStores: BusinessPageData[];
@@ -23,7 +24,6 @@ export default function MarketplaceClient({
   const [selectedCounty, setSelectedCounty] = useState('All');
   const [buyingFormat, setBuyingFormat] = useState(defaultFormat || 'All');
 
-  // Closing soon items (1 day or less)
   const closingSoonListings = useMemo(() => {
     const nowMs = Date.now();
     return initialListings.filter((item) => {
@@ -34,7 +34,6 @@ export default function MarketplaceClient({
     });
   }, [initialListings]);
 
-  // Filter marketplace store pages (not services)
   const filteredStores = useMemo(() => {
     const list = initialStores.filter((store) => {
       const isMarketplace = store.business_type === 'marketplace' || !store.business_type;
@@ -57,7 +56,6 @@ export default function MarketplaceClient({
     });
   }, [initialStores, searchQuery, selectedCounty]);
 
-  // Filter listings
   const filteredListings = useMemo(() => {
     const nowMs = Date.now();
     return initialListings.filter((item) => {
@@ -83,7 +81,7 @@ export default function MarketplaceClient({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      {/* Header & Controls */}
+      
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
@@ -106,7 +104,7 @@ export default function MarketplaceClient({
           </div>
         </div>
 
-        {/* Search & Filter Row */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-white dark:bg-[#181818] p-3 rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-xs">
           <div className="sm:col-span-2 relative flex items-center">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
@@ -120,34 +118,29 @@ export default function MarketplaceClient({
           </div>
 
           <div>
-            <select
+            <CustomSelect
               value={selectedCounty}
-              onChange={(e) => setSelectedCounty(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-            >
-              <option value="All">All Counties</option>
-              {COUNTIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+              onChange={setSelectedCounty}
+              options={[{ value: 'All', label: 'All Counties' }, ...COUNTIES.map((c) => ({ value: c, label: c }))]}
+            />
           </div>
 
           <div>
-            <select
+            <CustomSelect
               value={buyingFormat}
-              onChange={(e) => setBuyingFormat(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-            >
-              <option value="All">All Formats</option>
-              <option value="Buy Now">Buy Now / Fixed Price</option>
-              <option value="Auction">Live Auctions</option>
-              <option value="Closing Soon">Closing Soon (1 Day or Less)</option>
-            </select>
+              onChange={setBuyingFormat}
+              options={[
+                { value: 'All', label: 'All Formats' },
+                { value: 'Buy Now', label: 'Buy Now / Fixed Price' },
+                { value: 'Auction', label: 'Live Auctions' },
+                { value: 'Closing Soon', label: 'Closing Soon (1 Day or Less)' },
+              ]}
+            />
           </div>
         </div>
       </div>
 
-      {/* SECTION 1: Registered Marketplace Stores & Storefronts */}
+      
       <section className="mb-12">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -240,7 +233,7 @@ export default function MarketplaceClient({
         )}
       </section>
 
-      {/* SECTION 2: Closing Soon (1 Day or Less) */}
+      
       {closingSoonListings.length > 0 && (
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -277,7 +270,7 @@ export default function MarketplaceClient({
         </section>
       )}
 
-      {/* SECTION 3: Active Marketplace Listings */}
+      
       <section>
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>

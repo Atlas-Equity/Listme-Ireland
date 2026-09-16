@@ -25,14 +25,14 @@ export default function MarketplaceFeesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         
-        {/* Breadcrumb */}
+        
         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white font-medium">Marketplace Fees</span>
         </div>
 
-        {/* Hero Banner */}
+        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 sm:p-10 shadow-xs relative overflow-hidden">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 mb-4">
@@ -59,7 +59,7 @@ export default function MarketplaceFeesPage() {
           </div>
         </div>
 
-        {/* General Items */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white">
             General Items
@@ -82,7 +82,7 @@ export default function MarketplaceFeesPage() {
           </p>
         </section>
 
-        {/* For Sellers */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-8">
           <div>
             <h2 className="text-xl font-black text-gray-900 dark:text-white">
@@ -93,7 +93,7 @@ export default function MarketplaceFeesPage() {
             </p>
           </div>
 
-          {/* Transaction Fees */}
+          
           <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Transaction Fees
@@ -127,7 +127,7 @@ export default function MarketplaceFeesPage() {
             </div>
           </div>
 
-          {/* Optional Extras */}
+          
           <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Optional Extras
@@ -194,7 +194,7 @@ export default function MarketplaceFeesPage() {
             </div>
           </div>
 
-          {/* Withdrawal Fees */}
+          
           <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
               Withdrawal Fees
@@ -234,7 +234,7 @@ export default function MarketplaceFeesPage() {
 
         </section>
 
-        {/* Success Fees (In-Trade Sellers Only) */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -259,7 +259,7 @@ export default function MarketplaceFeesPage() {
             </ul>
           </div>
 
-          {/* Success Fee Table */}
+          
           <div className="space-y-2">
             <h4 className="font-bold text-sm text-gray-900 dark:text-white">
               Success Fee Table (In-Trade Sellers Only):
@@ -288,7 +288,7 @@ export default function MarketplaceFeesPage() {
             </div>
           </div>
 
-          {/* Success Fees by Category */}
+          
           <div className="space-y-3">
             <h4 className="font-bold text-sm text-gray-900 dark:text-white">
               Success Fees by Category (In-Trade Sellers Only):
@@ -431,7 +431,7 @@ export default function MarketplaceFeesPage() {
 
         </section>
 
-        {/* For Buyers */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
           <div>
             <h2 className="text-xl font-black text-gray-900 dark:text-white">
@@ -461,7 +461,7 @@ export default function MarketplaceFeesPage() {
             </div>
           </div>
 
-          {/* Service Fee Table */}
+          
           <div className="space-y-2">
             <h4 className="font-bold text-sm text-gray-900 dark:text-white">
               Service Fee Table:
@@ -492,7 +492,7 @@ export default function MarketplaceFeesPage() {
             </div>
           </div>
 
-          {/* Service Fee Exclusions */}
+          
           <div className="space-y-2 pt-2">
             <h4 className="font-bold text-sm text-gray-900 dark:text-white">
               Service Fee Exclusions:
@@ -513,7 +513,7 @@ export default function MarketplaceFeesPage() {
           </div>
         </section>
 
-        {/* Summary – Marketplace Fees at a Glance */}
+        
         <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
           <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
             <Scale className="w-5 h-5 text-primary" />

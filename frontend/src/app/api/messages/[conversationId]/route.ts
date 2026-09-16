@@ -15,7 +15,6 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch conversation and verify user is participant
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select('*')
@@ -26,7 +25,6 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // Check if conversation has exceeded 3 days of inactivity
     const lastActive = conversation.last_message_at || conversation.updated_at || conversation.created_at;
     if (new Date(lastActive).getTime() < Date.now() - 3 * 24 * 60 * 60 * 1000) {
       purgeInactiveChats().catch((err) => console.error('Purge error:', err));
@@ -39,7 +37,6 @@ export async function GET(
 
     const otherUserId = conversation.buyer_id === user.id ? conversation.seller_id : conversation.buyer_id;
 
-    // Parallelize message history, other participant profile, and listing lookups
     const [messagesResult, profileResult, listingResult] = await Promise.all([
       supabase
         .from('messages')
@@ -65,7 +62,6 @@ export async function GET(
       return NextResponse.json({ error: messagesResult.error.message }, { status: 500 });
     }
 
-    // Mark unread messages from other user as read asynchronously (non-blocking)
     supabase
       .from('messages')
       .update({ is_read: true })
@@ -105,7 +101,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Mark messages from the other user as read
     const { error: updateError } = await supabase
       .from('messages')
       .update({ is_read: true })

@@ -21,7 +21,6 @@ import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
-// Cache listing page for 60s for blazing fast instant loads
 export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -85,7 +84,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
   const supabase = await createClient();
 
-  // Parallel Phase 1: Fetch user (only if session cookie exists) and listing simultaneously
   const [userResult, listingResult] = await Promise.all([
     hasAuthCookie ? supabase.auth.getUser() : Promise.resolve({ data: { user: null } }),
     supabase.from('listings').select('*').eq('id', id).single()
@@ -102,7 +100,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isAuction = listing.price_type?.toLowerCase() === 'auction';
   const isOwnListing = Boolean(user && user.id === listing.seller_id);
 
-  // Cache seller profile & reviews to prevent duplicate fetches across listings
   const sellerCache = (globalThis as any).__sellerProfileCache ?? new Map<string, any>();
   (globalThis as any).__sellerProfileCache = sellerCache;
   const cachedSeller = sellerCache.get(listing.seller_id);
@@ -111,7 +108,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   (globalThis as any).__sellerReviewsCache = reviewsCache;
   const cachedReviews = reviewsCache.get(listing.seller_id);
 
-  // Parallel Phase 2: Fetch seller, reviews, bids, watchlist, and favourite status concurrently
   const [
     sellerResult,
     reviewsResult,
@@ -150,7 +146,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     avatarUrl: user.user_metadata?.avatar_url,
   } : null;
 
-
   const seller = sellerResult.data;
   const reviews = reviewsResult.data;
   const isWatchlisted = !!watchlistResult.data;
@@ -164,7 +159,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isSellerOneYearOld = seller?.updated_at ? Date.now() - new Date(seller.updated_at).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
   const isSellerVerified = Boolean(isSellerOneYearOld || (seller as any)?.is_verified || (seller as any)?.user_metadata?.is_verified);
 
-  // Check if listing was published under a business storefront
   const bizMatch = listing.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
   const businessSlug = (listing as any).business_page_slug || (bizMatch ? bizMatch[1].trim().toLowerCase() : null);
 
@@ -174,7 +168,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     listingBusinessPage = allBiz.find(b => b.slug?.toLowerCase() === businessSlug.toLowerCase()) || null;
   }
 
-  // Auction Buy Now Price: check buy_now_price column or parse tag from description
   const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
   const rawBuyNowPrice: number | null = listing.buy_now_price || (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
   const cleanDescription = listing.description 
@@ -192,21 +185,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     highestBidAmount = bidsResult.data[0].amount;
   }
 
-  // If the current highest bid meets or exceeds the Buy Now price, remove Buy Now and push completely to auction
   const isBuyNowOverriddenByBid = rawBuyNowPrice !== null && highestBidAmount !== null && highestBidAmount >= rawBuyNowPrice;
   const buyNowPrice: number | null = isBuyNowOverriddenByBid ? null : rawBuyNowPrice;
 
   const currentPrice = highestBidAmount !== null ? highestBidAmount : listing.price;
   const minNextBid = highestBidAmount !== null ? highestBidAmount + 1 : listing.price;
 
-  // Calculate feedback metrics
   const totalReviews = reviews?.length || 0;
   const positiveReviews = reviews?.filter((r: any) => r.rating >= 4).length || 0;
   const feedbackPercentage = totalReviews > 0 
     ? Math.round((positiveReviews / totalReviews) * 100) 
     : 0;
 
-  // Calculate closing time. Fallback to 7 days from creation if expires_at is null (for old test data)
   const expirationDate = listing.expires_at 
     ? new Date(listing.expires_at) 
     : new Date(new Date(listing.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -250,40 +240,45 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       />
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Breadcrumb / Top Bar */}
+        
         <div className="flex items-center text-xs text-blue-400 mb-6">
           <Link href="/" className="hover:underline">Home</Link>
           <span className="mx-2 text-gray-500">/</span>
-          <Link href={`/category/${listing.category.toLowerCase()}`} className="hover:underline capitalize">{listing.category}</Link>
+          <Link
+            href={listing.category.toLowerCase() === 'marketplace' ? '/marketplace' : `/category/${listing.category.toLowerCase()}`}
+            className="hover:underline capitalize"
+          >
+            {listing.category}
+          </Link>
           <span className="mx-2 text-gray-500">/</span>
           <span className="text-gray-500 dark:text-gray-400 truncate max-w-xs">{listing.title}</span>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* LEFT COLUMN: Images & Description & Details */}
+          
           <div className="flex-1 w-full max-w-[700px] space-y-8">
             
-            {/* Image Gallery */}
+            
             <ListingCarousel title={listing.title} images={listing.images || []} />
 
-            {/* Details Section */}
+            
             <div className="grid grid-cols-[180px_1fr] gap-x-4 gap-y-8 text-sm">
               
-              {/* Condition */}
+              
               <div className="font-semibold text-gray-900 dark:text-white">Details</div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400 mr-2">Condition:</span> 
                 <span className="text-gray-700 dark:text-gray-300 font-medium">{listing.condition}</span>
               </div>
 
-              {/* Description */}
+              
               <div className="font-semibold text-gray-900 dark:text-white">Description</div>
               <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {cleanDescription || listing.description}
               </div>
 
-              {/* Shipping */}
+              
               <div className="font-semibold text-gray-900 dark:text-white">Shipping & pick-up options</div>
               <div>
                 <table className="w-full text-left text-sm border-b border-gray-200 dark:border-[#333] mb-4">
@@ -305,7 +300,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 </Link>
               </div>
 
-              {/* Payment */}
+              
               <div className="font-semibold text-gray-900 dark:text-white">Payment Options</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
@@ -334,7 +329,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
             </div>
 
-            {/* TradeMe-Style Questions & Answers Section */}
+            
             <div className="pt-2">
               <ListingQuestionsSection
                 listingId={listing.id}
@@ -347,10 +342,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
           </div>
 
-          {/* RIGHT COLUMN: Price, Actions, Seller */}
+          
           <div className="w-full lg:w-[360px] flex-shrink-0 space-y-4">
             
-            {/* Title */}
+            
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
               {listing.title}
             </h1>
@@ -375,7 +370,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <WatchlistButton listingId={listing.id} initialIsWatchlisted={isWatchlisted} />
             )}
 
-            {/* Price Box */}
+            
             <div className="bg-white dark:bg-transparent border border-gray-200 dark:border-[#333] rounded-sm">
               <div className="p-6 text-center border-b border-gray-200 dark:border-[#333]">
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
@@ -467,7 +462,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Buyer Protection */}
+            
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] flex gap-4">
               <ShieldCheck className="w-8 h-8 text-[#0073e6] flex-shrink-0" />
               <div>
@@ -481,7 +476,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Seller Mini Profile / Storefront Mini Profile */}
+            
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
               {listingBusinessPage ? (
                 <Link 
@@ -553,7 +548,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
         </div>
 
-        {/* BOTTOM SECTION: Full Seller Profile / Storefront Profile */}
+        
         <div className="mt-16 pt-8 border-t border-gray-200 dark:border-[#333] flex flex-col items-center pb-20">
           {listingBusinessPage ? (
             <div className="w-full max-w-[600px]">

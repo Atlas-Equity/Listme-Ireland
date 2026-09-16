@@ -8,7 +8,6 @@ import { cookies } from 'next/headers';
 import BusinessPageClient from './BusinessPageClient';
 import { isAdmin } from '@/utils/admin';
 
-// Always serve the freshest business page data so edits reflect instantly
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -181,7 +180,22 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     },
   };
 
-  // Check if current user is an authorized team staff member of this page
+  const isTrueOwner = Boolean(user && user.id === businessPage?.owner_id) || (cleanSlug === 'listme' && userIsAdmin);
+
+  const isCoOwner = Boolean(
+    user && businessPage && (
+      (businessPage.team_members || []).some((m: any) => {
+        const uid = typeof m === 'string' ? m : m?.user_id;
+        return uid === user.id && m?.role?.toLowerCase() === 'owner';
+      }) ||
+      (user.user_metadata?.assigned_business_pages as any[])?.some((ap: any) => 
+        ap.slug === cleanSlug && ap.role?.toLowerCase() === 'owner'
+      )
+    )
+  );
+
+  const canManagePage = isTrueOwner || isCoOwner || userIsAdmin;
+
   const isTeamMember = Boolean(
     user && businessPage && (
       (businessPage.team_members || []).some((m: any) => 
@@ -200,7 +214,8 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       <BusinessPageClient 
         businessPage={businessPage} 
         listings={pageListings} 
-        isOwner={isOwner}
+        isOwner={canManagePage}
+        isTrueOwner={isTrueOwner}
         isAdmin={userIsAdmin}
         isTeamMember={isTeamMember}
       />

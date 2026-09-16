@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
     
-    // 1. Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
@@ -19,7 +18,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe is not configured.' }, { status: 500 });
     }
 
-    // 2. Fetch user profile to get their stripe account ID
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('stripe_account_id, stripe_onboarding_complete')
@@ -34,7 +32,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe account not fully set up' }, { status: 400 });
     }
 
-    // 3. Create Login Link for the Express Dashboard
     const loginLink = await stripe.accounts.createLoginLink(profile.stripe_account_id);
 
     return NextResponse.json({ url: loginLink.url });

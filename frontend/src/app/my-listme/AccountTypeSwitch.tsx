@@ -21,13 +21,11 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
   const handleSwitchClick = () => {
     setError(null);
 
-    // If switching from Business to Personal: show "Are you sure?" confirmation prompt first
     if (currentType === 'business') {
       setIsConfirmModalOpen(true);
       return;
     }
 
-    // If upgrading to business and user doesn't have a valid phone number, open modal
     const trimmedPhone = userPhone?.trim() || '';
     const digitsOnly = trimmedPhone.replace(/\D/g, '');
     if (!trimmedPhone || digitsOnly.length < 7) {
@@ -113,7 +111,7 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
         </div>
       </div>
 
-      {/* Confirmation Prompt Modal for Switching to Personal */}
+      
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
@@ -174,7 +172,7 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
         </div>
       )}
 
-      {/* Business Upgrade Modal */}
+      
       <BusinessUpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}

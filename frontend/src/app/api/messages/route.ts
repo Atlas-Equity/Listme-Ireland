@@ -11,10 +11,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Auto-delete chats inactive for 3+ days
     await purgeInactiveChats().catch((err) => console.error('Auto-cleanup error:', err));
 
-    // Fetch conversations where user is buyer OR seller
     const { data: conversations, error: convError } = await supabase
       .from('conversations')
       .select(`

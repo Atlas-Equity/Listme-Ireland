@@ -17,7 +17,6 @@ export default async function PaymentSuccessPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Use service role client if available to ensure database writes succeed on payment completion
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const adminDb = (serviceRoleKey && process.env.NEXT_PUBLIC_SUPABASE_URL)
     ? createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey)
@@ -28,7 +27,6 @@ export default async function PaymentSuccessPage({
   let listingTitle = 'Listing';
   let paymentMethodDesc = 'Card Payment (Stripe)';
 
-  // 1. Verify Stripe Session if present
   if (sessionId) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (stripeKey) {
@@ -48,11 +46,10 @@ export default async function PaymentSuccessPage({
         console.error('Error verifying Stripe session on success page:', err);
       }
     } else {
-      stripeVerified = true; // Local dev mock
+      stripeVerified = true;
     }
   }
 
-  // 2. Fetch and close the listing
   if (listingId) {
     try {
       const { data: listing } = await adminDb
@@ -67,14 +64,12 @@ export default async function PaymentSuccessPage({
           totalPaid = Number(listing.price) || 0;
         }
 
-        // Close listing if still active
         if (listing.status !== 'closed') {
           await adminDb
             .from('listings')
             .update({ status: 'closed' })
             .eq('id', listing.id);
 
-          // Notify seller in chat if user is logged in
           if (user && listing.seller_id !== user.id) {
             try {
               let convId: string | null = null;
@@ -125,7 +120,7 @@ export default async function PaymentSuccessPage({
     <div className="min-h-[75vh] flex items-center justify-center bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-white p-4 py-12">
       <div className="max-w-lg w-full bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 text-center shadow-xl">
         
-        {/* Success Icon */}
+        
         <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-gray-200 dark:border-zinc-700">
           <CheckCircle2 className="w-8 h-8 text-primary" />
         </div>
@@ -137,7 +132,7 @@ export default async function PaymentSuccessPage({
           Your payment has been securely processed. The listing has been marked as sold and the seller has been notified to arrange delivery or pick-up.
         </p>
 
-        {/* Order Breakdown Card */}
+        
         <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 mb-6 text-left space-y-2 text-xs">
           <div className="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-zinc-800">
             <span className="font-semibold text-gray-500 dark:text-gray-400">Item</span>
@@ -173,7 +168,7 @@ export default async function PaymentSuccessPage({
           )}
         </div>
 
-        {/* Buyer Protection Guarantee */}
+        
         <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-left flex items-start gap-2.5 mb-6 text-xs text-gray-600 dark:text-gray-400">
           <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <span>
@@ -181,7 +176,7 @@ export default async function PaymentSuccessPage({
           </span>
         </div>
 
-        {/* Action Buttons */}
+        
         <div className="space-y-3">
           {listingId && (
             <>

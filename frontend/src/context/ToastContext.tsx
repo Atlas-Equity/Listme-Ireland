@@ -20,7 +20,6 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-// Global helper for calling outside React context if needed
 export function emitToast(message: string, type: ToastType = 'error') {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('listme-toast', { detail: { message, type } }));
@@ -64,7 +63,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast, error, success, info }}>
       {children}
 
-      {/* Floating Bottom Toast Container */}
+      
       <div 
         className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] w-full max-w-md px-4 flex flex-col gap-2 pointer-events-none"
         aria-live="polite"

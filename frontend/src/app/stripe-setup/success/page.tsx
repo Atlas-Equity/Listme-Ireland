@@ -21,7 +21,6 @@ export default function OnboardingSuccessPage() {
         return;
       }
 
-      // Verify with the server that Stripe onboarding is genuinely complete
       const res = await fetch('/api/connect/verify', { method: 'POST' });
       const data = await res.json();
 

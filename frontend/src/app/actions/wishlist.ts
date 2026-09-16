@@ -3,9 +3,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-/**
- * Returns array of listing IDs currently in the user's watchlist.
- */
 export async function getWatchlistIdsAction(): Promise<string[]> {
   try {
     const supabase = await createClient();
@@ -31,9 +28,6 @@ export async function getWatchlistIdsAction(): Promise<string[]> {
   }
 }
 
-/**
- * Toggles a listing in/out of the user's watchlist idempotently.
- */
 export async function toggleWatchlist(listingId: string, forceTargetStatus?: boolean) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -43,7 +37,6 @@ export async function toggleWatchlist(listingId: string, forceTargetStatus?: boo
   }
 
   try {
-    // Check if currently watchlisted
     const { data: existing } = await supabase
       .from('wishlists')
       .select('id')
