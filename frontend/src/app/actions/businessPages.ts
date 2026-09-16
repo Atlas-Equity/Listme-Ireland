@@ -52,7 +52,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     return { error: 'You must be logged in to create or update a Business Page.' };
   }
 
-  const cleanSlug = (data.slug || data.name)
+  let cleanSlug = (data.slug || data.name)
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9-]/g, '-')
@@ -111,13 +111,8 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
       return { error: 'The business page you are trying to edit was not found in your account.' };
     }
     const currentBusiness = existingPages[existingUserPageIndex];
-    // If the user changed their handle, verify that the new handle is not taken by ANY other page in Supabase
-    if (cleanSlug !== currentBusiness.slug) {
-      const collision = allRegistered.find(p => p.slug === cleanSlug && p.id !== data.id);
-      if (collision) {
-        return { error: `The handle "${cleanSlug}" is already taken by another registered business. Please choose a different handle.` };
-      }
-    }
+    // In edit mode, business name and custom URL slug are strictly locked and immutable
+    cleanSlug = currentBusiness.slug;
   } else {
     // Creating a brand new business page:
     // It must NOT match ANY existing handle globally or locally!
@@ -153,10 +148,12 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
   }
 
   const newPageId = isEditing && data.id ? data.id : `biz_${Date.now()}`;
+  const lockedName = (isEditing && existingPages[existingUserPageIndex]) ? existingPages[existingUserPageIndex].name : data.name.trim();
+  const lockedSlug = (isEditing && existingPages[existingUserPageIndex]) ? existingPages[existingUserPageIndex].slug : cleanSlug;
   const newPage: BusinessPageData = {
     id: newPageId,
-    name: data.name.trim(),
-    slug: cleanSlug,
+    name: lockedName,
+    slug: lockedSlug,
     tagline: data.tagline.trim(),
     business_type: data.business_type || 'marketplace',
     opening_hours: data.opening_hours?.trim() || 'Open 24 Hours / 7 Days',

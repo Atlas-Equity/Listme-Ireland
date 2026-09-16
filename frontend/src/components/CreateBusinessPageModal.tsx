@@ -20,7 +20,8 @@ import {
   Clock,
   Camera,
   Upload,
-  Edit2
+  Edit2,
+  Lock
 } from 'lucide-react';
 import { COUNTIES } from '@/utils/irelandLocations';
 import { createOrUpdateBusinessPage, BusinessPageData } from '@/app/actions/businessPages';
@@ -134,6 +135,7 @@ export default function CreateBusinessPageModal({
   };
 
   const handleNameChange = (val: string) => {
+    if (isEditing) return;
     setName(val);
     if (!isEditing && (!slug || slug === name.toLowerCase().replace(/[^a-z0-9]/g, '-'))) {
       setSlug(val.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'));
@@ -182,8 +184,8 @@ export default function CreateBusinessPageModal({
     try {
       const payload: BusinessPageData = {
         id: initialData?.id,
-        name,
-        slug,
+        name: isEditing ? (initialData?.name || name) : name.trim(),
+        slug: isEditing ? (initialData?.slug || slug) : slug.trim(),
         tagline: tagline.trim(),
         business_type: businessType,
         opening_hours: resolvedHours,
@@ -339,36 +341,76 @@ export default function CreateBusinessPageModal({
               {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Business / Store Name *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                      Business / Store Name *
+                    </label>
+                    {isEditing && (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Locked
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     required
+                    disabled={isEditing}
+                    readOnly={isEditing}
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     placeholder="e.g. Web Studios Dublin"
-                    className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs focus:ring-2 focus:ring-primary outline-none"
+                    className={`w-full px-3.5 py-2 rounded-lg border text-xs outline-none transition-colors ${
+                      isEditing
+                        ? 'bg-gray-100 dark:bg-zinc-800/80 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-zinc-800 cursor-not-allowed select-none opacity-80'
+                        : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border-gray-300 dark:border-zinc-700 focus:ring-2 focus:ring-primary'
+                    }`}
                   />
+                  {isEditing && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                      Business name is permanent and cannot be edited.
+                    </p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Custom URL Slug *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                      Custom URL Slug *
+                    </label>
+                    {isEditing && (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Locked
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center">
-                    <span className="text-xs text-gray-400 px-2.5 py-2 bg-gray-100 dark:bg-zinc-800 border border-r-0 border-gray-300 dark:border-zinc-700 rounded-l-lg font-mono">
+                    <span className={`text-xs px-2.5 py-2 border border-r-0 rounded-l-lg font-mono transition-colors ${
+                      isEditing
+                        ? 'bg-gray-200/70 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-zinc-800 select-none'
+                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-400 border-gray-300 dark:border-zinc-700'
+                    }`}>
                       /page/
                     </span>
                     <input
                       type="text"
                       required
+                      disabled={isEditing}
+                      readOnly={isEditing}
                       value={slug}
-                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                      onChange={(e) => !isEditing && setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
                       placeholder="web-studios"
-                      className="w-full px-3 py-2 rounded-r-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-primary outline-none"
+                      className={`w-full px-3 py-2 rounded-r-lg border text-xs font-mono outline-none transition-colors ${
+                        isEditing
+                          ? 'bg-gray-100 dark:bg-zinc-800/80 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-zinc-800 cursor-not-allowed select-none opacity-80'
+                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white border-gray-300 dark:border-zinc-700 focus:ring-2 focus:ring-primary'
+                      }`}
                     />
                   </div>
+                  {isEditing && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                      URL handle cannot be changed to prevent broken links.
+                    </p>
+                  )}
                 </div>
               </div>
 
