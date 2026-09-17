@@ -486,9 +486,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
   const memberSinceDate = user.created_at ? new Date(user.created_at) : new Date(2023, 0, 1);
   const memberSinceFormatted = format(memberSinceDate, 'EEEE, d MMMM yyyy');
-  const isOneYearOld = Date.now() - memberSinceDate.getTime() >= 365 * 24 * 60 * 60 * 1000;
   const isExplicitlyVerified = Boolean(userMetadata?.is_verified || profile?.is_verified);
-  const isVerified = isOneYearOld || isExplicitlyVerified;
+  const isVerified = isExplicitlyVerified;
   const isSubscriptionVerified = userMetadata?.verification_type === 'subscription' || Boolean(userMetadata?.stripe_subscription_id || profile?.stripe_subscription_id);
 
   // Review statistics
@@ -927,9 +926,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                                   {isSubscriptionVerified
                                     ? 'Active Monthly Subscription (€4.99/mo) • Verified Badge Active'
-                                    : isOneYearOld 
-                                      ? 'Platform Veteran (1+ Year Active Member — Personally verified by ListMe)'
-                                      : 'Personally Verified by ListMe'}
+                                    : 'Personally Verified by ListMe'}
                                 </p>
                               </div>
                             </div>

@@ -39,7 +39,7 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3">
               <li><Link href="/about" className="hover:text-gray-900 dark:hover:text-white transition-colors">About Listme.ie</Link></li>
-              <li><Link href="/forbidden-items" className="hover:text-gray-900 dark:hover:text-white transition-colors font-semibold text-primary dark:text-emerald-400">Forbidden items</Link></li>
+              <li><Link href="/forbidden-items" className="hover:text-gray-900 dark:hover:text-white transition-colors">Forbidden items</Link></li>
               <li><Link href="/verified" className="hover:text-gray-900 dark:hover:text-white transition-colors">ListMe Verified</Link></li>
               <li><Link href="/terms" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms of service</Link></li>
               <li><Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy policy</Link></li>

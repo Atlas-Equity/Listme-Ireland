@@ -41,16 +41,14 @@ export default async function Header() {
       } else if (!avatarUrl && !isBusiness) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('account_type, avatar_url, updated_at')
+          .select('account_type, avatar_url, updated_at, is_verified')
           .eq('id', user.id)
           .maybeSingle();
 
         if (profile) {
           if (profile.account_type) isBusiness = profile.account_type === 'business';
           if (profile.avatar_url) avatarUrl = profile.avatar_url;
-          const createdAt = user.created_at || profile.updated_at;
-          const isOneYearOld = createdAt ? Date.now() - new Date(createdAt).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
-          isVerified = Boolean(isOneYearOld || user.user_metadata?.is_verified);
+          isVerified = Boolean(profile.is_verified || user.user_metadata?.is_verified);
         }
 
         headerCache.set(user.id, {

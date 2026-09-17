@@ -156,8 +156,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const sellerInitial = sellerDisplayName.charAt(0).toUpperCase();
   const memberSinceDate = seller?.updated_at ? new Date(seller.updated_at) : (listing.created_at ? new Date(listing.created_at) : new Date());
   const memberSinceText = format(memberSinceDate, 'MMMM yyyy');
-  const isSellerOneYearOld = seller?.updated_at ? Date.now() - new Date(seller.updated_at).getTime() >= 365 * 24 * 60 * 60 * 1000 : false;
-  const isSellerVerified = Boolean(isSellerOneYearOld || (seller as any)?.is_verified || (seller as any)?.user_metadata?.is_verified);
+  const isSellerVerified = Boolean((seller as any)?.is_verified || (seller as any)?.user_metadata?.is_verified);
 
   const bizMatch = listing.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
   const businessSlug = (listing as any).business_page_slug || (bizMatch ? bizMatch[1].trim().toLowerCase() : null);

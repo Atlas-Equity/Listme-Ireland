@@ -245,9 +245,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   // Dates & verification
   const memberSinceDate = profile.created_at ? new Date(profile.created_at) : (profile.updated_at ? new Date(profile.updated_at) : new Date(2023, 0, 1));
   const memberSinceFormatted = format(memberSinceDate, 'EEEE, d MMMM yyyy');
-  const isOneYearOld = Date.now() - memberSinceDate.getTime() >= 365 * 24 * 60 * 60 * 1000;
-  const isExplicitlyVerified = Boolean(profile.is_verified || targetUserMeta.is_verified || targetUserMeta.verification_type === 'paid');
-  const isVerified = isOneYearOld || isExplicitlyVerified;
+  const isVerified = Boolean(profile.is_verified || targetUserMeta.is_verified || targetUserMeta.verification_type === 'paid');
 
   // Feedback calculation
   const totalReviews = reviews.length;
@@ -329,11 +327,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                     {isVerified && (
                       <VerifiedBadge
                         size="md"
-                        tooltipText={
-                          isOneYearOld
-                            ? 'Verified Account • Safe to Trade With (1+ Year Active Platform Veteran)'
-                            : 'Verified Account • Safe to Trade With (Personally verified by ListMe)'
-                        }
+                        tooltipText="Verified Account • Safe to Trade With (Personally verified by ListMe)"
                       />
                     )}
                     {targetIsAdmin && (
