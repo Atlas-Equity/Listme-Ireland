@@ -1,17 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Briefcase, Wrench, Users } from 'lucide-react';
+import { ShoppingBag, Users, ShieldAlert } from 'lucide-react';
 
 export default function Footer() {
   return (
     <footer className="bg-gray-50 dark:bg-[#202020] border-t border-gray-200 dark:border-[#333333] text-gray-600 dark:text-gray-400 text-sm mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        
-        
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
-          
-          
           <div>
             <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
               <ShoppingBag className="w-4 h-4 mr-2 text-primary" /> Marketplace
@@ -24,28 +20,38 @@ export default function Footer() {
             </ul>
           </div>
 
-          
           <div>
             <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
               <Users className="w-4 h-4 mr-2 text-primary" /> Community
             </h3>
             <ul className="space-y-3">
-              <li><Link href="/help" className="hover:text-gray-900 dark:hover:text-white transition-colors">Help</Link></li>
+              <li><Link href="/help" className="hover:text-gray-900 dark:hover:text-white transition-colors">Help &amp; Support</Link></li>
               <li><Link href="/shipping" className="hover:text-gray-900 dark:hover:text-white transition-colors">Shipping &amp; Delivery</Link></li>
               <li><Link href="/buyer-protection" className="hover:text-gray-900 dark:hover:text-white transition-colors">Buyer Protection</Link></li>
               <li><Link href="/safety" className="hover:text-gray-900 dark:hover:text-white transition-colors">Scam Prevention &amp; Advice</Link></li>
               <li><Link href="/community" className="hover:text-gray-900 dark:hover:text-white transition-colors">Community Hub</Link></li>
             </ul>
           </div>
+
+          <div>
+            <h3 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center">
+              <ShieldAlert className="w-4 h-4 mr-2 text-primary" /> Trust &amp; Safety
+            </h3>
+            <ul className="space-y-3">
+              <li><Link href="/about" className="hover:text-gray-900 dark:hover:text-white transition-colors">About Listme.ie</Link></li>
+              <li><Link href="/forbidden-items" className="hover:text-gray-900 dark:hover:text-white transition-colors font-semibold text-primary dark:text-emerald-400">Forbidden items</Link></li>
+              <li><Link href="/verified" className="hover:text-gray-900 dark:hover:text-white transition-colors">ListMe Verified</Link></li>
+              <li><Link href="/terms" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms of service</Link></li>
+              <li><Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy policy</Link></li>
+            </ul>
+          </div>
         </div>
 
-        
         <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-gray-200 dark:border-[#333333] text-xs gap-4">
           <div className="text-gray-500">
             © 2026 ListMe Limited
           </div>
 
-          
           <div className="flex items-center gap-6">
             <a
               href="https://www.facebook.com/profile.php?id=61594336620072"
@@ -71,6 +77,8 @@ export default function Footer() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
+            <Link href="/about" className="hover:text-gray-900 dark:hover:text-white transition-colors">About us</Link>
+            <Link href="/forbidden-items" className="hover:text-gray-900 dark:hover:text-white transition-colors">Forbidden items</Link>
             <Link href="/shipping" className="hover:text-gray-900 dark:hover:text-white transition-colors">Shipping policy</Link>
             <Link href="/safety" className="hover:text-gray-900 dark:hover:text-white transition-colors">Scam prevention</Link>
             <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy policy</Link>

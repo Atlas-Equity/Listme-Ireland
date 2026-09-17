@@ -38,6 +38,16 @@ const nextConfig = {
         destination: '/marketplace',
         permanent: true,
       },
+      {
+        source: '/about-us',
+        destination: '/about',
+        permanent: true,
+      },
+      {
+        source: '/prohibited-items',
+        destination: '/forbidden-items',
+        permanent: true,
+      },
     ];
   },
   experimental: {

@@ -86,6 +86,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    {
+      url: `${baseUrl}/about`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/forbidden-items`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
   ];
 
   // Category Pages
