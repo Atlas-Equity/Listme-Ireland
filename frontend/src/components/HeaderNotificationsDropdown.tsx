@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
   Bell, 
@@ -10,12 +11,14 @@ import {
   X, 
   Loader2, 
   ArrowRight, 
-  ExternalLink,
   MessageSquare,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw,
+  Tag
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { respondToBusinessInvitationAction } from '@/app/actions/businessPages';
+import { relistListingAction, dismissNotificationAction } from '@/app/actions/relist';
 
 interface HeaderNotificationsDropdownProps {
   currentUserId?: string;
@@ -29,8 +32,12 @@ export default function HeaderNotificationsDropdown({
   const [notificationsCount, setNotificationsCount] = useState<number>(0);
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [questionAlerts, setQuestionAlerts] = useState<any[]>([]);
+  const [closedListings, setClosedListings] = useState<any[]>([]);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
   const [resolvedInviteIds, setResolvedInviteIds] = useState<Record<string, 'accepted' | 'declined'>>({});
+  const [relistingId, setRelistingId] = useState<string | null>(null);
+  const [relistedIds, setRelistedIds] = useState<Record<string, boolean>>({});
+  const [dismissingId, setDismissingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const fetchNotifications = useCallback(async () => {
@@ -41,13 +48,16 @@ export default function HeaderNotificationsDropdown({
         const data = await res.json();
         const total = typeof data.totalNotifications === 'number'
           ? data.totalNotifications
-          : (data.unreadQuestions || 0) + (data.unreadInvites || 0);
+          : (data.unreadQuestions || 0) + (data.unreadInvites || 0) + ((data.closedListings || []).length);
         setNotificationsCount(total);
         if (Array.isArray(data.pendingInvites)) {
           setPendingInvites(data.pendingInvites);
         }
         if (Array.isArray(data.questionAlerts)) {
           setQuestionAlerts(data.questionAlerts);
+        }
+        if (Array.isArray(data.closedListings)) {
+          setClosedListings(data.closedListings);
         }
       }
     } catch {}
@@ -64,10 +74,14 @@ export default function HeaderNotificationsDropdown({
     window.addEventListener('messages_read', handleRefresh);
     window.addEventListener('new_message_received', handleRefresh);
     window.addEventListener('business_invite_updated', handleRefresh);
+    window.addEventListener('listing_relisted', handleRefresh);
+    window.addEventListener('relist_updated', handleRefresh);
     return () => {
       window.removeEventListener('messages_read', handleRefresh);
       window.removeEventListener('new_message_received', handleRefresh);
       window.removeEventListener('business_invite_updated', handleRefresh);
+      window.removeEventListener('listing_relisted', handleRefresh);
+      window.removeEventListener('relist_updated', handleRefresh);
     };
   }, [fetchNotifications]);
 
@@ -102,6 +116,37 @@ export default function HeaderNotificationsDropdown({
     setLoadingInviteId(null);
   };
 
+  const handleRelist = async (listingId: string) => {
+    setRelistingId(listingId);
+    try {
+      const res = await relistListingAction(listingId);
+      if (!res.error) {
+        setRelistedIds((prev) => ({ ...prev, [listingId]: true }));
+        setNotificationsCount((prev) => Math.max(0, prev - 1));
+        window.dispatchEvent(new Event('listing_relisted'));
+        setTimeout(() => {
+          setClosedListings((prev) => prev.filter((l) => l.id !== listingId));
+          router.refresh();
+        }, 1200);
+      }
+    } catch {}
+    setRelistingId(null);
+  };
+
+  const handleDismiss = async (listingId: string) => {
+    setDismissingId(listingId);
+    try {
+      const res = await dismissNotificationAction(listingId);
+      if (!res.error) {
+        setClosedListings((prev) => prev.filter((l) => l.id !== listingId));
+        setNotificationsCount((prev) => Math.max(0, prev - 1));
+        window.dispatchEvent(new Event('listing_relisted'));
+        router.refresh();
+      }
+    } catch {}
+    setDismissingId(null);
+  };
+
   if (!currentUserId) {
     return (
       <Link href="/login" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group relative">
@@ -114,6 +159,7 @@ export default function HeaderNotificationsDropdown({
   }
 
   const activeInvites = pendingInvites.filter((i) => !resolvedInviteIds[i.id]);
+  const activeClosed = closedListings.filter((l) => !relistedIds[l.id]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -167,6 +213,85 @@ export default function HeaderNotificationsDropdown({
             </div>
 
             <div className="max-h-[380px] overflow-y-auto p-3 space-y-3">
+              {activeClosed.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Closed Listings ({activeClosed.length})</span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-medium">Relist within 24h</span>
+                  </div>
+
+                  {activeClosed.map((item) => {
+                    const isRelisted = relistedIds[item.id];
+                    const isRelisting = relistingId === item.id;
+                    const isDismissing = dismissingId === item.id;
+
+                    if (isRelisted) {
+                      return (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center gap-2 text-emerald-700 dark:text-emerald-300"
+                        >
+                          <Check className="w-4 h-4 text-emerald-500" />
+                          <span>Listing relisted for 7 days!</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 transition-all space-y-2"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {item.images?.[0] ? (
+                            <div className="w-10 h-10 rounded-lg overflow-hidden relative bg-gray-100 dark:bg-zinc-800 shrink-0 border border-gray-200 dark:border-zinc-700">
+                              <Image src={item.images[0]} alt={item.title} fill className="object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-400 flex items-center justify-center shrink-0">
+                              <Tag className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                              {item.title}
+                            </h4>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                              Closed with no bids. Relist or dismiss.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-100 dark:border-zinc-800/80">
+                          <button
+                            type="button"
+                            onClick={() => handleDismiss(item.id)}
+                            disabled={isDismissing || isRelisting}
+                            className="px-2.5 py-1 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-300 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            {isDismissing ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                            <span>Dismiss</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRelist(item.id)}
+                            disabled={isRelisting || isDismissing}
+                            className="px-3 py-1 rounded-lg bg-primary hover:bg-green-700 text-white text-[11px] font-bold transition-colors shadow-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            {isRelisting ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            <span>Relist 1-Click</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {activeInvites.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1">
@@ -258,18 +383,27 @@ export default function HeaderNotificationsDropdown({
                       onClick={() => setIsOpen(false)}
                       className="block p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 hover:border-primary/40 transition-colors"
                     >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[11px] font-bold text-gray-900 dark:text-white truncate">
+                          @{q.buyerUsername}
+                        </span>
+                        <span className="text-[10px] text-gray-400">•</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                          on {q.listingTitle}
+                        </span>
+                      </div>
                       <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 line-clamp-2">
                         &ldquo;{q.question}&rdquo;
                       </p>
-                      <span className="text-[10px] font-bold text-primary mt-1 inline-block">
-                        Reply to question &rarr;
+                      <span className="text-[10px] font-bold text-primary mt-1.5 inline-block">
+                        Answer question &rarr;
                       </span>
                     </Link>
                   ))}
                 </div>
               )}
 
-              {activeInvites.length === 0 && questionAlerts.length === 0 && (
+              {activeInvites.length === 0 && activeClosed.length === 0 && questionAlerts.length === 0 && (
                 <div className="py-8 px-4 text-center space-y-2">
                   <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 mx-auto flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-zinc-400" />
@@ -277,8 +411,8 @@ export default function HeaderNotificationsDropdown({
                   <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
                     You&apos;re all caught up!
                   </p>
-                  <p className="text-[11px] text-gray-400 max-w-[220px] mx-auto">
-                    No active team invitations or unread question alerts.
+                  <p className="text-[11px] text-gray-400 max-w-[240px] mx-auto">
+                    No active closed listings, team invitations, or question alerts.
                   </p>
                 </div>
               )}

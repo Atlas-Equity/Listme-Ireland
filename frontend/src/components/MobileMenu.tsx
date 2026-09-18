@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   Heart,
+  Eye,
   LayoutGrid,
   ShoppingBag,
   Briefcase,
@@ -263,7 +264,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                   >
-                    <Heart className="w-4 h-4 text-primary" />
+                    <Eye className="w-4 h-4 text-primary" />
                     My Watchlist
                   </Link>
                   <Link

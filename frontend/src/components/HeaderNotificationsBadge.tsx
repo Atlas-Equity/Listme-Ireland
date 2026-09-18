@@ -40,10 +40,14 @@ export default function HeaderNotificationsBadge({
     window.addEventListener('messages_read', handleRefresh);
     window.addEventListener('new_message_received', handleRefresh);
     window.addEventListener('business_invite_updated', handleRefresh);
+    window.addEventListener('listing_relisted', handleRefresh);
+    window.addEventListener('relist_updated', handleRefresh);
     return () => {
       window.removeEventListener('messages_read', handleRefresh);
       window.removeEventListener('new_message_received', handleRefresh);
       window.removeEventListener('business_invite_updated', handleRefresh);
+      window.removeEventListener('listing_relisted', handleRefresh);
+      window.removeEventListener('relist_updated', handleRefresh);
     };
   }, [fetchCount]);
 

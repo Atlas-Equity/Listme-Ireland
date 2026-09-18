@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import { 
   User, 
   Settings, 
-  Heart, 
+  Heart,
+  Eye, 
   Package, 
   LogOut, 
   CheckCircle2, 
@@ -92,11 +93,31 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const userListings = allUserListings.filter(l => 
     l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
   );
-  const closedListings = allUserListings.filter(l => 
-    (l.status === 'closed' || (l.expires_at && new Date(l.expires_at) < now)) &&
-    !dismissedNotificationIds.includes(l.id)
-  );
+
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const closedListings = allUserListings.filter(l => {
+    if (dismissedNotificationIds.includes(l.id)) return false;
+    const closeTime = l.expires_at ? new Date(l.expires_at) : (l.ends_at ? new Date(l.ends_at) : null);
+    const isClosed = l.status === 'closed' || (closeTime !== null && closeTime < now);
+    const isWithinDay = closeTime !== null ? closeTime >= oneDayAgo : true;
+    return isClosed && isWithinDay;
+  });
   const closedCount = closedListings.length;
+
+  const expiredOlderThanDay = allUserListings.filter(l => {
+    const closeTime = l.expires_at ? new Date(l.expires_at) : (l.ends_at ? new Date(l.ends_at) : null);
+    const isClosed = l.status === 'closed' || (closeTime !== null && closeTime < now);
+    return isClosed && closeTime !== null && closeTime < oneDayAgo;
+  });
+  if (expiredOlderThanDay.length > 0) {
+    const delIds = expiredOlderThanDay.map(l => l.id);
+    Promise.allSettled([
+      supabase.from('wishlists').delete().in('listing_id', delIds),
+      supabase.from('bids').delete().in('listing_id', delIds),
+      supabase.from('reviews').delete().in('listing_id', delIds),
+      supabase.from('watchlist').delete().in('listing_id', delIds),
+    ]).then(() => supabase.from('listings').delete().in('id', delIds)).catch(() => {});
+  }
 
   const username = profile?.username || userMetadata.username || '';
   const fullName = userMetadata.full_name || '';
@@ -129,26 +150,28 @@ export default async function MyListMePage({ searchParams }: PageProps) {
         for (const m of qMsgs) {
           try {
             const q = JSON.parse(m.content.slice(9));
-            const listing = allUserListings.find(l => l.id === q.listingId);
-            listingQuestionsNotifications.push({
-              id: q.id,
-              msgId: m.id,
-              conversationId: m.conversation_id,
-              buyerUsername: q.buyerUsername,
-              question: q.question,
-              hasAnswer: Boolean(q.answer),
-              createdAt: q.createdAt || m.created_at,
-              listingTitle: listing?.title || 'Listing',
-              listingId: q.listingId,
-              listingImage: listing?.images?.[0] || null,
-            });
+            if (!q.answer && !q.hasAnswer) {
+              const listing = allUserListings.find(l => l.id === q.listingId);
+              listingQuestionsNotifications.push({
+                id: q.id,
+                msgId: m.id,
+                conversationId: m.conversation_id,
+                buyerUsername: q.buyerUsername,
+                question: q.question,
+                hasAnswer: false,
+                createdAt: q.createdAt || m.created_at,
+                listingTitle: listing?.title || 'Listing',
+                listingId: q.listingId,
+                listingImage: listing?.images?.[0] || null,
+              });
+            }
           } catch {}
         }
       }
     }
   }
 
-  const pendingQuestionsCount = listingQuestionsNotifications.filter(q => !q.hasAnswer).length;
+  const pendingQuestionsCount = listingQuestionsNotifications.length;
   const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount;
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
@@ -666,7 +689,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
-                  <Heart className="w-4 h-4 text-amber-500" />
+                  <Eye className={`w-4 h-4 ${currentTab === 'watchlist' ? 'text-primary' : 'text-gray-400'}`} />
                   <span>Watchlist</span>
                 </Link>
 
@@ -1120,19 +1143,15 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         </h3>
                       </div>
                       <span className="text-[11px] text-gray-500 font-medium">
-                        {pendingQuestionsCount > 0 ? `${pendingQuestionsCount} awaiting your reply` : 'All answered'}
+                        {pendingQuestionsCount} awaiting your reply
                       </span>
                     </div>
 
                     <div className="space-y-3">
-                      {listingQuestionsNotifications.map((q) => (
+                      {listingQuestionsNotifications.filter((q: any) => !q.hasAnswer).map((q) => (
                         <div
                           key={q.id}
-                          className={`p-4 sm:p-5 rounded-2xl border transition-all ${
-                            !q.hasAnswer
-                              ? 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 shadow-xs'
-                              : 'bg-white dark:bg-[#181818] border-gray-200 dark:border-zinc-800 shadow-xs'
-                          }`}
+                          className="p-4 sm:p-5 rounded-2xl border bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 shadow-xs transition-all"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-start gap-3 min-w-0">
@@ -1158,27 +1177,13 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             </div>
 
                             <div className="shrink-0 flex items-center gap-2 self-end sm:self-center">
-                              {!q.hasAnswer ? (
-                                <Link
-                                  href={`/listing/${q.listingId}#questions-and-answers`}
-                                  className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
-                                >
-                                  <span>Answer Question</span>
-                                  <ArrowRight className="w-3.5 h-3.5" />
-                                </Link>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <span className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 text-xs font-semibold flex items-center gap-1 border border-gray-200 dark:border-zinc-700">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" /> Answered
-                                  </span>
-                                  <Link
-                                    href={`/listing/${q.listingId}#questions-and-answers`}
-                                    className="text-xs text-primary hover:underline font-semibold"
-                                  >
-                                    View
-                                  </Link>
-                                </div>
-                              )}
+                              <Link
+                                href={`/listing/${q.listingId}#questions-and-answers`}
+                                className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
+                              >
+                                <span>Answer Question</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </Link>
                             </div>
                           </div>
                         </div>
@@ -1192,7 +1197,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 flex items-center justify-between">
                       <span className="font-semibold">
-                        You have {closedListings.length} listing(s) that closed with no bids. Relist each for 7 days in 1 click, or they will be automatically deleted in 3 days.
+                        You have {closedListings.length} listing(s) that closed with no bids. Relist each for 7 days in 1 click, or they will be automatically deleted after 24 hours.
                       </span>
                     </div>
 
@@ -1261,7 +1266,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                 {wishlistedListings.length === 0 ? (
                   <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
-                      <Heart className="w-7 h-7" />
+                      <Eye className="w-7 h-7" />
                     </div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
                       Your watchlist is empty

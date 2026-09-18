@@ -118,17 +118,29 @@ export async function deleteListingAction(listingId: string) {
  */
 export async function autoCleanupExpiredListings() {
   const supabase = await createClient();
-  const now = new Date().toISOString();
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    // Delete any listings where status is explicitly closed or expires_at is past
-    const { error } = await supabase
-      .from('listings')
-      .delete()
-      .or(`status.eq.closed,expires_at.lt.${now}`);
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const db = (serviceKey && supabaseUrl) 
+      ? createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+      : supabase;
 
-    if (error) {
-      console.warn('Auto cleanup warning:', error.message);
+    const { data: expiredListings } = await db
+      .from('listings')
+      .select('id')
+      .or(`status.eq.closed,expires_at.lt.${oneDayAgo}`);
+
+    if (expiredListings && expiredListings.length > 0) {
+      const ids = expiredListings.map((l: any) => l.id);
+      await Promise.allSettled([
+        db.from('wishlists').delete().in('listing_id', ids),
+        db.from('bids').delete().in('listing_id', ids),
+        db.from('reviews').delete().in('listing_id', ids),
+        db.from('watchlist').delete().in('listing_id', ids),
+      ]);
+      await db.from('listings').delete().in('id', ids);
     }
   } catch (err) {
     console.error('Auto cleanup error:', err);

@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, Heart, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Briefcase, Wrench, Users, LogOut, MessageSquare, Bell } from 'lucide-react';
+import { Menu, Heart, Eye, Search, Edit3, User, LogIn, LayoutGrid, ShoppingBag, Briefcase, Wrench, Users, LogOut, MessageSquare, Bell } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { MobileMenu } from './MobileMenu';
 import { cookies } from 'next/headers';
@@ -90,7 +90,7 @@ export default async function Header() {
             <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium text-gray-600 dark:text-gray-300">
               <HeaderNotificationsDropdown currentUserId={user?.id} />
               <Link href="/my-listme?tab=watchlist" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                <Heart className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                <Eye className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                 <span>Watchlist</span>
               </Link>
               <Link href="/my-listme?tab=favourite-sellers" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">

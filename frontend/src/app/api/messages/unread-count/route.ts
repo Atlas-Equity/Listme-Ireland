@@ -8,14 +8,30 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ unreadCount: 0, unreadQuestions: 0 });
+      return NextResponse.json({
+        unreadCount: 0,
+        unreadQuestions: 0,
+        unreadInvites: 0,
+        pendingInvites: [],
+        questionAlerts: [],
+        closedListings: [],
+        totalNotifications: 0,
+      });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ unreadCount: 0, unreadQuestions: 0 });
+      return NextResponse.json({
+        unreadCount: 0,
+        unreadQuestions: 0,
+        unreadInvites: 0,
+        pendingInvites: [],
+        questionAlerts: [],
+        closedListings: [],
+        totalNotifications: 0,
+      });
     }
 
     const admin = createAdminClient(supabaseUrl, serviceKey, {
@@ -27,6 +43,50 @@ export async function GET(req: NextRequest) {
     const businessInvites = Array.isArray(userMeta.business_invites) ? userMeta.business_invites : [];
     const pendingInvites = businessInvites.filter((i: any) => i.status === 'pending');
     const unreadInvites = pendingInvites.length;
+    const dismissedIds: string[] = userMeta.dismissed_notifications || [];
+
+    const now = new Date();
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const { data: userListings } = await admin
+      .from('listings')
+      .select('id, title, price, images, expires_at, ends_at, status')
+      .eq('seller_id', user.id);
+
+    const allListings = userListings || [];
+
+    const expiredOlderThanDay = allListings.filter((l) => {
+      const closeTime = l.expires_at ? new Date(l.expires_at) : (l.ends_at ? new Date(l.ends_at) : null);
+      const isClosed = l.status === 'closed' || (closeTime !== null && closeTime < now);
+      return isClosed && closeTime !== null && closeTime < oneDayAgo;
+    });
+
+    if (expiredOlderThanDay.length > 0) {
+      const delIds = expiredOlderThanDay.map((l) => l.id);
+      await Promise.allSettled([
+        admin.from('wishlists').delete().in('listing_id', delIds),
+        admin.from('bids').delete().in('listing_id', delIds),
+        admin.from('reviews').delete().in('listing_id', delIds),
+        admin.from('watchlist').delete().in('listing_id', delIds),
+      ]);
+      await admin.from('listings').delete().in('id', delIds);
+    }
+
+    const activeClosedListings = allListings
+      .filter((l) => {
+        if (dismissedIds.includes(l.id)) return false;
+        const closeTime = l.expires_at ? new Date(l.expires_at) : (l.ends_at ? new Date(l.ends_at) : null);
+        const isClosed = l.status === 'closed' || (closeTime !== null && closeTime < now);
+        const isWithinDay = closeTime !== null ? closeTime >= oneDayAgo : true;
+        return isClosed && isWithinDay;
+      })
+      .map((l) => ({
+        id: l.id,
+        title: l.title,
+        price: l.price,
+        images: l.images || [],
+        closes_at: l.expires_at || l.ends_at,
+      }));
 
     const { data: convs } = await admin
       .from('conversations')
@@ -34,7 +94,6 @@ export async function GET(req: NextRequest) {
       .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
 
     let unreadCount = 0;
-    let unreadQuestions = 0;
     let questionAlerts: any[] = [];
 
     if (convs && convs.length > 0) {
@@ -52,55 +111,46 @@ export async function GET(req: NextRequest) {
       const sellerConvIds = convs.filter((c) => c.seller_id === user.id).map((c) => c.id);
 
       if (sellerConvIds.length > 0) {
-        const { count: qCount } = await admin
+        const { data: qMessages } = await admin
           .from('messages')
-          .select('id', { count: 'exact', head: true })
+          .select('id, conversation_id, content, created_at')
           .in('conversation_id', sellerConvIds)
-          .neq('sender_id', user.id)
           .like('content', 'QUESTION:%')
-          .eq('is_read', false);
+          .order('created_at', { ascending: false });
 
-        unreadQuestions = qCount || 0;
-
-        if (unreadQuestions > 0) {
-          const { data: qMessages } = await admin
-            .from('messages')
-            .select('id, conversation_id, content, created_at')
-            .in('conversation_id', sellerConvIds)
-            .neq('sender_id', user.id)
-            .like('content', 'QUESTION:%')
-            .eq('is_read', false)
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          questionAlerts = (qMessages || []).map((m) => {
-            let questionText = m.content.replace(/^QUESTION:/, '').trim();
-            let listingId = '';
+        if (qMessages && qMessages.length > 0) {
+          for (const m of qMessages) {
             try {
-              const parsed = JSON.parse(questionText);
-              questionText = parsed.question || questionText;
-              listingId = parsed.listingId || '';
+              const questionContent = m.content.replace(/^QUESTION:/, '').trim();
+              const parsed = JSON.parse(questionContent);
+              if (!parsed.answer && !parsed.hasAnswer) {
+                const listing = allListings.find((l) => l.id === parsed.listingId);
+                questionAlerts.push({
+                  id: parsed.id || m.id,
+                  msgId: m.id,
+                  conversationId: m.conversation_id,
+                  question: parsed.question || questionContent,
+                  listingId: parsed.listingId || '',
+                  listingTitle: listing?.title || 'Listing',
+                  buyerUsername: parsed.buyerUsername || 'User',
+                  createdAt: parsed.createdAt || m.created_at,
+                });
+              }
             } catch {}
-            return {
-              id: m.id,
-              conversationId: m.conversation_id,
-              question: questionText,
-              listingId,
-              createdAt: m.created_at,
-            };
-          });
+          }
         }
       }
     }
 
-    const totalNotifications = unreadQuestions + unreadInvites;
+    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length;
 
     return NextResponse.json({
       unreadCount,
-      unreadQuestions,
+      unreadQuestions: questionAlerts.length,
       unreadInvites,
       pendingInvites,
       questionAlerts,
+      closedListings: activeClosedListings,
       totalNotifications,
     });
   } catch (err: any) {
@@ -111,6 +161,7 @@ export async function GET(req: NextRequest) {
       unreadInvites: 0,
       pendingInvites: [],
       questionAlerts: [],
+      closedListings: [],
       totalNotifications: 0,
     });
   }
