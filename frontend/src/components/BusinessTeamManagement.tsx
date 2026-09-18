@@ -166,7 +166,7 @@ export default function BusinessTeamManagement({
           </div>
         </div>
 
-        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700">
+        <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
           {1 + teamMembers.length} {1 + teamMembers.length === 1 ? 'Member' : 'Members'}
         </span>
       </div>
@@ -232,20 +232,20 @@ export default function BusinessTeamManagement({
         </span>
 
         <div className="space-y-2">
-          <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs">
+          <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-center font-bold text-xs">
+              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 flex items-center justify-center font-bold text-xs text-gray-700 dark:text-gray-300">
                 <Crown className="w-4 h-4 text-amber-500" />
               </div>
               <div>
                 <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
                   <span>Page Owner</span>
-                  <span className="text-[10px] px-1.5 py-0.2 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded font-semibold">Creator</span>
+                  <span className="text-[11px] text-gray-400 font-normal">• Creator</span>
                 </span>
                 <span className="text-[10px] text-gray-400">Primary Administrator &amp; Sole Authority to Delete</span>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Primary Owner
             </span>
           </div>
@@ -259,73 +259,34 @@ export default function BusinessTeamManagement({
             return (
               <div
                 key={memberId || idx}
-                className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                className="p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 space-y-2.5 text-xs"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center font-bold text-xs shrink-0 ${
-                    isMemberOwner
-                      ? 'bg-amber-100 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-500'
-                      : 'bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300'
-                  }`}>
-                    {memberName.substring(0, 2).toUpperCase()}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs shrink-0">
+                      {memberName.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-gray-900 dark:text-white truncate">
+                          @{memberName}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-medium">
+                          • {isMemberOwner ? 'Co-Owner' : 'Staff'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 block truncate">
+                        {isMemberOwner ? 'Full Edit Permissions' : 'Staff Member'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="font-bold text-gray-900 dark:text-white truncate block">
-                      @{memberName}
-                    </span>
-                    <span className="text-[10px] text-gray-400">
-                      {isMemberOwner ? 'Co-Owner (Full Edit Permissions)' : 'Staff Member'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap shrink-0">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                    isMemberOwner
-                      ? 'text-amber-500 bg-amber-500/10 border-amber-500/20'
-                      : 'text-zinc-400 bg-gray-100 dark:bg-zinc-800 border-gray-200 dark:border-zinc-700'
-                  }`}>
-                    {isMemberOwner ? 'Co-Owner' : 'Staff'}
-                  </span>
-
-                  {(isTrueOwner || isAdmin) && memberId && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleRole(memberId, role, memberName)}
-                        disabled={updatingRoleId === memberId}
-                        className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                        title={isMemberOwner ? 'Demote to Staff' : 'Promote to Co-Owner'}
-                      >
-                        {updatingRoleId === memberId ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : isMemberOwner ? (
-                          <Shield className="w-3 h-3 text-zinc-400" />
-                        ) : (
-                          <ShieldCheck className="w-3 h-3 text-amber-500" />
-                        )}
-                        <span>{isMemberOwner ? 'Set as Staff' : 'Make Co-Owner'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPendingTransferMember({ id: memberId, name: memberName })}
-                        disabled={transferringId === memberId}
-                        className="px-2 py-1 rounded-lg text-[11px] font-semibold border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                        title="Transfer Primary Ownership"
-                      >
-                        <ArrowRightLeft className="w-3 h-3" />
-                        <span>Transfer Ownership</span>
-                      </button>
-                    </>
-                  )}
 
                   {canManageTeam && memberId && (
                     <button
                       type="button"
                       onClick={() => handlePromptRemoval(memberId, memberName)}
                       disabled={removingId === memberId}
-                      className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
                       title="Remove member"
                     >
                       {removingId === memberId ? (
@@ -336,6 +297,36 @@ export default function BusinessTeamManagement({
                     </button>
                   )}
                 </div>
+
+                {(isTrueOwner || isAdmin) && memberId && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleRole(memberId, role, memberName)}
+                      disabled={updatingRoleId === memberId}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    >
+                      {updatingRoleId === memberId ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : isMemberOwner ? (
+                        <Shield className="w-3 h-3 text-zinc-400" />
+                      ) : (
+                        <ShieldCheck className="w-3 h-3 text-zinc-400" />
+                      )}
+                      <span>{isMemberOwner ? 'Set as Staff' : 'Make Co-Owner'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPendingTransferMember({ id: memberId, name: memberName })}
+                      disabled={transferringId === memberId}
+                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    >
+                      <ArrowRightLeft className="w-3 h-3" />
+                      <span>Transfer Ownership</span>
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

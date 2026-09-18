@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { 
@@ -100,6 +100,32 @@ export default function CreateBusinessPageModal({
 
   const isOfficialListMe = (slug || '').trim().toLowerCase() === 'listme' || (initialData?.slug || '').trim().toLowerCase() === 'listme';
 
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setName(initialData.name || '');
+      setSlug(initialData.slug || '');
+      setTagline(initialData.tagline || '');
+      setCategory(initialData.category || 'Retail & Local Storefront');
+      setCounty(initialData.county || 'Dublin');
+      const p = initialData.phone 
+        ? (initialData.phone.startsWith('+353 ') ? initialData.phone : `+353 ${initialData.phone.replace(/^\+?353\s?|^0/, '')}`)
+        : '+353 ';
+      setPhone(p);
+      setEmail(initialData.email || '');
+      setOpeningHours(initialData.opening_hours || OPENING_HOURS_PRESETS[0]);
+      setCustomHours(initialData.opening_hours && !OPENING_HOURS_PRESETS.includes(initialData.opening_hours) ? initialData.opening_hours : '');
+      setIsCustomHours(initialData.opening_hours ? !OPENING_HOURS_PRESETS.includes(initialData.opening_hours) : false);
+      setAvatarUrl(initialData.avatarUrl || '');
+      setWebsite(initialData.website || '');
+      setFacebook(initialData.facebook || OFFICIAL_FACEBOOK_URL);
+      setLinkedin(initialData.linkedin || '');
+      setIsHiring(Boolean(initialData.is_hiring));
+      setAllowDirectMessaging(Boolean(initialData.allow_direct_messaging));
+      setBusinessType(initialData.business_type || 'marketplace');
+      setErrorMessage(null);
+    }
+  }, [initialData, isOpen]);
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
     if (!val.startsWith('+353 ')) {
@@ -174,7 +200,12 @@ export default function CreateBusinessPageModal({
     setIsUploadingImage(true);
     setErrorMessage(null);
     try {
-      const fileToUpload = await compressAvatar(rawFile);
+      let fileToUpload: File = rawFile;
+      try {
+        fileToUpload = await compressAvatar(rawFile);
+      } catch {
+        fileToUpload = rawFile;
+      }
       const formData = new FormData();
       formData.append('avatar', fileToUpload);
 
@@ -207,14 +238,19 @@ export default function CreateBusinessPageModal({
 
       if (publicUrl) {
         setAvatarUrl(publicUrl);
+        setErrorMessage(null);
       } else {
+        setAvatarUrl(initialData?.avatarUrl || '');
         setErrorMessage(uploadErr || 'Failed to upload image. Please try again.');
       }
     } catch (err: any) {
-      console.error('Image upload exception:', err);
+      setAvatarUrl(initialData?.avatarUrl || '');
       setErrorMessage(err?.message || 'Failed to upload image. Please try again.');
     } finally {
       setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -267,7 +303,7 @@ export default function CreateBusinessPageModal({
     setIsSubmitting(true);
     try {
       const payload: BusinessPageData = {
-        id: initialData?.id,
+        id: initialData?.id || (isEditing ? (initialData?.slug === 'listme' ? 'biz_listme_official' : undefined) : undefined),
         name: isEditing ? (initialData?.name || name) : name.trim(),
         slug: isEditing ? (initialData?.slug || slug) : slug.trim(),
         tagline: tagline.trim(),

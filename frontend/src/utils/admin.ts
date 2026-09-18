@@ -50,6 +50,10 @@ export function isSupportOfficer(user: AdminCheckableUser | null | undefined): b
 export function isAdmin(user: AdminCheckableUser | null | undefined): boolean {
   if (!user) return false;
 
+  if (isSupportOfficer(user)) {
+    return true;
+  }
+
   const email = user.email?.toLowerCase().trim();
   if (email && ADMIN_EMAILS.includes(email)) {
     return true;

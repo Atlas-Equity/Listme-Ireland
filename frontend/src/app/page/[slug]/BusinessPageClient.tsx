@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   MapPin, 
@@ -21,10 +22,13 @@ import {
   Briefcase,
   Store,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Camera,
+  Loader2
 } from 'lucide-react';
 import { ListingCard } from '@/components/ListingCard';
-import { BusinessPageData } from '@/app/actions/businessPages';
+import { BusinessPageData, createOrUpdateBusinessPage } from '@/app/actions/businessPages';
+import { uploadAvatarAction } from '@/app/my-listme/actions';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
 import BusinessTeamManagement from '@/components/BusinessTeamManagement';
@@ -46,9 +50,65 @@ export default function BusinessPageClient({
   isAdmin = false,
   isTeamMember = false,
 }: BusinessPageClientProps) {
+  const router = useRouter();
   const isListMeOfficial = businessPage.slug === 'listme';
   const [activeTab, setActiveTab] = useState<'listings' | 'about'>(isListMeOfficial ? 'about' : 'listings');
   const [copied, setCopied] = useState(false);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(businessPage.avatarUrl || '');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleDirectAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const preview = URL.createObjectURL(file);
+    setCurrentAvatarUrl(preview);
+    setIsUploadingAvatar(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      let publicUrl: string | null = null;
+
+      try {
+        const res = await fetch('/api/upload/avatar', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.publicUrl) {
+          publicUrl = data.publicUrl;
+        }
+      } catch {}
+
+      if (!publicUrl) {
+        const actionRes = await uploadAvatarAction(formData);
+        if (actionRes.publicUrl) {
+          publicUrl = actionRes.publicUrl;
+        }
+      }
+
+      if (publicUrl) {
+        setCurrentAvatarUrl(publicUrl);
+        await createOrUpdateBusinessPage({
+          ...businessPage,
+          avatarUrl: publicUrl,
+        });
+        router.refresh();
+      } else {
+        setCurrentAvatarUrl(businessPage.avatarUrl || '');
+      }
+    } catch {
+      setCurrentAvatarUrl(businessPage.avatarUrl || '');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleShare = async () => {
     try {
@@ -156,9 +216,9 @@ export default function BusinessPageClient({
                 <div className="relative group">
                   <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-white dark:bg-[#181818] p-1.5 shadow-md ring-4 ring-white dark:ring-[#181818]">
                     <div className="w-full h-full rounded-xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 flex items-center justify-center text-gray-800 dark:text-gray-200 font-bold text-3xl uppercase select-none overflow-hidden relative">
-                      {businessPage.avatarUrl ? (
+                      {currentAvatarUrl ? (
                         <Image
-                          src={businessPage.avatarUrl}
+                          src={currentAvatarUrl}
                           alt={businessPage.name}
                           fill
                           sizes="128px"
@@ -168,8 +228,39 @@ export default function BusinessPageClient({
                       ) : (
                         businessPage.name.substring(0, 2).toUpperCase()
                       )}
+                      {isUploadingAvatar && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                          <Loader2 className="w-6 h-6 text-white animate-spin" />
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {(isOwner || isAdmin) && (
+                    <>
+                      <input
+                        type="file"
+                        ref={avatarInputRef}
+                        accept="image/*"
+                        onChange={handleDirectAvatarChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isUploadingAvatar}
+                        className="absolute bottom-1 right-1 z-20 w-8 h-8 rounded-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-zinc-200 hover:text-primary dark:hover:text-primary shadow-md flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                        title="Change Profile Picture"
+                        aria-label="Change Profile Picture"
+                      >
+                        {isUploadingAvatar ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        ) : (
+                          <Camera className="w-4 h-4" />
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 
@@ -270,8 +361,8 @@ export default function BusinessPageClient({
                 <h3 className="text-base font-black text-gray-900 dark:text-white">
                   About
                 </h3>
-                <span className="text-[11px] font-bold text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
-                  Marketplace Store
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {businessPage.business_type === 'service' ? 'Services & Trades' : 'Marketplace Store'}
                 </span>
               </div>
 
@@ -287,7 +378,7 @@ export default function BusinessPageClient({
                 <div className="flex items-center gap-3">
                   <Store className="w-4 h-4 text-gray-400 shrink-0" />
                   <span>
-                    Model: <strong>Marketplace Store</strong>
+                    Model: <strong>{businessPage.business_type === 'service' ? 'Services & Trades' : 'Marketplace Store'}</strong>
                   </span>
                 </div>
 

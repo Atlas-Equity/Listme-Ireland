@@ -103,6 +103,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   // Step C: If cleanSlug is 'listme', merge with official platform defaults
   if (cleanSlug === 'listme') {
     const officialDefaults: BusinessPageData = {
+      id: 'biz_listme_official',
       name: 'ListMe',
       slug: 'listme',
       tagline: 'Official platform storefront for ListMe Ireland — verified marketplace listings, announcements, safety guidelines, and direct community support.',

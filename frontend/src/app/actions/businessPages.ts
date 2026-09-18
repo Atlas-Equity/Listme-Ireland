@@ -67,15 +67,6 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     'google', 'apple', 'facebook', 'instagram', 'stripe'
   ]);
 
-  if (cleanSlug === 'listme') {
-    return { error: 'The handle "listme" is the official ListMe platform storefront and cannot be registered as a personal or subsidiary business page.' };
-  }
-
-  const userIsAdmin = isAdmin(user);
-  if (RESERVED_SLUGS.has(cleanSlug) && !userIsAdmin) {
-    return { error: `The handle "${cleanSlug}" is reserved by the ListMe platform. Please choose a different handle.` };
-  }
-
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   let currentUserMeta = user.user_metadata || {};
@@ -93,14 +84,23 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     }
   }
 
+  const userIsAdmin = isAdmin(user) || isAdmin({ ...user, user_metadata: currentUserMeta });
+  if (cleanSlug === 'listme' && !userIsAdmin) {
+    return { error: 'The handle "listme" is the official ListMe platform storefront and cannot be registered as a personal or subsidiary business page.' };
+  }
+
+  if (RESERVED_SLUGS.has(cleanSlug) && cleanSlug !== 'listme' && !userIsAdmin) {
+    return { error: `The handle "${cleanSlug}" is reserved by the ListMe platform. Please choose a different handle.` };
+  }
+
   const existingPages: BusinessPageData[] = currentUserMeta?.business_pages || [];
 
   const allRegistered = await getAllRegisteredBusinessPages({ bypassCache: true });
 
-  const isEditing = Boolean(data.id);
+  const isEditing = Boolean(data.id) || (Boolean(data.slug) && (existingPages.some(p => p.slug === cleanSlug) || (cleanSlug === 'listme' && userIsAdmin)));
   let targetOwnerId = user.id;
   let currentBusiness: BusinessPageData | null = null;
-  const existingUserPageIndex = isEditing ? existingPages.findIndex(p => p.id === data.id || p.slug === data.slug) : -1;
+  const existingUserPageIndex = isEditing ? existingPages.findIndex(p => p.id === data.id || p.slug === cleanSlug || p.slug === data.slug) : -1;
 
   if (isEditing) {
     if (existingUserPageIndex >= 0) {
@@ -108,7 +108,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
       cleanSlug = currentBusiness.slug;
       targetOwnerId = user.id;
     } else {
-      const foundInAll = allRegistered.find(p => p.id === data.id || p.slug === data.slug);
+      const foundInAll = allRegistered.find(p => p.id === data.id || p.slug === cleanSlug || p.slug === data.slug);
       if (foundInAll) {
         const isTrueOwner = foundInAll.owner_id === user.id || (foundInAll.slug === 'listme' && userIsAdmin);
         const isCoOwner = (foundInAll.team_members || []).some((m: any) => {
@@ -125,6 +125,32 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
         currentBusiness = foundInAll;
         cleanSlug = foundInAll.slug;
         targetOwnerId = foundInAll.owner_id || user.id;
+      } else if (cleanSlug === 'listme' && userIsAdmin) {
+        currentBusiness = {
+          id: 'biz_listme_official',
+          name: 'ListMe',
+          slug: 'listme',
+          tagline: 'Official platform storefront for ListMe Ireland — verified marketplace listings, announcements, safety guidelines, and direct community support.',
+          category: 'Retail & Local Storefront',
+          business_type: 'marketplace',
+          county: 'Dublin',
+          phone: '',
+          email: 'support@listme.ie',
+          website: 'https://listme.ie',
+          facebook: OFFICIAL_FACEBOOK_URL,
+          plan: 'Official Platform Storefront',
+          announcement: '',
+          opening_hours: 'Open 24 Hours / 7 Days',
+          avatarUrl: '/ListMeBanner.png',
+          coverUrl: '/ListMeBanner.png',
+          created_at: new Date(2023, 0, 1).toISOString(),
+          owner_id: user.id,
+          is_verified: true,
+          allow_direct_messaging: false,
+          team_members: [],
+          pending_invites: [],
+        };
+        targetOwnerId = user.id;
       } else {
         return { error: 'The business page you are trying to edit was not found.' };
       }
@@ -189,7 +215,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
   if (isEditing && existingUserPageIndex >= 0) {
     updatedPages = [...existingPages];
     updatedPages[existingUserPageIndex] = { ...existingPages[existingUserPageIndex], ...newPage };
-  } else if (!isEditing) {
+  } else if (!isEditing || (cleanSlug === 'listme' && existingUserPageIndex === -1)) {
     updatedPages = [...existingPages, newPage];
   } else {
     updatedPages = existingPages;
@@ -258,9 +284,9 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
       };
       const { error: dbErr } = await adminClient
         .from('business_pages')
-        .upsert(dbRow, { onConflict: 'id' });
+        .upsert(dbRow, { onConflict: isEditing ? 'slug' : 'id' });
 
-      if (dbErr && dbErr.code === '23505') {
+      if (dbErr && dbErr.code === '23505' && !isEditing) {
         return { error: `The handle "${cleanSlug}" is already taken by another registered business in Supabase. Please choose a different handle.` };
       }
     } catch (dbEx) {
