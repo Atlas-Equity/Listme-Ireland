@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import CookieConsent from "@/components/CookieConsent";
+import { Analytics } from '@vercel/analytics/next';
 
 import { CallProvider } from "@/components/CallProvider";
 import { WatchlistProvider } from "@/context/WatchlistContext";
@@ -184,6 +185,7 @@ export default function RootLayout({
             </WatchlistProvider>
           </ToastProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
