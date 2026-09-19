@@ -220,6 +220,7 @@ export default function ServicesClient({
                 createdAt={item.created_at}
                 location={item.location}
                 closesAt={item.expires_at || item.ends_at}
+                sellerId={item.seller_id}
               />
             ))}
           </div>

@@ -142,12 +142,46 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length;
+    let favUploadsCount = 0;
+    try {
+      const { data: favSellers } = await admin
+        .from('favourite_sellers')
+        .select('seller_id')
+        .eq('user_id', user.id);
+      const favSellerIds = (favSellers || []).map((f: any) => f.seller_id);
+      const favBusinessSlugs: string[] = userMeta.favourite_businesses || [];
+
+      if (favSellerIds.length > 0 || favBusinessSlugs.length > 0) {
+        const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        let q = admin
+          .from('listings')
+          .select('id, seller_id, business_page_slug')
+          .eq('status', 'active')
+          .gte('created_at', twoDaysAgo)
+          .limit(20);
+
+        if (favSellerIds.length > 0 && favBusinessSlugs.length > 0) {
+          q = q.or(`seller_id.in.(${favSellerIds.join(',')}),business_page_slug.in.(${favBusinessSlugs.join(',')})`);
+        } else if (favSellerIds.length > 0) {
+          q = q.in('seller_id', favSellerIds);
+        } else {
+          q = q.in('business_page_slug', favBusinessSlugs);
+        }
+
+        const { data: uploads } = await q;
+        if (uploads) {
+          favUploadsCount = uploads.filter((u: any) => !dismissedIds.includes(`fav_${u.id}`)).length;
+        }
+      }
+    } catch {}
+
+    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length + favUploadsCount;
 
     return NextResponse.json({
       unreadCount,
       unreadQuestions: questionAlerts.length,
       unreadInvites,
+      unreadFavUploads: favUploadsCount,
       pendingInvites,
       questionAlerts,
       closedListings: activeClosedListings,

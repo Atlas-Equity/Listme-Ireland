@@ -226,7 +226,7 @@ const FORBIDDEN_SECTIONS: ProhibitedSection[] = [
       'Raffles — raffle listings will be removed',
       'Stolen goods — if we learn an item wasn\'t the seller\'s property or was obtained illegally, we\'ll lock the thread, remove relevant details, and may report it to the authorities',
       'Second-hand underwear (excluding bras)',
-      'Illegal items generally, including those sold by individuals outside the Republic of Ireland/EU',
+      'Illegal items generally, including those sold by individuals outside Ireland/EU',
       'Pornography/erotic items or material',
       'Hate materials, and sectarian or ethnic offensive materials',
       'Offensive material generally — we reserve the right to determine appropriateness, being mindful of cultural differences and sensitivities across our audience',

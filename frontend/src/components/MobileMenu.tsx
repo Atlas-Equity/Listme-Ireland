@@ -43,9 +43,10 @@ interface MobileMenuProps {
   isBusiness: boolean;
   avatarUrl?: string;
   isVerified?: boolean;
+  username?: string;
 }
 
-export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerified }: MobileMenuProps) {
+export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerified, username }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -75,6 +76,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
   }, [isOpen]);
 
   const displayName =
+    username ||
     user?.user_metadata?.username ||
     user?.user_metadata?.full_name ||
     user?.email?.split('@')[0] ||

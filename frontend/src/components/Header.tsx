@@ -16,6 +16,7 @@ export default async function Header() {
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
 
   let user: any = null;
+  let username: string | undefined = undefined;
   let isBusiness = false;
   let avatarUrl: string | undefined = undefined;
   let isVerified = false;
@@ -26,44 +27,22 @@ export default async function Header() {
     user = data?.user || null;
 
     if (user) {
+      username = user.user_metadata?.username;
       avatarUrl = user.user_metadata?.avatar_url;
       isBusiness = user.user_metadata?.account_type === 'business';
       isVerified = Boolean(user.user_metadata?.is_verified);
 
-      const headerCache = (globalThis as any).__headerUserCache ?? new Map<string, any>();
-      (globalThis as any).__headerUserCache = headerCache;
-      const cached = headerCache.get(user.id);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, account_type, avatar_url, updated_at, is_verified')
+        .eq('id', user.id)
+        .maybeSingle();
 
-      if (cached && Date.now() < cached.expiresAt) {
-        isBusiness = cached.isBusiness;
-        avatarUrl = cached.avatarUrl;
-        isVerified = cached.isVerified;
-      } else if (!avatarUrl && !isBusiness) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('account_type, avatar_url, updated_at, is_verified')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile) {
-          if (profile.account_type) isBusiness = profile.account_type === 'business';
-          if (profile.avatar_url) avatarUrl = profile.avatar_url;
-          isVerified = Boolean(profile.is_verified || user.user_metadata?.is_verified);
-        }
-
-        headerCache.set(user.id, {
-          isBusiness,
-          avatarUrl,
-          isVerified,
-          expiresAt: Date.now() + 5 * 60 * 1000,
-        });
-      } else {
-        headerCache.set(user.id, {
-          isBusiness,
-          avatarUrl,
-          isVerified,
-          expiresAt: Date.now() + 5 * 60 * 1000,
-        });
+      if (profile) {
+        if (profile.username) username = profile.username;
+        if (profile.avatar_url) avatarUrl = profile.avatar_url;
+        if (profile.account_type) isBusiness = profile.account_type === 'business';
+        isVerified = Boolean(profile.is_verified || user.user_metadata?.is_verified);
       }
     }
   }
@@ -77,7 +56,7 @@ export default async function Header() {
             
             
             <div className="flex-shrink-0 flex items-center gap-3">
-              <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} isVerified={isVerified} />
+              <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} isVerified={isVerified} username={username} />
               <Link href="/" className="relative flex items-center ml-1 lg:ml-0 gap-2">
                 <span className="font-extrabold text-4xl tracking-tight text-primary">
                   List<span className="text-black dark:text-white transition-colors">me</span>
@@ -129,7 +108,7 @@ export default async function Header() {
                       <User className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
                     )}
                     <span className="max-w-[100px] truncate flex items-center gap-1">
-                      <span>Hi, {user.user_metadata?.username || user.email?.split('@')[0]}</span>
+                      <span>Hi, {username || user.user_metadata?.username || user.email?.split('@')[0]}</span>
                       {isVerified && <VerifiedBadge size="xs" />}
                     </span>
                   </Link>

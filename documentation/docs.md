@@ -26,13 +26,13 @@
 
 ## 1. Executive Overview & Core Principles
 
-**ListMe** is an authentic, high-contrast, peer-to-peer and verified business marketplace tailored specifically to the Republic of Ireland. Built as an alternative to outdated classifieds (like Adverts.ie and DoneDeal) and inspired by New Zealand's Trade Me, ListMe bridges casual trading, verified storefronts, job recruitment, and local trade services.
+**ListMe** is an authentic, high-contrast, peer-to-peer and verified business marketplace tailored specifically to Ireland. Built as an alternative to outdated classifieds (like Adverts.ie and DoneDeal) and inspired by New Zealand's Trade Me, ListMe bridges casual trading, verified storefronts, job recruitment, and local trade services.
 
 ### Core Architectural Axioms
 1. **0% Seller Success Fees**: Casual and individual sellers keep 100% of their sale proceeds.
 2. **Transparent Platform Service Fee**: A tiered 3.0% – 4.0% fee is paid by buyers at checkout to fund Buyer Protection coverage up to €5,000 and fraud mitigation.
-3. **Strict Republic of Ireland Localization**:
-   - Locked to the 26 core counties of the Republic of Ireland.
+3. **Strict Ireland Localization**:
+   - Locked to the core counties of Ireland.
    - Contact numbers locked to the Irish international prefix (`+353`).
 4. **Hybrid Dual-Engine Architecture**:
    - **Frontend**: Next.js 16 (App Router, Turbopack, React 19) providing Server-Side Rendering (SSR), Server Actions, and dynamic client interactivity.

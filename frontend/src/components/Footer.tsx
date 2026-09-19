@@ -15,7 +15,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><Link href="/marketplace" className="hover:text-gray-900 dark:hover:text-white transition-colors">Stores</Link></li>
               <li><Link href="/marketplace?format=closing-soon" className="hover:text-gray-900 dark:hover:text-white transition-colors">Closing soon</Link></li>
-              <li><Link href="/fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link></li>
+              <li><Link href="/marketplace-fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link></li>
               <li><Link href="/sell" className="hover:text-gray-900 dark:hover:text-white transition-colors">List an item</Link></li>
             </ul>
           </div>
@@ -78,9 +78,10 @@ export default function Footer() {
 
           <div className="flex flex-wrap items-center gap-4">
             <Link href="/about" className="hover:text-gray-900 dark:hover:text-white transition-colors">About us</Link>
+            <Link href="/marketplace-fees" className="hover:text-gray-900 dark:hover:text-white transition-colors">Marketplace fees</Link>
+            <Link href="/verified" className="hover:text-gray-900 dark:hover:text-white transition-colors">ListMe Verified</Link>
             <Link href="/forbidden-items" className="hover:text-gray-900 dark:hover:text-white transition-colors">Forbidden items</Link>
-            <Link href="/shipping" className="hover:text-gray-900 dark:hover:text-white transition-colors">Shipping policy</Link>
-            <Link href="/safety" className="hover:text-gray-900 dark:hover:text-white transition-colors">Scam prevention</Link>
+            <Link href="/buyer-protection" className="hover:text-gray-900 dark:hover:text-white transition-colors">Buyer protection</Link>
             <Link href="/privacy" className="hover:text-gray-900 dark:hover:text-white transition-colors">Privacy policy</Link>
             <Link href="/terms" className="hover:text-gray-900 dark:hover:text-white transition-colors">Terms & conditions</Link>
           </div>

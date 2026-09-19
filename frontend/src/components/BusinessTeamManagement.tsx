@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, 
@@ -41,6 +41,12 @@ export default function BusinessTeamManagement({
   pendingInvites = [],
 }: BusinessTeamManagementProps) {
   const router = useRouter();
+  const [localTeamMembers, setLocalTeamMembers] = useState(teamMembers);
+
+  useEffect(() => {
+    setLocalTeamMembers(teamMembers);
+  }, [teamMembers]);
+
   const [inviteInput, setInviteInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -112,6 +118,13 @@ export default function BusinessTeamManagement({
       if (res.error) {
         setFeedback({ type: 'error', message: res.error });
       } else {
+        setLocalTeamMembers(prev => prev.map((m: any) => {
+          const uid = typeof m === 'string' ? m : m?.user_id;
+          if (uid === memberUserId) {
+            return typeof m === 'string' ? { user_id: m, role: newRole, username: memberName } : { ...m, role: newRole };
+          }
+          return m;
+        }));
         setFeedback({
           type: 'success',
           message: `@${memberName} is now ${newRole === 'owner' ? 'a Co-Owner' : 'Staff'}.`,
@@ -250,7 +263,7 @@ export default function BusinessTeamManagement({
             </span>
           </div>
 
-          {teamMembers.map((member: any, idx: number) => {
+          {localTeamMembers.map((member: any, idx: number) => {
             const memberId = typeof member === 'string' ? member : member?.user_id;
             const memberName = typeof member === 'object' && member?.username ? member.username : `Member ${idx + 1}`;
             const role = (typeof member === 'object' && member?.role ? member.role : 'staff').toLowerCase();
@@ -300,21 +313,21 @@ export default function BusinessTeamManagement({
 
                 {(isTrueOwner || isAdmin) && memberId && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-zinc-800 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleRole(memberId, role, memberName)}
-                      disabled={updatingRoleId === memberId}
-                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                    >
-                      {updatingRoleId === memberId ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : isMemberOwner ? (
-                        <Shield className="w-3 h-3 text-zinc-400" />
-                      ) : (
-                        <ShieldCheck className="w-3 h-3 text-zinc-400" />
-                      )}
-                      <span>{isMemberOwner ? 'Set as Staff' : 'Make Co-Owner'}</span>
-                    </button>
+                    {!isMemberOwner && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRole(memberId, role, memberName)}
+                        disabled={updatingRoleId === memberId}
+                        className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        {updatingRoleId === memberId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="w-3 h-3 text-zinc-400" />
+                        )}
+                        <span>Make Co-Owner</span>
+                      </button>
+                    )}
 
                     <button
                       type="button"

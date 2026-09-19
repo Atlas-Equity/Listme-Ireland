@@ -90,3 +90,13 @@ export function isAccountBanned(userOrProfile: any): { isBanned: boolean; banned
 
   return { isBanned: false };
 }
+
+export function isUserQuinn(user: AdminCheckableUser | null | undefined, extraUsername?: string): boolean {
+  if (!user && !extraUsername) return false;
+  if (user?.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16') return true;
+  const email = user?.email?.toLowerCase().trim();
+  if (email === 'qrmooney@outlook.com') return true;
+  const username = (extraUsername || user?.user_metadata?.username || user?.user_metadata?.preferred_username || '')?.toLowerCase().trim();
+  if (username === 'quinn') return true;
+  return false;
+}

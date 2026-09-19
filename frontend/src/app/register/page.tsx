@@ -301,7 +301,7 @@ export default function RegisterPage() {
                 </p>
               ) : (
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                  Prefix +353 is locked to Republic of Ireland numbers.
+                  Prefix +353 is locked to Ireland numbers.
                 </p>
               )}
             </div>

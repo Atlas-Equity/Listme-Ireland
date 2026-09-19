@@ -66,7 +66,7 @@ export default function CommunityHubClient({
     {
       id: 'ann-3',
       date: 'September 2026',
-      title: 'TradeMe Branching & Business Storefronts',
+      title: 'ListMe Branching & Business Storefronts',
       tag: 'Feature Release',
       summary: 'Choose between Item, Job, and Service when listing. Commercial accounts can associate listings directly with their storefront page.',
       link: '/sell',
@@ -77,7 +77,7 @@ export default function CommunityHubClient({
       date: 'September 2026',
       title: 'Verified Accounts & Scam Chargeback Protection',
       tag: 'Trust & Safety',
-      summary: 'Accounts active for 1 year are verified for free, or get immediate verification for €4.99/month. All sellers require a linked credit card.',
+      summary: 'Get verified starting at €4.99/month for individual members or €7.99/month for businesses. All sellers require a linked credit card.',
       link: '/buyer-protection',
       linkLabel: 'Buyer Protection guide',
     },

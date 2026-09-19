@@ -32,6 +32,7 @@ import { IRELAND_LOCATIONS, COUNTIES } from '@/utils/irelandLocations';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import Image from 'next/image';
 import CustomSelect from '@/components/CustomSelect';
+import { isUserQuinn } from '@/utils/admin';
 
 type ListingBranch = 'item' | 'job' | 'service';
 
@@ -79,6 +80,7 @@ export default function SellPage() {
   const [linkedDebitCard, setLinkedDebitCard] = useState<any>(null);
   const [marketplacePages, setMarketplacePages] = useState<BusinessPageData[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string>('me');
+  const [isQuinn, setIsQuinn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [listingBranch, setListingBranch] = useState<ListingBranch>('item');
@@ -157,6 +159,9 @@ export default function SellPage() {
         userEmail === 'dahiruhammajam@gmail.com' ||
         user.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16' ||
         user.id === '88beddab-0640-4f99-a04a-ff58c03704e4';
+
+      const userIsQuinn = isUserQuinn(user, username);
+      setIsQuinn(userIsQuinn);
 
       setHasCreditCard(cardValid || isExempt);
       setLinkedDebitCard(isExempt ? null : (detectedDebit || null));
@@ -321,7 +326,9 @@ export default function SellPage() {
         priceType: listingBranch === 'item' ? priceType : 'Fixed Price',
         price: numericPrice,
         buyNowPrice: (listingBranch === 'item' && priceType === 'Auction' && buyNowPrice) ? parseFloat(buyNowPrice) : undefined,
-        durationDays: parseInt(duration),
+        durationDays: duration === '5m' ? 0 : parseInt(duration),
+        durationMinutes: duration === '5m' ? 5 : undefined,
+        uploadFee: (duration === '14' || duration === '30') ? 0.10 : undefined,
         paymentOptions: listingBranch === 'item' ? paymentOptions : ['cash', 'stripe'],
         images: uploadedUrls,
         listingType: listingBranch,
@@ -832,31 +839,67 @@ export default function SellPage() {
                   )}
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Accepted Payment Methods</label>
-                    <p className="text-xs text-gray-500 mb-2">Select payment options accepted on this listing.</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-bold text-gray-900 dark:text-white">Accepted Payment Methods</label>
+                      <span className="text-[11px] font-semibold text-gray-500">
+                        {paymentOptions.length === 2
+                          ? 'Both cash & card enabled'
+                          : paymentOptions.includes('cash')
+                          ? 'In-hand cash only locked'
+                          : 'Stripe escrow only locked'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-2">Select payment options accepted on this listing. At least one method must remain enabled.</p>
                     <div className="space-y-2.5">
                       {[
-                        { id: 'cash', name: 'Euro in Hand / Cash on Collection' },
-                        { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)' },
-                      ].map(({ id: method, name }) => (
-                        <label key={method} className="flex items-center gap-3 cursor-pointer p-3 border border-gray-200 dark:border-zinc-700 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800/80 transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={paymentOptions.includes(method)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setPaymentOptions([...paymentOptions, method]);
-                              } else if (paymentOptions.length > 1) {
-                                setPaymentOptions(paymentOptions.filter(m => m !== method));
-                              }
-                            }}
-                            className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
-                          />
-                          <span className="text-xs font-bold text-gray-900 dark:text-white">
-                            {name}
-                          </span>
-                        </label>
-                      ))}
+                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection' },
+                        { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)', note: 'Secure digital card payment protected by escrow' },
+                      ].map(({ id: method, name, note }) => {
+                        const isChecked = paymentOptions.includes(method);
+                        const isOnlyOne = paymentOptions.length === 1 && isChecked;
+
+                        return (
+                          <label
+                            key={method}
+                            className={`flex items-start gap-3 p-3.5 border rounded-xl transition-colors ${
+                              isOnlyOne
+                                ? 'border-primary/50 bg-primary/5 dark:bg-primary/10 cursor-not-allowed opacity-95'
+                                : isChecked
+                                ? 'border-gray-300 dark:border-zinc-700 bg-gray-50/80 dark:bg-zinc-800/80 cursor-pointer'
+                                : 'border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 cursor-pointer'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={isOnlyOne}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setPaymentOptions([...paymentOptions, method]);
+                                } else if (paymentOptions.length > 1) {
+                                  setPaymentOptions(paymentOptions.filter(m => m !== method));
+                                }
+                              }}
+                              className="mt-0.5 w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-900 dark:text-white">
+                                  {name}
+                                </span>
+                                {isOnlyOne && (
+                                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                                    Locked (Only Active Method)
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                {note}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
                 </>
@@ -895,19 +938,37 @@ export default function SellPage() {
               )}
 
               
-              <div className="max-w-xs">
+              <div className="max-w-md">
                 <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Listing Duration</label>
                 <CustomSelect
                   value={duration}
                   onChange={setDuration}
                   options={[
+                    ...(isQuinn ? [{ value: '5m', label: '5 minutes (Quinn Only)' }] : []),
                     { value: '3', label: '3 days' },
                     { value: '5', label: '5 days' },
-                    { value: '7', label: '7 days' },
-                    { value: '14', label: '14 days' },
-                    { value: '30', label: '30 days' },
+                    { value: '7', label: '7 days (Standard)' },
+                    { value: '14', label: '14 days (€0.10 upload fee)' },
+                    { value: '30', label: '30 days (€0.10 upload fee)' },
                   ]}
                 />
+
+                {(duration === '14' || duration === '30') && (
+                  <div className="mt-3 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/60">
+                    <div className="flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        Extended Visibility Option
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-[11px] font-extrabold text-emerald-800 dark:text-emerald-200">
+                        €0.10 upload fee
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-300/90 mt-1.5 leading-snug">
+                      The longer your post is up the more views and further it&apos;ll be pushed.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -982,7 +1043,14 @@ export default function SellPage() {
 
                   <div>
                     <span className="text-gray-500 block">Duration</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{duration} days</span>
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {duration === '5m' ? '5 minutes' : `${duration} days`}
+                    </span>
+                    {(duration === '14' || duration === '30') && (
+                      <span className="block text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                        Includes €0.10 upload fee
+                      </span>
+                    )}
                   </div>
                   <div>
                     <span className="text-gray-500 block">Publisher</span>
@@ -1033,7 +1101,13 @@ export default function SellPage() {
                 className="px-6 py-2.5 bg-primary hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-2 disabled:opacity-50"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{uploadingImages ? 'Uploading Photos...' : 'Publish Listing'}</span>
+                <span>
+                  {uploadingImages
+                    ? 'Uploading Photos...'
+                    : (duration === '14' || duration === '30')
+                    ? 'Publish Listing (€0.10 fee)'
+                    : 'Publish Listing'}
+                </span>
               </button>
             )}
           </div>

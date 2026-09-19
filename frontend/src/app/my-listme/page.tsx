@@ -53,9 +53,11 @@ import TradeMeSettingsSections from './TradeMeSettingsSections';
 import DeleteListingButton from '@/components/DeleteListingButton';
 import ClearAllNotificationsButton from '@/components/ClearAllNotificationsButton';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
+import FavouriteBusinessButton from '@/components/FavouriteBusinessButton';
 import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
 import { autoCleanupExpiredListings } from '@/app/actions/relist';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
+import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -171,8 +173,51 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     }
   }
 
+  const { data: favSellersData } = await supabase
+    .from('favourite_sellers')
+    .select('seller_id')
+    .eq('user_id', user.id);
+  const favSellerIds = (favSellersData || []).map((f: any) => f.seller_id);
+  const favBusinessSlugs: string[] = userMetadata.favourite_businesses || [];
+
+  let favUploadNotifications: any[] = [];
+  if (favSellerIds.length > 0 || favBusinessSlugs.length > 0) {
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    let q = supabase
+      .from('listings')
+      .select('id, title, price, images, created_at, seller_id, business_page_slug')
+      .eq('status', 'active')
+      .gte('created_at', twoDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (favSellerIds.length > 0 && favBusinessSlugs.length > 0) {
+      q = q.or(`seller_id.in.(${favSellerIds.join(',')}),business_page_slug.in.(${favBusinessSlugs.join(',')})`);
+    } else if (favSellerIds.length > 0) {
+      q = q.in('seller_id', favSellerIds);
+    } else {
+      q = q.in('business_page_slug', favBusinessSlugs);
+    }
+
+    const { data: recentUploads } = await q;
+    if (recentUploads) {
+      favUploadNotifications = recentUploads
+        .filter((u: any) => !dismissedNotificationIds.includes(`fav_${u.id}`))
+        .map((u: any) => ({
+          id: `fav_${u.id}`,
+          listingId: u.id,
+          title: u.title,
+          price: u.price,
+          image: u.images?.[0] || null,
+          createdAt: u.created_at,
+          sellerId: u.seller_id,
+          businessSlug: u.business_page_slug,
+        }));
+    }
+  }
+
   const pendingQuestionsCount = listingQuestionsNotifications.length;
-  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount;
+  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount + favUploadNotifications.length;
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
@@ -550,8 +595,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
       .map((item: any) => item.listing);
   }
 
-  // Tab: Favourite Sellers data
   let favouriteSellers: any[] = [];
+  let favouriteBusinesses: any[] = [];
   if (currentTab === 'favourite-sellers') {
     const { data: favs } = await supabase
       .from('favourite_sellers')
@@ -566,6 +611,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
         .select('id, username, avatar_url, account_type, updated_at')
         .in('id', sellerIds);
       favouriteSellers = profiles || [];
+    }
+
+    const favBusinessSlugs: string[] = userMetadata.favourite_businesses || [];
+    if (favBusinessSlugs.length > 0) {
+      const allPages = await getAllRegisteredBusinessPages();
+      favouriteBusinesses = allPages.filter((p: any) => favBusinessSlugs.includes(p.slug) || favBusinessSlugs.includes(p.id));
     }
   }
 
@@ -703,7 +754,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   }`}
                 >
                   <Heart className="w-4 h-4 text-primary" />
-                  <span>Favourite Sellers</span>
+                  <span>Favourites</span>
                 </Link>
 
                 
@@ -970,7 +1021,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 Standard Member
                               </span>
                               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                                Accounts active for 1 year are verified for free. Or unlock immediate verified status with a €4.99/month subscription.
+                                Unlock immediate verified status starting at €4.99/month for individual members or €7.99/month for businesses.
                               </p>
                             </div>
                             <div className="shrink-0">
@@ -1193,6 +1244,67 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                 )}
 
                 
+                {favUploadNotifications.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-emerald-500" />
+                        <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white">
+                          New Uploads from Favourites ({favUploadNotifications.length})
+                        </h3>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-medium">
+                        Active in last 48 hours
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {favUploadNotifications.map((favItem: any) => (
+                        <div
+                          key={favItem.id}
+                          className="p-4 rounded-2xl border bg-white dark:bg-[#181818] border-gray-200 dark:border-zinc-800 shadow-xs flex items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {favItem.image ? (
+                              <div className="w-12 h-12 rounded-xl overflow-hidden relative bg-gray-100 dark:bg-zinc-800 shrink-0 border border-gray-200 dark:border-zinc-700">
+                                <Image src={favItem.image} alt={favItem.title} fill className="object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-400 shrink-0">
+                                <Package className="w-5 h-5" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-gray-900 dark:text-white block truncate">
+                                {favItem.title}
+                              </span>
+                              <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                  €{typeof favItem.price === 'number' ? favItem.price.toFixed(2) : favItem.price}
+                                </span>
+                                {favItem.businessSlug && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-zinc-400">Storefront @{favItem.businessSlug}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <Link
+                            href={`/listing/${favItem.listingId}`}
+                            className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-colors shadow-xs shrink-0 flex items-center gap-1.5"
+                          >
+                            <span>View Item</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {closedListings.length > 0 ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 flex items-center justify-between">
@@ -1217,7 +1329,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       ))}
                     </div>
                   </div>
-                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 ? (
+                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 ? (
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     
@@ -1301,6 +1413,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             location={listing.location}
                             closesAt={listing.expires_at || listing.ends_at}
                             initialWatchlisted={true}
+                            sellerId={listing.seller_id}
                           />
 
                           {listing.seller_id !== user.id && (
@@ -1377,6 +1490,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                           createdAt={listing.created_at}
                           location={listing.location}
                           closesAt={listing.expires_at || listing.ends_at}
+                          sellerName={profile?.username || user?.user_metadata?.username || user?.user_metadata?.full_name || 'Me'}
+                          sellerVerified={Boolean(user?.user_metadata?.is_verified || user?.user_metadata?.verification_type === 'paid')}
+                          sellerId={user.id}
                         />
                         <div className="flex items-center justify-end">
                           <DeleteListingButton
@@ -1399,25 +1515,125 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800">
                     <div>
                       <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
-                        FAVOURITE SELLERS
+                        FAVOURITES
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {favouriteSellers.length} {favouriteSellers.length === 1 ? 'seller saved' : 'sellers saved'}
+                        {favouriteBusinesses.length} {favouriteBusinesses.length === 1 ? 'business' : 'businesses'}, {favouriteSellers.length} {favouriteSellers.length === 1 ? 'seller' : 'sellers'} saved
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {favouriteSellers.length === 0 ? (
+                {favouriteBusinesses.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                      <Store className="w-4 h-4 text-primary" />
+                      <span>Saved Business Storefronts ({favouriteBusinesses.length})</span>
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {favouriteBusinesses.map((biz: any) => (
+                        <div
+                          key={biz.id || biz.slug}
+                          className="border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#181818] shadow-xs flex flex-col items-center text-center"
+                        >
+                          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-white mb-3 border border-gray-200 dark:border-zinc-700 overflow-hidden relative">
+                            {biz.avatarUrl ? (
+                              <Image
+                                src={biz.avatarUrl}
+                                alt={biz.name}
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              biz.name ? biz.name.substring(0, 2).toUpperCase() : 'BZ'
+                            )}
+                          </div>
+                          <div className="text-base font-bold text-gray-900 dark:text-white mb-0.5">
+                            {biz.name}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-5 flex items-center gap-1">
+                            <span>@{biz.slug}</span>
+                            <span>•</span>
+                            <span>{biz.county || 'Ireland'}</span>
+                          </div>
+
+                          <div className="w-full space-y-2 mt-auto">
+                            <Link
+                              href={`/page/${biz.slug}`}
+                              className="block w-full py-2 px-3 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl transition-colors"
+                            >
+                              View Storefront
+                            </Link>
+                            <FavouriteBusinessButton businessSlug={biz.slug} initialIsFavourite={true} className="w-full" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {favouriteSellers.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" />
+                      <span>Saved Sellers ({favouriteSellers.length})</span>
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {favouriteSellers.map((seller: any) => (
+                        <div
+                          key={seller.id}
+                          className="border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#181818] shadow-xs flex flex-col items-center text-center"
+                        >
+                          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-white mb-3 border border-gray-200 dark:border-zinc-700 overflow-hidden relative">
+                            {seller.avatar_url ? (
+                              <Image
+                                src={seller.avatar_url}
+                                alt={seller.username || 'Seller'}
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              seller.username ? seller.username.charAt(0).toUpperCase() : 'U'
+                            )}
+                          </div>
+                          <div className="text-base font-bold text-gray-900 dark:text-white mb-0.5">
+                            {seller.username || seller.full_name || 'Seller'}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-5 flex items-center">
+                            <span className="capitalize">{seller.account_type || 'Personal'} Account</span>
+                          </div>
+                          
+                          <div className="w-full space-y-2 mt-auto">
+                            <Link
+                              href={`/member/${getMemberNumber(seller.id)}`}
+                              className="block w-full py-2 px-3 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl transition-colors"
+                            >
+                              View Profile
+                            </Link>
+                            <FavouriteSellerButton sellerId={seller.id} initialIsFavourite={true} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {favouriteBusinesses.length === 0 && favouriteSellers.length === 0 && (
                   <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
                       <Heart className="w-7 h-7 text-primary" />
                     </div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                      You haven&apos;t saved any sellers yet
+                      You haven&apos;t saved any sellers or businesses yet
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-5">
-                      Save your favourite traders, shops, and verified members to keep track of their latest listings.
+                      Save your favourite traders, storefronts, and verified members to keep track of their latest listings.
                     </p>
                     <Link
                       href="/marketplace"
@@ -1425,46 +1641,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     >
                       Browse Marketplace
                     </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {favouriteSellers.map((seller: any) => (
-                      <div
-                        key={seller.id}
-                        className="border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#181818] shadow-xs flex flex-col items-center text-center"
-                      >
-                        <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-white mb-3 border border-gray-200 dark:border-zinc-700 overflow-hidden relative">
-                          {seller.avatar_url ? (
-                            <Image
-                              src={seller.avatar_url}
-                              alt={seller.username || 'Seller'}
-                              fill
-                              sizes="64px"
-                              className="object-cover"
-                              unoptimized
-                            />
-                          ) : (
-                            seller.username ? seller.username.charAt(0).toUpperCase() : 'U'
-                          )}
-                        </div>
-                        <div className="text-base font-bold text-gray-900 dark:text-white mb-0.5">
-                          {seller.username || seller.full_name || 'Seller'}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-5 flex items-center">
-                          <span className="capitalize">{seller.account_type || 'Personal'} Account</span>
-                        </div>
-                        
-                        <div className="w-full space-y-2 mt-auto">
-                          <Link
-                            href={`/member/${getMemberNumber(seller.id)}`}
-                            className="block w-full py-2 px-3 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl transition-colors"
-                          >
-                            View Profile
-                          </Link>
-                          <FavouriteSellerButton sellerId={seller.id} initialIsFavourite={true} />
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>

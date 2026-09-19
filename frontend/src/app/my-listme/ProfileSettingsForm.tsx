@@ -124,7 +124,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
 
     setErrorMessage(null);
 
-    // Validate mime or file extension
     const isImage = rawFile.type.startsWith('image/') || 
                     rawFile.name.match(/\.(jpg|jpeg|png|webp|gif|heic|heif|jfif|bmp)$/i);
     if (!isImage) {
@@ -132,26 +131,92 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
       return;
     }
 
+    let fileToUpload: File = rawFile;
     try {
-      // Compress and standardize image on the device
-      const compressed = await compressAvatarImage(rawFile);
-      setSelectedFile(compressed);
-      setIsAvatarRemoved(false);
-      setPreviewUrl(URL.createObjectURL(compressed));
+      fileToUpload = await compressAvatarImage(rawFile);
     } catch {
-      setSelectedFile(rawFile);
-      setIsAvatarRemoved(false);
-      setPreviewUrl(URL.createObjectURL(rawFile));
+      fileToUpload = rawFile;
+    }
+
+    setPreviewUrl(URL.createObjectURL(fileToUpload));
+    setIsAvatarRemoved(false);
+    setIsSaving(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', fileToUpload);
+      const uploadRes = await uploadAvatarAction(formData);
+
+      if (uploadRes.error || !uploadRes.publicUrl) {
+        setErrorMessage(uploadRes.error || 'Failed to upload image. Please try again.');
+        setIsSaving(false);
+        return;
+      }
+
+      setAvatarUrl(uploadRes.publicUrl);
+      setSelectedFile(null);
+
+      const rawDigits = phone.replace(/^\+353\s?/, '').trim();
+      const trimmedPhone = rawDigits ? `+353 ${rawDigits}` : '';
+
+      const res = await updateProfileSettings({
+        username,
+        fullName,
+        avatarUrl: uploadRes.publicUrl,
+        phone: trimmedPhone || initialData.phone,
+        location,
+      });
+
+      if (res.error) {
+        setErrorMessage(res.error);
+      } else {
+        setSuccessMessage('Profile picture updated successfully!');
+        router.refresh();
+        setTimeout(() => setSuccessMessage(null), 4000);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to upload image.');
+    } finally {
+      setIsSaving(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     setSelectedFile(null);
     setPreviewUrl(null);
     setAvatarUrl('');
     setIsAvatarRemoved(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+
+    setIsSaving(true);
+    try {
+      const rawDigits = phone.replace(/^\+353\s?/, '').trim();
+      const trimmedPhone = rawDigits ? `+353 ${rawDigits}` : '';
+
+      const res = await updateProfileSettings({
+        username,
+        fullName,
+        avatarUrl: '',
+        phone: trimmedPhone || initialData.phone,
+        location,
+      });
+
+      if (res.error) {
+        setErrorMessage(res.error);
+      } else {
+        setSuccessMessage('Profile picture removed.');
+        router.refresh();
+        setTimeout(() => setSuccessMessage(null), 4000);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to remove avatar.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -398,6 +463,32 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                onBlur={async () => {
+                  const clean = username.trim();
+                  if (clean && clean !== initialData.username && clean.length >= 3) {
+                    setIsSaving(true);
+                    try {
+                      const res = await updateProfileSettings({
+                        username: clean,
+                        fullName,
+                        avatarUrl,
+                        phone: initialData.phone,
+                        location,
+                      });
+                      if (res.error) {
+                        setErrorMessage(res.error);
+                      } else {
+                        setSuccessMessage('Username updated!');
+                        router.refresh();
+                        setTimeout(() => setSuccessMessage(null), 4000);
+                      }
+                    } catch {
+                      setErrorMessage('Failed to update username.');
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }
+                }}
                 placeholder="username"
                 className="w-full pl-8 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               />
@@ -467,7 +558,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
               </div>
             </div>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-              Prefix +353 is permanently locked to Republic of Ireland numbers.
+              Prefix +353 is permanently locked to Ireland numbers.
             </p>
             {phone.replace(/^\+353\s?/, '').trim() && !validatePhoneNumber(phone, 'IE').isValid && (
               <p className="text-xs text-red-500 mt-1">

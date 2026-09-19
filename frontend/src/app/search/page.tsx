@@ -47,6 +47,9 @@ export default async function SearchPage({
                 createdAt={listing.created_at}
                 location={listing.location}
                 closesAt={listing.expires_at || listing.ends_at}
+                sellerName={listing.seller_name}
+                sellerVerified={listing.seller_verified}
+                sellerId={listing.seller_id}
               />
             ))}
           </div>

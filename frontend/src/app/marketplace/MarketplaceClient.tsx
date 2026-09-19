@@ -8,6 +8,7 @@ import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
 import CustomSelect from '@/components/CustomSelect';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface MarketplaceClientProps {
   initialStores: BusinessPageData[];
@@ -105,7 +106,7 @@ export default function MarketplaceClient({
         </div>
 
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-white dark:bg-[#181818] p-3 rounded-2xl border border-gray-200 dark:border-zinc-800 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-[#f8fafc] dark:bg-[#181818] p-3 rounded-2xl border border-gray-200/90 dark:border-zinc-800 shadow-xs">
           <div className="sm:col-span-2 relative flex items-center">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
             <input
@@ -163,7 +164,7 @@ export default function MarketplaceClient({
               <Link
                 key={store.slug}
                 href={`/page/${store.slug}`}
-                className="p-5 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
+                className="p-5 rounded-2xl bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start gap-3.5 mb-3.5">
@@ -186,9 +187,7 @@ export default function MarketplaceClient({
                           {store.name}
                         </h3>
                         {(store.is_verified || store.slug === 'listme') && (
-                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold" title="Verified Business">
-                            <Check className="w-2.5 h-2.5 text-white" />
-                          </span>
+                          <VerifiedBadge size="xs" />
                         )}
                         <span className="text-[11px] font-semibold">
                           {store.slug === 'listme' ? (
@@ -264,6 +263,9 @@ export default function MarketplaceClient({
                 createdAt={item.created_at}
                 location={item.location}
                 closesAt={item.expires_at || item.ends_at}
+                sellerName={item.seller_name}
+                sellerVerified={item.seller_verified}
+                sellerId={item.seller_id}
               />
             ))}
           </div>
@@ -301,6 +303,9 @@ export default function MarketplaceClient({
                 createdAt={item.created_at}
                 location={item.location}
                 closesAt={item.expires_at || item.ends_at}
+                sellerName={item.seller_name}
+                sellerVerified={item.seller_verified}
+                sellerId={item.seller_id}
               />
             ))}
           </div>

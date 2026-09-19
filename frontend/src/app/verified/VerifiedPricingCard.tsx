@@ -2,15 +2,22 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, CheckCircle2, Lock } from 'lucide-react';
+import { Loader2, CheckCircle2, Lock, ShieldCheck, Sparkles } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
-export default function VerifiedPricingCard() {
+type PlanType = 'account' | 'page' | 'bundle';
+
+interface VerifiedPricingCardProps {
+  initialPlan?: PlanType;
+}
+
+export default function VerifiedPricingCard({ initialPlan = 'bundle' }: VerifiedPricingCardProps) {
   const router = useRouter();
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>(initialPlan);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (planToCheckout: PlanType = selectedPlan) => {
     setLoading(true);
     setError(null);
 
@@ -18,6 +25,7 @@ export default function VerifiedPricingCard() {
       const res = await fetch('/api/verified/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planToCheckout }),
       });
 
       const data = await res.json();
@@ -36,75 +44,140 @@ export default function VerifiedPricingCard() {
         throw new Error('No checkout URL returned from payment server.');
       }
     } catch (err: any) {
-      console.error('Subscription error:', err);
       setError(err?.message || 'Failed to start verified checkout.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto bg-gray-50 dark:bg-zinc-900/90 border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-md">
+    <div className="w-full max-w-2xl mx-auto bg-[#fafbfc] dark:bg-zinc-900/90 border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-sm">
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300 font-medium text-center">
           {error}
         </div>
       )}
 
-      <div className="text-center pb-6 border-b border-gray-200 dark:border-zinc-800">
-        <span className="inline-block px-3 py-1 rounded-full bg-primary/15 text-primary dark:text-green-400 text-xs font-bold uppercase tracking-wider mb-2">
-          Monthly Membership
-        </span>
-        <div className="flex items-baseline justify-center gap-1">
-          <span className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white">€4.99</span>
-          <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">/ month</span>
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Zero commitments. Cancel anytime in one click in your account settings.
+      <div className="text-center mb-6">
+        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+          Choose Your Verification Plan
+        </h2>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Select the verification tier that fits your activity on ListMe.
         </p>
       </div>
 
-      <div className="py-6 space-y-3.5">
-        <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-          <span>Official Verified Badge on profile and all listings</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div
+          onClick={() => setSelectedPlan('account')}
+          className={`p-4 rounded-2xl border cursor-pointer text-left transition-all ${
+            selectedPlan === 'account'
+              ? 'border-primary bg-primary/10 shadow-xs ring-2 ring-primary/20'
+              : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-gray-300'
+          }`}
+        >
+          <span className="text-xs font-bold text-gray-900 dark:text-white block">Verified Account</span>
+          <span className="text-xl font-black text-primary block mt-1">
+            €4.99<span className="text-[10px] font-medium text-gray-500">/mo</span>
+          </span>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 block">For individual sellers</span>
         </div>
-        <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-          <span>Priority search ranking &amp; 3x higher buyer trust</span>
+
+        <div
+          onClick={() => setSelectedPlan('page')}
+          className={`p-4 rounded-2xl border cursor-pointer text-left transition-all ${
+            selectedPlan === 'page'
+              ? 'border-primary bg-primary/10 shadow-xs ring-2 ring-primary/20'
+              : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-gray-300'
+          }`}
+        >
+          <span className="text-xs font-bold text-gray-900 dark:text-white block">Verified Page</span>
+          <span className="text-xl font-black text-primary block mt-1">
+            €4.99<span className="text-[10px] font-medium text-gray-500">/mo</span>
+          </span>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 block">For Business Pages</span>
         </div>
-        <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-          <span>Priority support ticket escalation</span>
+
+        <div
+          onClick={() => setSelectedPlan('bundle')}
+          className={`p-4 rounded-2xl border cursor-pointer text-left transition-all relative ${
+            selectedPlan === 'bundle'
+              ? 'border-primary bg-primary/10 shadow-xs ring-2 ring-primary/20'
+              : 'border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-gray-300'
+          }`}
+        >
+          <span className="absolute -top-2.5 right-3 bg-primary text-white text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full tracking-wide">
+            Save €1.99
+          </span>
+          <span className="text-xs font-bold text-gray-900 dark:text-white block">Account + Page</span>
+          <span className="text-xl font-black text-primary block mt-1">
+            €7.99<span className="text-[10px] font-medium text-gray-500">/mo</span>
+          </span>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 block">Best value bundle</span>
         </div>
-        <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-          <span>Enhanced Buyer Protection coverage up to €5,000</span>
+      </div>
+
+      <div className="bg-white dark:bg-zinc-900/70 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-4 sm:p-5 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <VerifiedBadge size="sm" />
+          <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+            {selectedPlan === 'account' && 'Verified Account Perks'}
+            {selectedPlan === 'page' && 'Verified Page Perks'}
+            {selectedPlan === 'bundle' && 'Bundle Perks (Account + Storefront)'}
+          </span>
         </div>
+
+        <ul className="space-y-2.5 text-xs text-gray-700 dark:text-gray-300">
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <span>
+              {selectedPlan === 'account' && 'Official Verified Badge on your profile and all listings'}
+              {selectedPlan === 'page' && 'Official Verified Badge on your Business Page'}
+              {selectedPlan === 'bundle' && 'Official Verified Badge on your profile, all listings, and your Business Page'}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <span>
+              {selectedPlan === 'account' && 'Priority search ranking and up to 3x higher buyer trust'}
+              {selectedPlan === 'page' && 'Priority ranking for your Business Page in search and categories'}
+              {selectedPlan === 'bundle' && 'Priority search ranking across your account and storefront'}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <span>Priority support ticket escalation</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <span>Enhanced Buyer Protection coverage up to €5,000</span>
+          </li>
+        </ul>
       </div>
 
       <button
         type="button"
-        onClick={handleSubscribe}
+        onClick={() => handleSubscribe(selectedPlan)}
         disabled={loading}
-        className="w-full py-3.5 px-6 rounded-xl bg-primary hover:bg-green-700 text-white font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
+        className="w-full py-3.5 px-6 rounded-2xl bg-primary hover:bg-green-700 text-white font-extrabold text-sm sm:text-base transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
       >
         {loading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Connecting to Stripe...</span>
-          </>
+          <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <>
-            <VerifiedBadge size="xs" />
-            <span>Get Verified for €4.99/mo</span>
+            <Lock className="w-4 h-4" />
+            <span>
+              {selectedPlan === 'account' && 'Get Verified Account for €4.99/mo'}
+              {selectedPlan === 'page' && 'Get Verified Page for €4.99/mo'}
+              {selectedPlan === 'bundle' && 'Get the Bundle for €7.99/mo (Save €1.99/month)'}
+            </span>
           </>
         )}
       </button>
 
-      <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-        <Lock className="w-3 h-3 text-zinc-400" />
-        <span>Processed securely by Stripe • 256-bit encryption</span>
-      </div>
+      <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center mt-3 flex items-center justify-center gap-1.5">
+        <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+        <span>Secured by Stripe • Cancel anytime in 1 click • Instant activation</span>
+      </p>
     </div>
   );
 }

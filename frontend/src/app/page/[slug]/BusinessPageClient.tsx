@@ -23,15 +23,20 @@ import {
   Store,
   Calendar,
   AlertCircle,
+  Plus,
+  Shield,
+  Edit2,
   Camera,
   Loader2
 } from 'lucide-react';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import { ListingCard } from '@/components/ListingCard';
 import { BusinessPageData, createOrUpdateBusinessPage } from '@/app/actions/businessPages';
 import { uploadAvatarAction } from '@/app/my-listme/actions';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
 import BusinessTeamManagement from '@/components/BusinessTeamManagement';
+import FavouriteBusinessButton from '@/components/FavouriteBusinessButton';
 
 interface BusinessPageClientProps {
   businessPage: BusinessPageData;
@@ -40,6 +45,7 @@ interface BusinessPageClientProps {
   isTrueOwner?: boolean;
   isAdmin?: boolean;
   isTeamMember?: boolean;
+  initialIsFavourite?: boolean;
 }
 
 export default function BusinessPageClient({
@@ -49,6 +55,7 @@ export default function BusinessPageClient({
   isTrueOwner = false,
   isAdmin = false,
   isTeamMember = false,
+  initialIsFavourite = false,
 }: BusinessPageClientProps) {
   const router = useRouter();
   const isListMeOfficial = businessPage.slug === 'listme';
@@ -152,13 +159,13 @@ export default function BusinessPageClient({
                     ? 'You have full management authority including editing details, managing team roles, transferring ownership, and deleting this page.'
                     : isOwner 
                     ? 'You have full owner permissions to edit opening hours, announcement, profile picture, storefront details, and manage staff.' 
-                    : 'You have staff access to view announcements, storefront details, and inventory.'}
+                    : 'You have staff editor permissions to update storefront details, opening hours, announcements, and profile picture.'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {(isOwner || isAdmin) && <CreateBusinessPageModal initialData={businessPage} />}
+              {(isOwner || isAdmin || isTeamMember) && <CreateBusinessPageModal initialData={businessPage} />}
               {isTrueOwner && !isListMeOfficial && (
                 <DeleteBusinessPageButton slug={businessPage.slug} pageName={businessPage.name} />
               )}
@@ -236,7 +243,7 @@ export default function BusinessPageClient({
                     </div>
                   </div>
 
-                  {(isOwner || isAdmin) && (
+                  {(isOwner || isAdmin || isTeamMember) && (
                     <>
                       <input
                         type="file"
@@ -270,9 +277,7 @@ export default function BusinessPageClient({
                       {businessPage.name}
                     </h1>
                     {(isListMeOfficial || businessPage.is_verified) && (
-                      <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-200 flex items-center justify-center text-[10px] font-bold" title="Verified Business">
-                        <Check className="w-3 h-3 text-zinc-200" />
-                      </div>
+                      <VerifiedBadge size="sm" />
                     )}
                   </div>
 
@@ -294,17 +299,13 @@ export default function BusinessPageClient({
 
               
               <div className="flex items-center justify-center sm:justify-end gap-2.5 shrink-0">
-                {!isListMeOfficial && businessPage.allow_direct_messaging && (
-                  <Link
-                    href="/messages"
-                    className="px-6 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>Message</span>
-                  </Link>
+                {!isListMeOfficial && (
+                  <FavouriteBusinessButton
+                    businessSlug={businessPage.slug}
+                    initialIsFavourite={initialIsFavourite}
+                  />
                 )}
 
-                
                 <button
                   type="button"
                   onClick={handleShare}
@@ -626,6 +627,8 @@ export default function BusinessPageClient({
                         createdAt={listing.created_at}
                         location={listing.location || businessPage.county}
                         closesAt={listing.expires_at || listing.ends_at}
+                        sellerName={businessPage.name}
+                        sellerVerified={Boolean(isListMeOfficial || businessPage.is_verified)}
                       />
                     ))}
                   </div>

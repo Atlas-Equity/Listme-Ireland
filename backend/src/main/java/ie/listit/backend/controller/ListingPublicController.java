@@ -22,10 +22,7 @@ public class ListingPublicController {
         this.listingRepository = listingRepository;
     }
 
-    /**
-     * High-speed cached home page listings endpoint.
-     * Returns both latest and auction listings in a single round-trip.
-     */
+    
     @GetMapping("/home")
     @Cacheable(value = "homeListings", unless = "#result == null")
     public Map<String, Object> getHomeListings() {
@@ -40,9 +37,7 @@ public class ListingPublicController {
         return result;
     }
 
-    /**
-     * High-speed public listings query with category, priceType, search query, and pagination.
-     */
+    
     @GetMapping
     @Cacheable(value = "publicListings", key = "{#category, #priceType, #q, #limit}", unless = "#result == null")
     public List<Listing> getPublicListings(
@@ -69,9 +64,7 @@ public class ListingPublicController {
         return listingRepository.findByStatusOrderByCreatedAtDesc("active", pageRequest);
     }
 
-    /**
-     * Single listing detail endpoint.
-     */
+    
     @GetMapping("/{id}")
     @Cacheable(value = "singleListing", key = "#id", unless = "#result == null")
     public ResponseEntity<Listing> getListingById(@PathVariable UUID id) {

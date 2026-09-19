@@ -309,7 +309,7 @@ export default function BusinessUpgradeModal({
                   </p>
                 ) : (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                    Prefix +353 is permanently locked to Republic of Ireland numbers.
+                    Prefix +353 is permanently locked to Ireland numbers.
                   </p>
                 )}
               </div>

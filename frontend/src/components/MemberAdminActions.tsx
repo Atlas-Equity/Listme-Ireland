@@ -50,6 +50,13 @@ export default function MemberAdminActions({
   const [showBanModal, setShowBanModal] = useState(false);
   const [banDuration, setBanDuration] = useState<number>(168);
   const [banReason, setBanReason] = useState('Violation of ListMe Marketplace Community Standards');
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    isDestructive?: boolean;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
 
   const handleGrantVerified = async () => {
     setLoading(true);
@@ -64,8 +71,7 @@ export default function MemberAdminActions({
     }
   };
 
-  const handleRevokeVerified = async () => {
-    if (!window.confirm(`Revoke verified badge from @${targetUsername}?`)) return;
+  const executeRevokeVerified = async () => {
     setLoading(true);
     const res = await revokeVerifiedAction(targetUserId);
     setLoading(false);
@@ -78,31 +84,48 @@ export default function MemberAdminActions({
     }
   };
 
-  const handleToggleAdminRole = async () => {
-    if (isCurrentlyAdmin) {
-      if (!window.confirm(`Revoke Administrator privileges from @${targetUsername}?`)) return;
-      setLoading(true);
-      const res = await revokeAdminRoleAction(targetUserId);
-      setLoading(false);
-      if (res.success) {
-        setToastMessage(res.message || 'Admin role revoked.');
-        router.refresh();
-        setTimeout(() => setToastMessage(null), 3000);
-      } else {
-        emitToast(res.error || 'Failed to revoke admin role.', 'error');
-      }
+  const handleRevokeVerified = () => {
+    setPendingConfirm({
+      title: 'Revoke Verified Badge',
+      message: `Revoke verified badge from @${targetUsername}?`,
+      confirmLabel: 'Revoke Badge',
+      isDestructive: true,
+      onConfirm: executeRevokeVerified,
+    });
+  };
+
+  const executeToggleAdminRole = async (assign: boolean) => {
+    setLoading(true);
+    const res = assign 
+      ? await assignAdminRoleAction(targetUserId)
+      : await revokeAdminRoleAction(targetUserId);
+    setLoading(false);
+    if (res.success) {
+      setToastMessage(res.message || (assign ? 'Admin privileges assigned.' : 'Admin role revoked.'));
+      router.refresh();
+      setTimeout(() => setToastMessage(null), 3000);
     } else {
-      if (!window.confirm(`Grant Administrator privileges to @${targetUsername}? They will be able to manage support channels, verify users, and ban accounts.`)) return;
-      setLoading(true);
-      const res = await assignAdminRoleAction(targetUserId);
-      setLoading(false);
-      if (res.success) {
-        setToastMessage(res.message || 'Admin privileges assigned.');
-        router.refresh();
-        setTimeout(() => setToastMessage(null), 3000);
-      } else {
-        emitToast(res.error || 'Failed to assign admin role.', 'error');
-      }
+      emitToast(res.error || (assign ? 'Failed to assign admin role.' : 'Failed to revoke admin role.'), 'error');
+    }
+  };
+
+  const handleToggleAdminRole = () => {
+    if (isCurrentlyAdmin) {
+      setPendingConfirm({
+        title: 'Revoke Administrator Role',
+        message: `Revoke Administrator privileges from @${targetUsername}?`,
+        confirmLabel: 'Revoke Admin',
+        isDestructive: true,
+        onConfirm: () => executeToggleAdminRole(false),
+      });
+    } else {
+      setPendingConfirm({
+        title: 'Assign Administrator Role',
+        message: `Grant Administrator privileges to @${targetUsername}? They will be able to manage support channels, verify users, and ban accounts.`,
+        confirmLabel: 'Assign Admin',
+        isDestructive: false,
+        onConfirm: () => executeToggleAdminRole(true),
+      });
     }
   };
 
@@ -121,8 +144,7 @@ export default function MemberAdminActions({
     }
   };
 
-  const handleUnban = async () => {
-    if (!window.confirm(`Restore account access for @${targetUsername}?`)) return;
+  const executeUnban = async () => {
     setLoading(true);
     const res = await unbanUserAccountAction(targetUserId);
     setLoading(false);
@@ -133,6 +155,16 @@ export default function MemberAdminActions({
     } else {
       emitToast(res.error || 'Failed to unban account.', 'error');
     }
+  };
+
+  const handleUnban = () => {
+    setPendingConfirm({
+      title: 'Restore Account Access',
+      message: `Restore account access for @${targetUsername}?`,
+      confirmLabel: 'Restore Account',
+      isDestructive: false,
+      onConfirm: executeUnban,
+    });
   };
 
   return (
@@ -314,6 +346,45 @@ export default function MemberAdminActions({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {pendingConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-3xl p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white tracking-tight">
+              {pendingConfirm.title}
+            </h3>
+            <p className="text-sm text-zinc-300 leading-relaxed">
+              {pendingConfirm.message}
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setPendingConfirm(null)}
+                className="px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 text-zinc-300 font-bold hover:bg-zinc-700 text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  const action = pendingConfirm.onConfirm;
+                  setPendingConfirm(null);
+                  await action();
+                }}
+                className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 text-white ${
+                  pendingConfirm.isDestructive
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-primary hover:bg-green-700'
+                }`}
+              >
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{pendingConfirm.confirmLabel}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -49,10 +49,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
     redirect('/marketplace');
   }
   
-  // Format slug back to category name (e.g. "marketplace" -> "Marketplace")
   const categoryName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
-
-  // Fetch category listings via fast cached backend API
   const listings = await fetchCategoryListings(categoryName);
 
   return (
@@ -84,6 +81,9 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
                 createdAt={listing.created_at}
                 location={listing.location}
                 closesAt={listing.expires_at || listing.ends_at}
+                sellerName={listing.seller_name}
+                sellerVerified={listing.seller_verified}
+                sellerId={listing.seller_id}
               />
             ))}
           </div>

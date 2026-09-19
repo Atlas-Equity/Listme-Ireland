@@ -60,6 +60,9 @@ export default function PageLayout({ title, description, filterGroups, listings 
                 images={[listing.imageUrl]}
                 createdAt={new Date().toISOString()}
                 location={listing.location || 'Dublin'}
+                sellerName={listing.seller_name || listing.sellerName}
+                sellerVerified={listing.seller_verified || listing.sellerVerified}
+                sellerId={listing.seller_id || listing.sellerId}
               />
             ))}
           </div>

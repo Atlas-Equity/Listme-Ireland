@@ -78,7 +78,7 @@ const FAQ_DATA = [
     linkLabel: 'Manage Business Pages'
   },
   {
-    q: 'Why are phone numbers locked to +353 Republic of Ireland numbers?',
+    q: 'Why are phone numbers locked to +353 Ireland numbers?',
     a: 'ListMe is dedicated exclusively to residents and legitimate traders across Ireland. Enforcing standard Irish telephone prefixes safeguards all 32 counties from international robo-callers and overseas fraud networks.',
     link: '/privacy',
     linkLabel: 'Read Privacy & Verification'
@@ -1040,7 +1040,7 @@ export default function HelpCentrePage() {
                   <div className="p-3 rounded-xl border border-gray-100 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-900/40 flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0 mt-0.5" />
                     <div className="text-xs">
-                      <span className="font-bold text-gray-900 dark:text-white">TradeMe Style Branches:</span> List general items, job vacancies, or trade services directly via the Start a Listing wizard.
+                      <span className="font-bold text-gray-900 dark:text-white">ListMe Style Branches:</span> List general items, job vacancies, or trade services directly via the Start a Listing wizard.
                     </div>
                   </div>
                   <div className="p-3 rounded-xl border border-gray-100 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-900/40 flex items-start gap-2.5">

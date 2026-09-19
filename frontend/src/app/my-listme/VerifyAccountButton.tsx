@@ -17,6 +17,7 @@ export default function VerifyAccountButton({
   userEmail,
 }: VerifyAccountButtonProps) {
   const router = useRouter();
+  const [selectedPlan, setSelectedPlan] = useState<'personal' | 'business_combined'>('personal');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -58,6 +59,7 @@ export default function VerifyAccountButton({
       const res = await fetch('/api/verified/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan }),
       });
 
       const data = await res.json();
@@ -118,7 +120,7 @@ export default function VerifyAccountButton({
           className="px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-[0.99]"
         >
           <VerifiedBadge size="xs" />
-          <span>Get Verified for €4.99/mo</span>
+          <span>Get Verified</span>
         </button>
 
         {error && (
@@ -159,43 +161,66 @@ export default function VerifyAccountButton({
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-6">
+            <div className="p-6 overflow-y-auto space-y-5">
               {error && (
                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300 font-medium">
                   {error}
                 </div>
               )}
 
-              <div className="p-5 rounded-2xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Monthly Membership
-                  </p>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <span className="text-3xl font-black text-gray-900 dark:text-white">€4.99</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">/ month</span>
-                  </div>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
-                    Billed monthly via Stripe. Cancel anytime in 1 click.
-                  </p>
-                </div>
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Select Subscription Plan:
+                </p>
 
-                <div className="px-3 py-1 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-semibold border border-gray-200 dark:border-zinc-700 shrink-0">
-                  Instant Activation
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setSelectedPlan('personal')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                      selectedPlan === 'personal'
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs'
+                        : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 hover:border-gray-300 dark:hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">Personal / Member</span>
+                      <span className="text-sm font-black text-primary">€4.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                      Verified badge on your personal profile and marketplace listings.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setSelectedPlan('business_combined')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                      selectedPlan === 'business_combined'
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs'
+                        : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 hover:border-gray-300 dark:hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">Business / Combined</span>
+                      <span className="text-sm font-black text-primary">€7.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                      Verify yourself &amp; your business storefront with verified commercial badges across both.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-zinc-800">
                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Membership Benefits:
+                  Included Benefits:
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-xs font-bold text-gray-900 dark:text-white">Official Verified Badge</h4>
+                      <h4 className="text-xs font-bold text-gray-900 dark:text-white">Official Verified Trust Badge</h4>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                        Displayed prominently on your profile, member page, and all active listings.
+                        Displayed prominently on your profile, listings, and storefronts.
                       </p>
                     </div>
                   </div>
@@ -236,7 +261,7 @@ export default function VerifyAccountButton({
                 ) : (
                   <>
                     <VerifiedBadge size="xs" />
-                    <span>Subscribe for €4.99/mo</span>
+                    <span>Subscribe for {selectedPlan === 'business_combined' ? '€7.99' : '€4.99'}/mo</span>
                   </>
                 )}
               </button>

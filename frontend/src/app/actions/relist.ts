@@ -3,8 +3,9 @@
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { isUserQuinn } from '@/utils/admin';
 
-export async function relistListingAction(listingId: string) {
+export async function relistListingAction(listingId: string, durationMinutes?: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -26,7 +27,17 @@ export async function relistListingAction(listingId: string) {
     return { error: 'You are not authorized to relist this listing.' };
   }
 
-  const newClosesAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const userIsQuinn = isUserQuinn(user);
+  let newClosesAt: string;
+  let durationMsg = '7 days';
+
+  if (durationMinutes === 5 && userIsQuinn) {
+    newClosesAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    durationMsg = '5 minutes';
+  } else {
+    newClosesAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
+
   const now = new Date().toISOString();
 
   const { error: updateErr } = await supabase
@@ -46,7 +57,7 @@ export async function relistListingAction(listingId: string) {
   revalidatePath('/my-listme');
   revalidatePath(`/listing/${listingId}`);
   revalidatePath('/');
-  return { success: true, message: `"${listing.title}" has been relisted for 7 days!` };
+  return { success: true, message: `"${listing.title}" has been relisted for ${durationMsg}!` };
 }
 
 /**

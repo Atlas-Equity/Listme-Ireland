@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { isUserQuinn } from '@/utils/admin';
 
 export interface CreateListingInput {
   title: string;
@@ -12,7 +13,9 @@ export interface CreateListingInput {
   priceType: string;
   price: number;
   buyNowPrice?: number;
-  durationDays: number;
+  durationDays?: number;
+  durationMinutes?: number;
+  uploadFee?: number;
   paymentOptions: string[];
   images: string[];
   listingType?: 'item' | 'job' | 'service';
@@ -59,7 +62,14 @@ export async function createListing(formData: CreateListingInput) {
     return { error: 'You must complete Stripe onboarding before creating a listing. Go to your profile to set up payments.' };
   }
 
-  const expiresAt = new Date(Date.now() + formData.durationDays * 24 * 60 * 60 * 1000).toISOString();
+  const userIsQuinn = isUserQuinn(user, username);
+  let expiresAt: string;
+  if (formData.durationMinutes === 5 && userIsQuinn) {
+    expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  } else {
+    const days = formData.durationDays && formData.durationDays > 0 ? formData.durationDays : 7;
+    expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  }
 
   let finalDescription = formData.description || '';
 
@@ -89,6 +99,7 @@ export async function createListing(formData: CreateListingInput) {
     payment_options: formData.paymentOptions,
     images: formData.images,
     expires_at: expiresAt,
+    ends_at: expiresAt,
     status: 'active'
   };
 
@@ -102,6 +113,9 @@ export async function createListing(formData: CreateListingInput) {
   }
   if (formData.businessPageSlug) {
     extendedPayload.business_page_slug = formData.businessPageSlug;
+  }
+  if (formData.uploadFee) {
+    extendedPayload.upload_fee = formData.uploadFee;
   }
 
   const attempt = await supabase

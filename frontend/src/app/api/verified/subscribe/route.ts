@@ -65,94 +65,51 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const configuredPriceOrProduct = (
-      process.env.STRIPE_VERIFIED_PRICE_ID || 
-      process.env.NEXT_PUBLIC_STRIPE_VERIFIED_PRICE_ID || 
-      process.env.STRIPE_VERIFIED_PRODUCT_ID || 
-      ''
-    ).trim();
-
-    let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
-
-    if (configuredPriceOrProduct) {
-      if (configuredPriceOrProduct.startsWith('price_') || configuredPriceOrProduct.startsWith('plan_')) {
-        lineItems = [
-          {
-            price: configuredPriceOrProduct,
-            quantity: 1,
-          },
-        ];
-      } else if (configuredPriceOrProduct.startsWith('prod_')) {
-        try {
-          const prices = await stripe.prices.list({
-            product: configuredPriceOrProduct,
-            active: true,
-            type: 'recurring',
-            limit: 5,
-          });
-
-          const monthlyPrice = prices.data.find(p => p.recurring?.interval === 'month');
-          if (monthlyPrice) {
-            lineItems = [{ price: monthlyPrice.id, quantity: 1 }];
-          } else {
-            lineItems = [
-              {
-                price_data: {
-                  currency: 'eur',
-                  product: configuredPriceOrProduct,
-                  unit_amount: 499,
-                  recurring: {
-                    interval: 'month',
-                  },
-                },
-                quantity: 1,
-              },
-            ];
-          }
-        } catch {
-          lineItems = [
-            {
-              price_data: {
-                currency: 'eur',
-                unit_amount: 499,
-                recurring: {
-                  interval: 'month',
-                },
-                product_data: {
-                  name: 'ListMe Verified Account Badge',
-                  description: 'Monthly Verified Badge subscription — exclusive trust badge on your profile and listings.',
-                },
-              },
-              quantity: 1,
-            },
-          ];
-        }
+    let plan = 'account';
+    try {
+      const body = await req.json();
+      if (body?.plan === 'bundle' || body?.plan === 'verified_bundle' || body?.plan === 'business_combined') {
+        plan = 'bundle';
+      } else if (body?.plan === 'page' || body?.plan === 'verified_page') {
+        plan = 'page';
       } else {
-        lineItems = [
-          {
-            price: configuredPriceOrProduct,
-            quantity: 1,
-          },
-        ];
+        plan = 'account';
       }
-    } else {
-      lineItems = [
-        {
-          price_data: {
-            currency: 'eur',
-            unit_amount: 499,
-            recurring: {
-              interval: 'month',
-            },
-            product_data: {
-              name: 'ListMe Verified Account Badge',
-              description: 'Monthly Verified Badge subscription — exclusive trust badge on your profile and listings.',
-            },
-          },
-          quantity: 1,
-        },
-      ];
+    } catch {}
+
+    const isBundle = plan === 'bundle';
+    const isPage = plan === 'page';
+
+    let productName = 'ListMe Verified Account';
+    let productDesc = 'Official Verified Badge on your profile and all listings.';
+    let unitAmount = 499;
+
+    if (isBundle) {
+      productName = 'ListMe Verified Account + Verified Page Bundle';
+      productDesc = 'Official Verified Badge on your profile, all listings, and your Business Page storefront.';
+      unitAmount = 799;
+    } else if (isPage) {
+      productName = 'ListMe Verified Page';
+      productDesc = 'Official Verified Badge on your Business Page storefront.';
+      unitAmount = 499;
     }
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        price_data: {
+          currency: 'eur',
+          unit_amount: unitAmount,
+          recurring: {
+            interval: 'month',
+          },
+          product_data: {
+            name: productName,
+            description: productDesc,
+          },
+        },
+        quantity: 1,
+      },
+    ];
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -160,14 +117,16 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       line_items: lineItems,
       success_url: `${origin}/my-listme?tab=account&verified_session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/my-listme?tab=account&verified_status=cancelled`,
+      cancel_url: `${origin}/verified?status=cancelled`,
       metadata: {
         userId: user.id,
+        planType: plan,
         type: 'verified_subscription',
       },
       subscription_data: {
         metadata: {
           userId: user.id,
+          planType: plan,
           type: 'verified_subscription',
         },
       },

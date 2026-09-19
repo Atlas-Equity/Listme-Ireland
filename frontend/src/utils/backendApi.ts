@@ -1,5 +1,6 @@
 import '@/utils/dnsOptimizer';
 import { createClient as createStatelessClient } from '@supabase/supabase-js';
+import { enrichListingsWithSellers } from '@/utils/sellerMeta';
 
 export interface ListingCardData {
   id: string;
@@ -12,6 +13,9 @@ export interface ListingCardData {
   location?: string;
   expires_at?: string;
   ends_at?: string;
+  seller_id?: string;
+  seller_name?: string;
+  seller_verified?: boolean;
 }
 
 const publicSupabase = createStatelessClient(
@@ -83,6 +87,9 @@ function normalizeListing(item: any): ListingCardData {
     location: item.location,
     expires_at: item.expires_at || item.expiresAt,
     ends_at: item.ends_at || item.endsAt,
+    seller_id: item.seller_id || item.sellerId,
+    seller_name: item.seller_name || item.sellerName,
+    seller_verified: Boolean(item.seller_verified || item.sellerVerified),
   };
 }
 
@@ -105,17 +112,18 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
 
       if (res.ok) {
         const data = await res.json();
-        const all = (data.all || data.latest || []).map(normalizeListing);
+        const rawAll = (data.all || data.latest || []).map(normalizeListing);
+        const enrichedAll = await enrichListingsWithSellers(rawAll);
         const nowMs = Date.now();
-        const closingSoon = all.filter((l: ListingCardData) => {
+        const closingSoon = enrichedAll.filter((l: ListingCardData) => {
           const end = l.expires_at || l.ends_at;
           if (!end) return false;
           const diff = new Date(end).getTime() - nowMs;
           return diff > 0 && diff <= 24 * 60 * 60 * 1000;
         });
         const result = {
-          latest: (data.latest || []).map(normalizeListing),
-          auctions: (data.auctions || []).map(normalizeListing),
+          latest: await enrichListingsWithSellers((data.latest || []).map(normalizeListing)),
+          auctions: await enrichListingsWithSellers((data.auctions || []).map(normalizeListing)),
           closingSoon,
         };
         setCached(cacheKey, result, 60);
@@ -128,15 +136,15 @@ export async function fetchHomeListings(): Promise<{ latest: ListingCardData[]; 
     }
   }
 
-  // 2. Direct Supabase query: fetch top 30 active listings in a single round-trip
   const { data: listingsData } = await publicSupabase
     .from('listings')
-    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
+    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, seller_id')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(30);
 
-  const allListings = (listingsData || []).map(normalizeListing);
+  const rawListings = (listingsData || []).map(normalizeListing);
+  const allListings = await enrichListingsWithSellers(rawListings);
 
   const auctions = allListings
     .filter(l => l.price_type?.toLowerCase() === 'auction')
@@ -166,9 +174,6 @@ export function invalidateHomeListingsCache(): void {
   memoryCache.delete('home_listings');
 }
 
-/**
- * Fetch category listings with memory caching.
- */
 export async function fetchCategoryListings(categoryName: string): Promise<ListingCardData[]> {
   const cacheKey = `cat_${categoryName.toLowerCase()}`;
   const cached = getCached<ListingCardData[]>(cacheKey);
@@ -189,7 +194,8 @@ export async function fetchCategoryListings(categoryName: string): Promise<Listi
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          const list = data.map(normalizeListing);
+          const raw = data.map(normalizeListing);
+          const list = await enrichListingsWithSellers(raw);
           setCached(cacheKey, list, 60);
           return list;
         }
@@ -203,20 +209,18 @@ export async function fetchCategoryListings(categoryName: string): Promise<Listi
 
   const { data } = await publicSupabase
     .from('listings')
-    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
+    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, seller_id')
     .ilike('category', categoryName)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(30);
 
-  const list = (data || []).map(normalizeListing);
+  const rawList = (data || []).map(normalizeListing);
+  const list = await enrichListingsWithSellers(rawList);
   setCached(cacheKey, list, 120);
   return list;
 }
 
-/**
- * Search active listings with lean fields and memory caching.
- */
 export async function searchListings(query: string): Promise<ListingCardData[]> {
   if (!query || !query.trim()) return [];
 
@@ -239,7 +243,8 @@ export async function searchListings(query: string): Promise<ListingCardData[]> 
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          const list = data.map(normalizeListing);
+          const raw = data.map(normalizeListing);
+          const list = await enrichListingsWithSellers(raw);
           setCached(cacheKey, list, 30);
           return list;
         }
@@ -253,13 +258,14 @@ export async function searchListings(query: string): Promise<ListingCardData[]> 
 
   const { data } = await publicSupabase
     .from('listings')
-    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at')
+    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, seller_id')
     .eq('status', 'active')
     .or(`title.ilike.%${query}%,category.ilike.%${query}%`)
     .order('created_at', { ascending: false })
     .limit(50);
 
-  const list = (data || []).map(normalizeListing);
+  const rawList = (data || []).map(normalizeListing);
+  const list = await enrichListingsWithSellers(rawList);
   setCached(cacheKey, list, 30);
   return list;
 }

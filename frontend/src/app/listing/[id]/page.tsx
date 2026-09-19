@@ -20,6 +20,7 @@ import { Metadata } from 'next';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { getSellerMetaMap } from '@/utils/sellerMeta';
 
 export const revalidate = 60;
 
@@ -147,16 +148,21 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   } : null;
 
   const seller = sellerResult.data;
+  const sellerMetaMap = await getSellerMetaMap([listing.seller_id]);
+  const sellerMeta = sellerMetaMap.get(listing.seller_id);
+
   const reviews = reviewsResult.data;
   const isWatchlisted = !!watchlistResult.data;
   const isSellerFavourited = !!favouriteResult.data;
 
-  const sellerDisplayName = seller?.username || (isOwnListing ? (user?.user_metadata?.username || user?.email?.split('@')[0] || 'You') : 'Seller');
+  const sellerDisplayName = sellerMeta?.username || seller?.username || (isOwnListing ? (user?.user_metadata?.username || user?.email?.split('@')[0] || 'You') : 'Seller');
   const sellerAvatarUrl = seller?.avatar_url || (isOwnListing ? user?.user_metadata?.avatar_url : undefined);
   const sellerInitial = sellerDisplayName.charAt(0).toUpperCase();
   const memberSinceDate = seller?.updated_at ? new Date(seller.updated_at) : (listing.created_at ? new Date(listing.created_at) : new Date());
   const memberSinceText = format(memberSinceDate, 'MMMM yyyy');
-  const isSellerVerified = Boolean((seller as any)?.is_verified || (seller as any)?.user_metadata?.is_verified);
+  const isSellerVerified = Boolean(sellerMeta?.is_verified);
+  const isSellerStaff = Boolean(sellerMeta?.is_staff);
+  const isSellerBusiness = Boolean(sellerMeta?.account_type === 'business' || seller?.account_type === 'business');
 
   const bizMatch = listing.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
   const businessSlug = (listing as any).business_page_slug || (bizMatch ? bizMatch[1].trim().toLowerCase() : null);
@@ -228,7 +234,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     },
   };
 
-  // Ensure payment options is an array
   const paymentOptions: string[] = listing.payment_options || ['cash'];
 
   return (
@@ -476,7 +481,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             </div>
 
             
-            <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] space-y-3">
+            <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-[#f8fafc] dark:bg-[#242424] space-y-3">
               {listingBusinessPage ? (
                 <Link 
                   href={`/page/${listingBusinessPage.slug}`}
@@ -530,9 +535,19 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1 group-hover:text-primary transition-colors">
+                    <div className="font-bold text-gray-900 dark:text-white flex items-center flex-wrap gap-1.5 group-hover:text-primary transition-colors">
                       <span className="truncate">{sellerDisplayName}</span>
                       {isSellerVerified && <VerifiedBadge size="xs" />}
+                      {isSellerStaff && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                          ListMe Staff
+                        </span>
+                      )}
+                      {isSellerBusiness && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
+                          Business Account
+                        </span>
+                      )}
                       <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
@@ -635,10 +650,20 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                       <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
                     )}
                   </div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1.5">
+                  <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center flex-wrap gap-1.5">
                     <span>{sellerDisplayName}</span>
                     {isSellerVerified && <VerifiedBadge size="sm" />}
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    {isSellerStaff && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                        ListMe Staff
+                      </span>
+                    )}
+                    {isSellerBusiness && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
+                        Business Account
+                      </span>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                   </div>
                 </Link>
               </div>

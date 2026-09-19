@@ -319,7 +319,7 @@ export default function CreateBusinessPageModal({
         facebook: facebook.trim(),
         linkedin: linkedin.trim(),
         is_hiring: isHiring,
-        allow_direct_messaging: allowDirectMessaging,
+        allow_direct_messaging: false,
         is_verified: isOfficialListMe ? true : Boolean(initialData?.is_verified),
       };
 
@@ -674,27 +674,6 @@ export default function CreateBusinessPageModal({
                 </div>
               </div>
 
-              
-              <div className="p-3.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={allowDirectMessaging}
-                    onChange={(e) => setAllowDirectMessaging(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded text-primary border-gray-300 dark:border-zinc-700 focus:ring-primary cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-gray-900 dark:text-white block">
-                      Allow Direct Customer Messaging
-                    </span>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
-                      Enable a &quot;Message&quot; button on your business page. If unchecked, customers cannot direct message this page.
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              
               <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-end gap-3">
                 <button
                   type="button"

@@ -257,7 +257,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-black py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         
         
@@ -295,7 +295,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
         </nav>
 
         
-        <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden mb-8">
+        <div className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden mb-8">
           <div className="p-6 sm:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-zinc-800">
               
@@ -526,6 +526,8 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                     createdAt={listing.created_at}
                     location={listing.location || coreLocation}
                     closesAt={listing.expires_at || listing.ends_at}
+                    sellerName={displayName}
+                    sellerVerified={isVerified}
                   />
                 ))}
               </div>

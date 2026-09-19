@@ -102,6 +102,7 @@ export default function LinkedCardCard({
   const [topUpError, setTopUpError] = useState<string | null>(null);
   const [topUpSuccess, setTopUpSuccess] = useState(false);
   const [isVaulting, setIsVaulting] = useState(false);
+  const [cardIndexToUnlink, setCardIndexToUnlink] = useState<number | null>(null);
 
   const handleVaultWithStripe = async () => {
     setIsVaulting(true);
@@ -327,16 +328,19 @@ export default function LinkedCardCard({
     setFormError('Stripe security module could not be initialized. Please try again.');
   };
 
-  // Remove card by index or ID
-  const handleRemoveCard = async (targetIndex: number) => {
+  const handleRemoveCard = (targetIndex: number) => {
+    setCardIndexToUnlink(targetIndex);
+  };
+
+  const executeRemoveCard = async () => {
+    if (cardIndexToUnlink === null) return;
+    const targetIndex = cardIndexToUnlink;
     const targetCard = cards[targetIndex];
+    setCardIndexToUnlink(null);
     if (!targetCard) return;
 
     const cardKind = isCardDebit(targetCard) ? 'Debit Card' : 'Credit Card';
     const last4 = targetCard.cardNumberBlocks?.[3] || '••••';
-    if (!window.confirm(`Are you sure you want to unlink ${targetCard.cardNickname || cardKind} (ending in ${last4})?`)) {
-      return;
-    }
 
     try {
       const res = await removeLinkedCardAction(targetCard.id || targetIndex, last4);
@@ -1148,6 +1152,35 @@ export default function LinkedCardCard({
               </div>
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {cardIndexToUnlink !== null && cards[cardIndexToUnlink] && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-3xl p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+              Unlink Payment Card
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-zinc-300 leading-relaxed">
+              Are you sure you want to unlink {cards[cardIndexToUnlink].cardNickname || (isCardDebit(cards[cardIndexToUnlink]) ? 'Debit Card' : 'Credit Card')} (ending in {cards[cardIndexToUnlink].cardNumberBlocks?.[3] || '••••'})?
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setCardIndexToUnlink(null)}
+                className="px-4 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 text-xs transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeRemoveCard}
+                className="px-4 py-2 rounded-xl font-bold text-xs bg-red-600 hover:bg-red-700 text-white transition-colors"
+              >
+                Unlink Card
+              </button>
+            </div>
           </div>
         </div>
       )}

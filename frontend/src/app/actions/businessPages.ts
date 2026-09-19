@@ -97,7 +97,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
 
   const allRegistered = await getAllRegisteredBusinessPages({ bypassCache: true });
 
-  const isEditing = Boolean(data.id) || (Boolean(data.slug) && (existingPages.some(p => p.slug === cleanSlug) || (cleanSlug === 'listme' && userIsAdmin)));
+  const isEditing = Boolean(data.id);
   let targetOwnerId = user.id;
   let currentBusiness: BusinessPageData | null = null;
   const existingUserPageIndex = isEditing ? existingPages.findIndex(p => p.id === data.id || p.slug === cleanSlug || p.slug === data.slug) : -1;
@@ -117,9 +117,15 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
         }) || (currentUserMeta?.assigned_business_pages as any[])?.some((ap: any) => 
           ap.slug === foundInAll.slug && ap.role?.toLowerCase() === 'owner'
         );
+        const isTeamStaff = (foundInAll.team_members || []).some((m: any) => {
+          const uid = typeof m === 'string' ? m : m?.user_id;
+          return uid === user.id;
+        }) || (currentUserMeta?.assigned_business_pages as any[])?.some((ap: any) => 
+          ap.slug === foundInAll.slug
+        );
 
-        if (!isTrueOwner && !isCoOwner && !userIsAdmin) {
-          return { error: 'You do not have Owner permissions to edit this business page.' };
+        if (!isTrueOwner && !isCoOwner && !isTeamStaff && !userIsAdmin) {
+          return { error: 'You do not have permission to edit this business page.' };
         }
 
         currentBusiness = foundInAll;
@@ -257,7 +263,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     try {
       const dbRow = {
         id: newPage.id,
-        owner_id: user.id,
+        owner_id: targetOwnerId || user.id,
         name: newPage.name,
         slug: newPage.slug,
         tagline: newPage.tagline,

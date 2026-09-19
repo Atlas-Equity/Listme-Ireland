@@ -195,8 +195,6 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     )
   );
 
-  const canManagePage = isTrueOwner || isCoOwner || userIsAdmin;
-
   const isTeamMember = Boolean(
     user && businessPage && (
       (businessPage.team_members || []).some((m: any) => 
@@ -205,6 +203,11 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       (user.user_metadata?.assigned_business_pages as any[])?.some((ap: any) => ap.slug === cleanSlug)
     )
   );
+
+  const canManagePage = isTrueOwner || isCoOwner || isTeamMember || userIsAdmin;
+
+  const favList: string[] = user?.user_metadata?.favourite_businesses || [];
+  const isFavourite = Boolean(user && businessPage && (favList.includes(businessPage.slug) || (businessPage.id ? favList.includes(businessPage.id) : false)));
 
   return (
     <>
@@ -219,6 +222,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
         isTrueOwner={isTrueOwner}
         isAdmin={userIsAdmin}
         isTeamMember={isTeamMember}
+        initialIsFavourite={isFavourite}
       />
     </>
   );
