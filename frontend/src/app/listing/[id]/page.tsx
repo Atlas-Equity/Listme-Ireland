@@ -16,6 +16,7 @@ import ServiceFeeModal from '@/components/ServiceFeeModal';
 import DeleteListingButton from '@/components/DeleteListingButton';
 import ListingQuestionsSection from '@/components/ListingQuestionsSection';
 import { getListingQuestions } from '@/app/actions/listingQuestions';
+import ContactSellerButton from '@/components/ContactSellerButton';
 import { Metadata } from 'next';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
@@ -541,8 +542,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-[#f8fafc] dark:bg-[#242424] space-y-3">
               {listingBusinessPage ? (
-                <Link 
-                  href={`/page/${listingBusinessPage.slug}`}
+                <>
+                  <Link 
+                    href={`/page/${listingBusinessPage.slug}`}
                   className="flex items-center group hover:opacity-90 transition-opacity"
                 >
                   <div className="w-12 h-12 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
@@ -573,7 +575,23 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
                 </Link>
-              ) : (
+                {!isOwnListing && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80">
+                    <ContactSellerButton
+                      listingId={listing.id}
+                      sellerId={listing.seller_id}
+                      sellerUsername={listingBusinessPage.name}
+                      listingTitle={listing.title}
+                      listingPrice={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : Number(listing.price)}
+                      listingImage={listing.images?.[0] || ''}
+                      currentUserId={user?.id || null}
+                      variant="seller-card"
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
                 <Link 
                   href={`/member/${getMemberNumber(listing.seller_id)}`}
                   className="flex items-center group hover:opacity-90 transition-opacity"
@@ -613,8 +631,23 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
                 </Link>
-              )}
-            </div>
+                {!isOwnListing && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80">
+                    <ContactSellerButton
+                      listingId={listing.id}
+                      sellerId={listing.seller_id}
+                      sellerUsername={sellerDisplayName}
+                      listingTitle={listing.title}
+                      listingPrice={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : Number(listing.price)}
+                      listingImage={listing.images?.[0] || ''}
+                      currentUserId={user?.id || null}
+                      variant="seller-card"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
           </div>
 

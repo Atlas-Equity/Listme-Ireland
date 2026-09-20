@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   const [otpTarget, setOtpTarget] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [otpLength, setOtpLength] = useState<number>(6);
+  const [otpLength, setOtpLength] = useState<number>(8);
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -81,7 +81,7 @@ export default function LoginPage() {
       setError(otpError.message);
       setLoading(false);
     } else {
-      setOtpLength(6);
+      setOtpLength(8);
       setOtpStep('verify');
       setResendCooldown(30);
       setLoading(false);
@@ -90,8 +90,8 @@ export default function LoginPage() {
 
   const handleVerifyOtp = async (codeToVerify?: string) => {
     const code = codeToVerify || otpCode;
-    if (code.length < 6) {
-      setError(`Please enter the complete verification code.`);
+    if (code.length < 8) {
+      setError(`Please enter the complete 8-digit verification code.`);
       return;
     }
 
@@ -311,7 +311,7 @@ export default function LoginPage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    We will send a 6-digit one-time passcode to your inbox.
+                    We will send an 8-digit one-time passcode to your inbox.
                   </p>
                 </div>
 
@@ -326,13 +326,12 @@ export default function LoginPage() {
                       Sending code...
                     </span>
                   ) : (
-                    'Send 6-Digit Code'
+                    'Send 8-Digit Code'
                   )}
                 </button>
               </form>
             )}
 
-            
             {otpStep === 'verify' && (
               <div className="space-y-5">
                 <div className="text-center">
@@ -356,45 +355,10 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2.5 px-1">
-                    <span>Passcode Length:</span>
-                    <div className="inline-flex rounded-md p-0.5 bg-gray-100 dark:bg-zinc-800 text-[11px] font-medium border border-gray-200 dark:border-zinc-700">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpLength(6);
-                          setOtpCode('');
-                        }}
-                        className={`px-2 py-0.5 rounded transition-colors ${
-                          otpLength === 6 
-                            ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-xs font-semibold' 
-                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        6 Digits
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpLength(8);
-                          setOtpCode('');
-                        }}
-                        className={`px-2 py-0.5 rounded transition-colors ${
-                          otpLength === 8 
-                            ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-xs font-semibold' 
-                            : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        8 Digits
-                      </button>
-                    </div>
-                  </div>
-
                   <OtpInput
-                    length={otpLength}
+                    length={8}
                     value={otpCode}
                     onChange={setOtpCode}
-                    onLengthChange={(newLen) => setOtpLength(newLen)}
                     onComplete={(code) => handleVerifyOtp(code)}
                     disabled={loading}
                     error={!!error}
@@ -422,7 +386,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => handleVerifyOtp()}
-                    disabled={loading || otpCode.length < 6}
+                    disabled={loading || otpCode.length < 8}
                     className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50"
                   >
                     {loading ? (

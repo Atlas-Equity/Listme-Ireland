@@ -13,7 +13,7 @@ interface ContactSellerButtonProps {
   listingPrice: number;
   listingImage?: string;
   currentUserId?: string | null;
-  variant?: 'primary' | 'secondary' | 'qa';
+  variant?: 'primary' | 'secondary' | 'qa' | 'seller-card';
 }
 
 export default function ContactSellerButton({
@@ -89,6 +89,7 @@ export default function ContactSellerButton({
   };
 
   if (isOwnListing) {
+    if (variant === 'seller-card') return null;
     return (
       <div className="w-full py-2.5 px-4 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 text-xs text-center rounded-lg border border-gray-200 dark:border-zinc-700">
         You are the seller of this item
@@ -98,7 +99,6 @@ export default function ContactSellerButton({
 
   return (
     <>
-      
       {variant === 'qa' ? (
         <div
           onClick={handleOpen}
@@ -113,6 +113,15 @@ export default function ContactSellerButton({
             <MessageSquare className="w-4 h-4" />
           </div>
         </div>
+      ) : variant === 'seller-card' ? (
+        <button
+          onClick={handleOpen}
+          type="button"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gray-50 hover:bg-gray-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-gray-200 font-semibold text-xs rounded-lg transition-colors shadow-xs"
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-primary" />
+          <span>Message</span>
+        </button>
       ) : variant === 'secondary' ? (
         <button
           onClick={handleOpen}

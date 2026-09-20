@@ -15,7 +15,7 @@ interface OtpInputProps {
 }
 
 export default function OtpInput({
-  length = 6,
+  length = 8,
   value,
   onChange,
   onComplete,
@@ -121,10 +121,8 @@ export default function OtpInput({
     setTimeout(() => inputRefs.current[focusIndex]?.focus(), 10);
   };
 
-  const isEight = length >= 8;
-
   return (
-    <div className={`flex items-center justify-center flex-wrap gap-1.5 sm:gap-2 ${className}`}>
+    <div className={`flex items-center justify-between flex-nowrap gap-1 sm:gap-1.5 md:gap-2 w-full max-w-full overflow-hidden ${className}`}>
       {Array.from({ length }).map((_, idx) => (
         <input
           key={idx}
@@ -142,11 +140,7 @@ export default function OtpInput({
           onPaste={handlePaste}
           onFocus={(e) => e.target.select()}
           aria-label={`Digit ${idx + 1}`}
-          className={`text-center font-bold rounded-lg border transition-all shadow-sm outline-none ${
-            isEight
-              ? 'w-8 h-11 sm:w-10 sm:h-13 md:w-11 md:h-14 text-lg sm:text-xl'
-              : 'w-10 h-12 sm:w-12 sm:h-14 text-xl sm:text-2xl'
-          } ${
+          className={`flex-1 min-w-0 max-w-[44px] h-12 sm:h-13 md:h-14 text-center font-bold text-base sm:text-lg md:text-xl rounded-lg border transition-all shadow-xs outline-none ${
             error
               ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20 text-red-700 dark:text-red-400 focus:border-red-600 focus:ring-2 focus:ring-red-500/20'
               : 'border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20'
