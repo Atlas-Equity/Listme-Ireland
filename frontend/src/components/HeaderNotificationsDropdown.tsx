@@ -33,6 +33,7 @@ export default function HeaderNotificationsDropdown({
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [questionAlerts, setQuestionAlerts] = useState<any[]>([]);
   const [closedListings, setClosedListings] = useState<any[]>([]);
+  const [hasWelcomeGuide, setHasWelcomeGuide] = useState<boolean>(false);
   const [loadingInviteId, setLoadingInviteId] = useState<string | null>(null);
   const [resolvedInviteIds, setResolvedInviteIds] = useState<Record<string, 'accepted' | 'declined'>>({});
   const [relistingId, setRelistingId] = useState<string | null>(null);
@@ -59,6 +60,9 @@ export default function HeaderNotificationsDropdown({
         if (Array.isArray(data.closedListings)) {
           setClosedListings(data.closedListings);
         }
+        if (typeof data.hasWelcomeGuide === 'boolean') {
+          setHasWelcomeGuide(data.hasWelcomeGuide);
+        }
       }
     } catch {}
   }, [currentUserId]);
@@ -76,12 +80,14 @@ export default function HeaderNotificationsDropdown({
     window.addEventListener('business_invite_updated', handleRefresh);
     window.addEventListener('listing_relisted', handleRefresh);
     window.addEventListener('relist_updated', handleRefresh);
+    window.addEventListener('welcome_guide_updated', handleRefresh);
     return () => {
       window.removeEventListener('messages_read', handleRefresh);
       window.removeEventListener('new_message_received', handleRefresh);
       window.removeEventListener('business_invite_updated', handleRefresh);
       window.removeEventListener('listing_relisted', handleRefresh);
       window.removeEventListener('relist_updated', handleRefresh);
+      window.removeEventListener('welcome_guide_updated', handleRefresh);
     };
   }, [fetchNotifications]);
 
@@ -213,6 +219,57 @@ export default function HeaderNotificationsDropdown({
             </div>
 
             <div className="max-h-[380px] overflow-y-auto p-3 space-y-3">
+              {hasWelcomeGuide && (
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Image 
+                        src="/clover-logo.png" 
+                        alt="ListMe" 
+                        width={20} 
+                        height={20} 
+                        className="object-contain" 
+                      />
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-900 dark:text-white leading-tight">
+                          Welcome to ListMe.ie
+                        </h4>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">Community Guide</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setHasWelcomeGuide(false);
+                        setNotificationsCount((prev) => Math.max(0, prev - 1));
+                        await dismissNotificationAction('welcome_guide');
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('welcome_guide_updated'));
+                        }
+                      }}
+                      className="p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 line-clamp-2 leading-snug">
+                    Ireland&apos;s trusted marketplace, built by Irish people, for Irish people. Discover buyer protection, storefronts, and fee discounts.
+                  </p>
+                  <div className="pt-1 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between">
+                    <Link
+                      href="/my-listme?tab=notifications"
+                      onClick={() => setIsOpen(false)}
+                      className="text-[11px] font-bold text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Read Guide</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {activeClosed.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between px-1">
@@ -403,7 +460,7 @@ export default function HeaderNotificationsDropdown({
                 </div>
               )}
 
-              {activeInvites.length === 0 && activeClosed.length === 0 && questionAlerts.length === 0 && (
+              {activeInvites.length === 0 && activeClosed.length === 0 && questionAlerts.length === 0 && !hasWelcomeGuide && (
                 <div className="py-8 px-4 text-center space-y-2">
                   <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 mx-auto flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-zinc-400" />

@@ -175,7 +175,8 @@ export async function GET(req: NextRequest) {
       }
     } catch {}
 
-    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length + favUploadsCount;
+    const hasWelcomeGuide = !dismissedIds.includes('welcome_guide');
+    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length + favUploadsCount + (hasWelcomeGuide ? 1 : 0);
 
     return NextResponse.json({
       unreadCount,
@@ -186,6 +187,7 @@ export async function GET(req: NextRequest) {
       questionAlerts,
       closedListings: activeClosedListings,
       totalNotifications,
+      hasWelcomeGuide,
     });
   } catch (err: any) {
     console.error('unread-count API error:', err);
