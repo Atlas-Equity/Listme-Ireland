@@ -458,6 +458,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
         });
 
         if (session.payment_status === 'paid' || session.status === 'complete') {
+          const planType = session.metadata?.planType;
+          const businessPageSlug = session.metadata?.businessPageSlug;
           const subId = typeof session.subscription === 'string'
             ? session.subscription
             : (session.subscription as any)?.id;
@@ -465,34 +467,68 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             ? session.customer
             : (session.customer as any)?.id;
 
+          if (businessPageSlug) {
+            try {
+              await supabase
+                .from('business_pages')
+                .update({ is_verified: true, plan: 'Verified Pro Page' })
+                .ilike('slug', businessPageSlug);
+            } catch {}
+
+            if (Array.isArray(userMetadata.business_pages)) {
+              userMetadata.business_pages = userMetadata.business_pages.map((p: any) => {
+                if (p && typeof p.slug === 'string' && p.slug.toLowerCase() === businessPageSlug.toLowerCase()) {
+                  return { ...p, is_verified: true, plan: 'Verified Pro Page' };
+                }
+                return p;
+              });
+            }
+          }
+
+          const shouldVerifyAccount = planType === 'account' || planType === 'bundle' || !planType;
+
+          if (shouldVerifyAccount) {
+            userMetadata.is_verified = true;
+            userMetadata.verification_type = 'subscription';
+            userMetadata.stripe_subscription_id = subId;
+
+            try {
+              await supabase
+                .from('profiles')
+                .update({
+                  is_verified: true,
+                  stripe_subscription_id: subId,
+                  stripe_customer_id: custId || profile?.stripe_customer_id,
+                })
+                .eq('id', user.id);
+            } catch {}
+          }
+
           await supabase.auth.updateUser({
             data: {
-              is_verified: true,
-              verified_at: new Date().toISOString(),
-              verification_type: 'subscription',
+              ...userMetadata,
               stripe_subscription_id: subId,
               stripe_customer_id: custId || userMetadata.stripe_customer_id,
+              ...(shouldVerifyAccount
+                ? {
+                    is_verified: true,
+                    verified_at: new Date().toISOString(),
+                    verification_type: 'subscription',
+                  }
+                : {}),
             },
           });
 
-          try {
-            await supabase
-              .from('profiles')
-              .update({
-                is_verified: true,
-                stripe_subscription_id: subId,
-                stripe_customer_id: custId || profile?.stripe_customer_id,
-              })
-              .eq('id', user.id);
-          } catch {}
-
-          userMetadata.is_verified = true;
-          userMetadata.verification_type = 'subscription';
-          userMetadata.stripe_subscription_id = subId;
+          let successMsg = '🎉 Account Verified! Your monthly Verified Badge subscription is now active on your profile and listings.';
+          if (planType === 'page') {
+            successMsg = `🎉 Business Page Verified! Your Verified Pro Page badge is now active on @${businessPageSlug || 'your business page'}.`;
+          } else if (planType === 'bundle') {
+            successMsg = `🎉 Bundle Activated! Both your personal account and your Business Page (@${businessPageSlug || 'storefront'}) are now verified.`;
+          }
 
           verificationNotification = {
             success: true,
-            message: '🎉 Account Verified! Your monthly Verified Badge subscription is now active on your profile and listings.',
+            message: successMsg,
           };
         } else {
           verificationNotification = {

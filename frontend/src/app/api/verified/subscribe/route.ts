@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
     }
 
     let plan = 'account';
+    let requestedSlug = '';
     try {
       const body = await req.json();
       if (body?.plan === 'bundle' || body?.plan === 'verified_bundle' || body?.plan === 'business_combined') {
@@ -75,10 +76,64 @@ export async function POST(req: NextRequest) {
       } else {
         plan = 'account';
       }
+      if (typeof body?.businessPageSlug === 'string') {
+        requestedSlug = body.businessPageSlug.trim().toLowerCase();
+      }
     } catch {}
 
     const isBundle = plan === 'bundle';
     const isPage = plan === 'page';
+    let selectedBusinessSlug = '';
+
+    if (isBundle || isPage) {
+      const userPages: { slug: string; name: string }[] = [];
+      const metaPages = (user.user_metadata?.business_pages || []) as any[];
+      for (const p of metaPages) {
+        if (p?.slug) {
+          userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug });
+        }
+      }
+
+      try {
+        const { data: dbPages } = await supabase
+          .from('business_pages')
+          .select('slug, name')
+          .eq('owner_id', user.id);
+
+        if (Array.isArray(dbPages)) {
+          for (const p of dbPages) {
+            if (p?.slug && !userPages.some((existing) => existing.slug === p.slug.toLowerCase())) {
+              userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug });
+            }
+          }
+        }
+      } catch {}
+
+      if (userPages.length === 0) {
+        return NextResponse.json(
+          { error: 'An active Business Page is required to sign up for this subscription.' },
+          { status: 400 }
+        );
+      }
+
+      if (requestedSlug) {
+        const matched = userPages.find((p) => p.slug === requestedSlug);
+        if (!matched) {
+          return NextResponse.json(
+            { error: 'The selected Business Page was not found on your account.' },
+            { status: 400 }
+          );
+        }
+        selectedBusinessSlug = matched.slug;
+      } else if (userPages.length === 1) {
+        selectedBusinessSlug = userPages[0].slug;
+      } else {
+        return NextResponse.json(
+          { error: 'Please select which Business Page you want to verify.' },
+          { status: 400 }
+        );
+      }
+    }
 
     let productName = 'ListMe Verified Account';
     let productDesc = 'Official Verified Badge on your profile and all listings. 50% off buyer fees and up to €10,000 Buyer Protection.';
@@ -125,12 +180,14 @@ export async function POST(req: NextRequest) {
       metadata: {
         userId: user.id,
         planType: plan,
+        businessPageSlug: selectedBusinessSlug,
         type: 'verified_subscription',
       },
       subscription_data: {
         metadata: {
           userId: user.id,
           planType: plan,
+          businessPageSlug: selectedBusinessSlug,
           type: 'verified_subscription',
         },
       },

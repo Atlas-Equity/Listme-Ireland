@@ -72,10 +72,11 @@ export default function CreateBusinessPageModal({
     setIsCheckingOutVerified(true);
     setVerifiedCheckoutError(null);
     try {
+      const pageSlug = initialData?.slug || slug;
       const res = await fetch('/api/verified/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'page' }),
+        body: JSON.stringify({ plan: 'page', businessPageSlug: pageSlug }),
       });
 
       const data = await res.json();

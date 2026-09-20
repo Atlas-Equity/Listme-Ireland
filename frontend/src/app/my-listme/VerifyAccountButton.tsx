@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Settings, ExternalLink, X, Check, Lock } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
 
 interface VerifyAccountButtonProps {
   isSubscribed?: boolean;
@@ -19,6 +20,7 @@ export default function VerifyAccountButton({
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<'personal' | 'business_combined'>('personal');
   const [showModal, setShowModal] = useState(false);
+  const [showSelectPageModal, setShowSelectPageModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function VerifyAccountButton({
     }
   };
 
-  const handleSubscribe = async () => {
+  const handleStartCheckout = async (plan: 'account' | 'bundle', businessPageSlug?: string) => {
     setCheckoutLoading(true);
     setError(null);
 
@@ -59,7 +61,10 @@ export default function VerifyAccountButton({
       const res = await fetch('/api/verified/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: selectedPlan }),
+        body: JSON.stringify({ 
+          plan,
+          ...(businessPageSlug ? { businessPageSlug } : {}),
+        }),
       });
 
       const data = await res.json();
@@ -82,6 +87,16 @@ export default function VerifyAccountButton({
       setError(err?.message || 'Failed to start verified checkout.');
       setCheckoutLoading(false);
     }
+  };
+
+  const handleSubscribe = async () => {
+    if (selectedPlan === 'business_combined') {
+      setShowModal(false);
+      setShowSelectPageModal(true);
+      return;
+    }
+
+    await handleStartCheckout('account');
   };
 
   if (isSubscribed) {
@@ -282,6 +297,23 @@ export default function VerifyAccountButton({
             </div>
           </div>
         </div>
+      )}
+
+      {showSelectPageModal && (
+        <SelectBusinessPageModal
+          isOpen={true}
+          plan="bundle"
+          onClose={() => setShowSelectPageModal(false)}
+          onConfirm={async (slug) => {
+            await handleStartCheckout('bundle', slug);
+          }}
+          onSelectPersonal={() => {
+            setShowSelectPageModal(false);
+            setSelectedPlan('personal');
+            handleStartCheckout('account');
+          }}
+          isProcessing={checkoutLoading}
+        />
       )}
     </>
   );

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle2, Lock, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
 
 type PlanType = 'account' | 'page' | 'bundle';
 
@@ -17,8 +18,9 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
   const router = useRouter();
   const [loadingPlan, setLoadingPlan] = useState<PlanType | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [modalPlan, setModalPlan] = useState<'page' | 'bundle' | null>(null);
 
-  const handleSubscribe = async (plan: PlanType) => {
+  const handleSubscribe = async (plan: PlanType, businessPageSlug?: string) => {
     setLoadingPlan(plan);
     setError(null);
 
@@ -26,7 +28,10 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
       const res = await fetch('/api/verified/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({
+          plan,
+          ...(businessPageSlug ? { businessPageSlug } : {}),
+        }),
       });
 
       const data = await res.json();
@@ -47,6 +52,14 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
     } catch (err: any) {
       setError(err?.message || 'Failed to start verified checkout.');
       setLoadingPlan(null);
+    }
+  };
+
+  const handleCardClick = (plan: PlanType) => {
+    if (plan === 'account') {
+      handleSubscribe('account');
+    } else {
+      setModalPlan(plan);
     }
   };
 
@@ -210,7 +223,7 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
           <div className="pt-6 mt-6 border-t border-gray-100 dark:border-zinc-800 space-y-2">
             <button
               type="button"
-              onClick={() => handleSubscribe('page')}
+              onClick={() => handleCardClick('page')}
               disabled={loadingPlan !== null}
               className="w-full py-3.5 px-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-zinc-100 font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
             >
@@ -302,7 +315,7 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
           <div className="pt-6 mt-6 border-t border-gray-100 dark:border-zinc-800 space-y-2">
             <button
               type="button"
-              onClick={() => handleSubscribe('bundle')}
+              onClick={() => handleCardClick('bundle')}
               disabled={loadingPlan !== null}
               className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-green-700 text-white font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
             >
@@ -324,6 +337,22 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
         <ShieldCheck className="w-4 h-4 text-primary" />
         <span>Secured by Stripe • 256-bit encryption • Cancel anytime in 1 click • Instant badge activation</span>
       </div>
+
+      {modalPlan && (
+        <SelectBusinessPageModal
+          isOpen={true}
+          plan={modalPlan}
+          onClose={() => setModalPlan(null)}
+          onConfirm={async (slug) => {
+            await handleSubscribe(modalPlan, slug);
+          }}
+          onSelectPersonal={() => {
+            setModalPlan(null);
+            handleSubscribe('account');
+          }}
+          isProcessing={loadingPlan === modalPlan}
+        />
+      )}
     </div>
   );
 }

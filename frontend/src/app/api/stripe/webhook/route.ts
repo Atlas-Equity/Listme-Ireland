@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === 'subscription') {
           const userId = session.metadata?.userId || session.client_reference_id;
+          const planType = session.metadata?.planType;
+          const businessPageSlug = session.metadata?.businessPageSlug;
           const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
           const custId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
 
@@ -61,28 +63,55 @@ export async function POST(req: NextRequest) {
 
           if (targetUserId) {
             const { data: userRecord } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
-            if (userRecord?.user) {
-              const currentMeta = userRecord.user.user_metadata || {};
-              await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
-                user_metadata: {
-                  ...currentMeta,
-                  is_verified: true,
-                  verified_at: new Date().toISOString(),
-                  verification_type: 'subscription',
-                  stripe_subscription_id: subId,
-                  stripe_customer_id: custId || currentMeta.stripe_customer_id,
-                },
+            const currentMeta = userRecord?.user?.user_metadata || {};
+
+            let updatedBusinessPages = currentMeta.business_pages;
+            if (businessPageSlug && Array.isArray(currentMeta.business_pages)) {
+              updatedBusinessPages = currentMeta.business_pages.map((p: any) => {
+                if (p && typeof p.slug === 'string' && p.slug.toLowerCase() === businessPageSlug.toLowerCase()) {
+                  return { ...p, is_verified: true, plan: 'Verified Pro Page' };
+                }
+                return p;
               });
             }
 
-            await supabaseAdmin
-              .from('profiles')
-              .update({
-                is_verified: true,
+            if (businessPageSlug) {
+              try {
+                await supabaseAdmin
+                  .from('business_pages')
+                  .update({ is_verified: true, plan: 'Verified Pro Page' })
+                  .ilike('slug', businessPageSlug);
+              } catch {}
+            }
+
+            const shouldVerifyAccount = planType === 'account' || planType === 'bundle' || !planType;
+
+            await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+              user_metadata: {
+                ...currentMeta,
+                ...(shouldVerifyAccount
+                  ? {
+                      is_verified: true,
+                      verified_at: new Date().toISOString(),
+                      verification_type: 'subscription',
+                    }
+                  : {}),
+                business_pages: updatedBusinessPages,
                 stripe_subscription_id: subId,
-                stripe_customer_id: custId,
-              })
-              .eq('id', targetUserId);
+                stripe_customer_id: custId || currentMeta.stripe_customer_id,
+              },
+            });
+
+            if (shouldVerifyAccount) {
+              await supabaseAdmin
+                .from('profiles')
+                .update({
+                  is_verified: true,
+                  stripe_subscription_id: subId,
+                  stripe_customer_id: custId,
+                })
+                .eq('id', targetUserId);
+            }
           }
         }
         break;
@@ -91,6 +120,8 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const userId = subscription.metadata?.userId;
+        const planType = subscription.metadata?.planType;
+        const businessPageSlug = subscription.metadata?.businessPageSlug;
         const custId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
 
         let targetUserId = userId;
@@ -105,25 +136,52 @@ export async function POST(req: NextRequest) {
 
         if (targetUserId) {
           const { data: userRecord } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
-          if (userRecord?.user) {
-            const currentMeta = userRecord.user.user_metadata || {};
-            await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
-              user_metadata: {
-                ...currentMeta,
-                is_verified: false,
-                verification_type: null,
-                stripe_subscription_id: null,
-              },
+          const currentMeta = userRecord?.user?.user_metadata || {};
+
+          let updatedBusinessPages = currentMeta.business_pages;
+          if (businessPageSlug && Array.isArray(currentMeta.business_pages)) {
+            updatedBusinessPages = currentMeta.business_pages.map((p: any) => {
+              if (p && typeof p.slug === 'string' && p.slug.toLowerCase() === businessPageSlug.toLowerCase()) {
+                return { ...p, is_verified: false, plan: 'Commercial Storefront' };
+              }
+              return p;
             });
           }
 
-          await supabaseAdmin
-            .from('profiles')
-            .update({
-              is_verified: false,
-              stripe_subscription_id: null,
-            })
-            .eq('id', targetUserId);
+          if (businessPageSlug) {
+            try {
+              await supabaseAdmin
+                .from('business_pages')
+                .update({ is_verified: false, plan: 'Commercial Storefront' })
+                .ilike('slug', businessPageSlug);
+            } catch {}
+          }
+
+          const shouldUnverifyAccount = planType === 'account' || planType === 'bundle' || !planType;
+
+          await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+            user_metadata: {
+              ...currentMeta,
+              ...(shouldUnverifyAccount
+                ? {
+                    is_verified: false,
+                    verification_type: null,
+                    stripe_subscription_id: null,
+                  }
+                : {}),
+              business_pages: updatedBusinessPages,
+            },
+          });
+
+          if (shouldUnverifyAccount) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({
+                is_verified: false,
+                stripe_subscription_id: null,
+              })
+              .eq('id', targetUserId);
+          }
         }
         break;
       }
@@ -132,6 +190,8 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const isActive = subscription.status === 'active' || subscription.status === 'trialing';
         const userId = subscription.metadata?.userId;
+        const planType = subscription.metadata?.planType;
+        const businessPageSlug = subscription.metadata?.businessPageSlug;
         const custId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
 
         let targetUserId = userId;
@@ -146,25 +206,52 @@ export async function POST(req: NextRequest) {
 
         if (targetUserId) {
           const { data: userRecord } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
-          if (userRecord?.user) {
-            const currentMeta = userRecord.user.user_metadata || {};
-            await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
-              user_metadata: {
-                ...currentMeta,
-                is_verified: isActive,
-                verification_type: isActive ? 'subscription' : null,
-                stripe_subscription_id: isActive ? subscription.id : null,
-              },
+          const currentMeta = userRecord?.user?.user_metadata || {};
+
+          let updatedBusinessPages = currentMeta.business_pages;
+          if (businessPageSlug && Array.isArray(currentMeta.business_pages)) {
+            updatedBusinessPages = currentMeta.business_pages.map((p: any) => {
+              if (p && typeof p.slug === 'string' && p.slug.toLowerCase() === businessPageSlug.toLowerCase()) {
+                return { ...p, is_verified: isActive, plan: isActive ? 'Verified Pro Page' : 'Commercial Storefront' };
+              }
+              return p;
             });
           }
 
-          await supabaseAdmin
-            .from('profiles')
-            .update({
-              is_verified: isActive,
-              stripe_subscription_id: isActive ? subscription.id : null,
-            })
-            .eq('id', targetUserId);
+          if (businessPageSlug) {
+            try {
+              await supabaseAdmin
+                .from('business_pages')
+                .update({ is_verified: isActive, plan: isActive ? 'Verified Pro Page' : 'Commercial Storefront' })
+                .ilike('slug', businessPageSlug);
+            } catch {}
+          }
+
+          const shouldUpdateAccount = planType === 'account' || planType === 'bundle' || !planType;
+
+          await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+            user_metadata: {
+              ...currentMeta,
+              ...(shouldUpdateAccount
+                ? {
+                    is_verified: isActive,
+                    verification_type: isActive ? 'subscription' : null,
+                    stripe_subscription_id: isActive ? subscription.id : null,
+                  }
+                : {}),
+              business_pages: updatedBusinessPages,
+            },
+          });
+
+          if (shouldUpdateAccount) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({
+                is_verified: isActive,
+                stripe_subscription_id: isActive ? subscription.id : null,
+              })
+              .eq('id', targetUserId);
+          }
         }
         break;
       }
