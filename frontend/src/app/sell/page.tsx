@@ -71,6 +71,9 @@ export default function SellPage() {
   const [currentUsername, setCurrentUsername] = useState<string>('me');
   const [isQuinn, setIsQuinn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountCredit, setAccountCredit] = useState<number>(0);
+  const [assignedCardLast4, setAssignedCardLast4] = useState<string | null>(null);
+  const [assignedCardBrand, setAssignedCardBrand] = useState<string | null>(null);
 
   const [listingBranch, setListingBranch] = useState<ListingBranch>('item');
 
@@ -141,6 +144,21 @@ export default function SellPage() {
         const isCredit = card.funding === 'credit' || card.cardType === 'credit';
         return isCredit && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
       });
+
+      const creditBal = typeof userMeta.account_credit === 'number' ? userMeta.account_credit : 0;
+      setAccountCredit(creditBal);
+
+      const targetCard = linkedCards.find((card: any) => {
+        if (!card) return false;
+        const last4 = card.cardNumberBlocks?.[3];
+        if (last4 === '0953' || card.funding === 'debit' || card.cardType === 'debit') return false;
+        return (card.funding === 'credit' || card.cardType === 'credit') && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
+      }) || linkedCards[0];
+
+      if (targetCard?.cardNumberBlocks?.[3]) {
+        setAssignedCardLast4(targetCard.cardNumberBlocks[3]);
+        setAssignedCardBrand(targetCard.brand || 'Card');
+      }
 
       const username = (profile?.username || userMeta.username || '').toLowerCase();
       const userEmail = (user.email || '').toLowerCase();
@@ -1171,27 +1189,69 @@ export default function SellPage() {
                   </div>
                 </div>
 
-                {((duration === '14' || duration === '30') || (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous') || (listingBranch === 'item' && priceType === 'Auction' && hasReserve)) && (
-                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/60 text-xs text-emerald-800 dark:text-emerald-300 space-y-1 mb-4">
-                    <span className="font-bold block">
-                      Fee Breakdown (Total: €{(
-                        (duration === '14' || duration === '30' ? 0.10 : 0) +
-                        (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' ? 0.50 : 0) +
-                        (listingBranch === 'item' && priceType === 'Auction' && hasReserve ? 0.25 : 0)
-                      ).toFixed(2)})
-                    </span>
-                    <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
-                      {(duration === '14' || duration === '30') && <li>Extended duration fee: €0.10</li>}
-                      {listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' && <li>Other &amp; Miscellaneous upload fee: €0.50</li>}
-                      {listingBranch === 'item' && priceType === 'Auction' && hasReserve && <li>Reserve auction fee: €0.25</li>}
-                    </ul>
-                  </div>
-                )}
+                {((duration === '14' || duration === '30') || (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous') || (listingBranch === 'item' && priceType === 'Auction' && hasReserve)) && (() => {
+                  const totalFee = (duration === '14' || duration === '30' ? 0.10 : 0) +
+                    (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' ? 0.50 : 0) +
+                    (listingBranch === 'item' && priceType === 'Auction' && hasReserve ? 0.25 : 0);
+                  return (
+                    <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/60 text-xs text-emerald-800 dark:text-emerald-300 space-y-2 mb-4">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold block">
+                          Fee Breakdown (Total: €{totalFee.toFixed(2)})
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 font-semibold text-emerald-900 dark:text-emerald-200 uppercase tracking-wide">
+                          Listing Fee
+                        </span>
+                      </div>
+                      <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                        {(duration === '14' || duration === '30') && <li>Extended duration fee: €0.10</li>}
+                        {listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' && <li>Other &amp; Miscellaneous upload fee: €0.50</li>}
+                        {listingBranch === 'item' && priceType === 'Auction' && hasReserve && <li>Reserve auction fee: €0.25</li>}
+                      </ul>
+
+                      <div className="pt-2 border-t border-emerald-200/80 dark:border-emerald-800/60 text-[11px] space-y-1">
+                        <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200 font-semibold">
+                          <span>Billing Method:</span>
+                          <span>Account credit first, then assigned card</span>
+                        </div>
+                        <div className="text-emerald-700 dark:text-emerald-300">
+                          {accountCredit >= totalFee ? (
+                            <span className="text-emerald-800 dark:text-emerald-200 font-medium">
+                              ✓ Will be deducted from Account Credit (Available: €{accountCredit.toFixed(2)})
+                            </span>
+                          ) : accountCredit > 0 ? (
+                            <span>
+                              €{accountCredit.toFixed(2)} from Account Credit, remainder €{(totalFee - accountCredit).toFixed(2)} charged to assigned card {assignedCardLast4 ? `(•• ${assignedCardLast4})` : ''}
+                            </span>
+                          ) : assignedCardLast4 ? (
+                            <span>
+                              Will be charged to assigned {assignedCardBrand || 'card'} (•••• {assignedCardLast4})
+                            </span>
+                          ) : (
+                            <span className="text-amber-800 dark:text-amber-300 font-medium">
+                              No credit or assigned card on file. Please link a card in your wallet or top up credit.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="pt-3 border-t border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400">
                   <span className="font-bold text-gray-900 dark:text-white block mb-1">Description:</span>
                   <p className="line-clamp-3 whitespace-pre-line">{description}</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {error && step === 4 && (
+            <div className="mt-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block mb-0.5">Publishing Unsuccessful</span>
+                <span>{error}</span>
               </div>
             </div>
           )}
