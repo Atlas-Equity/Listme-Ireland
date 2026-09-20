@@ -170,9 +170,7 @@ export async function createListing(formData: CreateListingInput) {
     return { error: 'Failed to create listing. Please try again.' };
   }
 
-  // Revalidate relevant pages
   revalidatePath('/');
-  revalidatePath('/browse');
   revalidatePath('/marketplace');
   revalidatePath('/category/marketplace');
   revalidatePath('/category/jobs');

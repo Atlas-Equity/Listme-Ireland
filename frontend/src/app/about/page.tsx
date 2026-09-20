@@ -5,7 +5,6 @@ import {
   Heart, 
   ShieldCheck, 
   Users, 
-  Sparkles, 
   HelpCircle, 
   ArrowRight, 
   CheckCircle2, 

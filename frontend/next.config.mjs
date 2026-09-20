@@ -14,6 +14,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/browse',
+        destination: '/marketplace',
+        permanent: true,
+      },
+      {
         source: '/category/marketplace',
         destination: '/marketplace',
         permanent: true,

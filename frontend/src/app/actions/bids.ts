@@ -146,7 +146,6 @@ export async function placeBid(listingId: string, amount: number) {
     revalidatePath('/marketplace');
     revalidatePath('/category/marketplace');
     revalidatePath('/search');
-    revalidatePath('/browse');
 
     return { success: true };
   } catch (err: any) {

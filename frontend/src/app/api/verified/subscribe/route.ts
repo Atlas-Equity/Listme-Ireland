@@ -85,25 +85,46 @@ export async function POST(req: NextRequest) {
     const isPage = plan === 'page';
     let selectedBusinessSlug = '';
 
+    // Guard: prevent re-purchasing account verification if already verified
+    if (plan === 'account') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_verified')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile?.is_verified || user.user_metadata?.is_verified) {
+        return NextResponse.json(
+          { error: 'Your personal account is already verified. You can manage your subscription in account settings.' },
+          { status: 400 }
+        );
+      }
+    }
+
     if (isBundle || isPage) {
-      const userPages: { slug: string; name: string }[] = [];
+      const userPages: { slug: string; name: string; is_verified?: boolean }[] = [];
       const metaPages = (user.user_metadata?.business_pages || []) as any[];
       for (const p of metaPages) {
         if (p?.slug) {
-          userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug });
+          userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug, is_verified: Boolean(p.is_verified) });
         }
       }
 
       try {
         const { data: dbPages } = await supabase
           .from('business_pages')
-          .select('slug, name')
+          .select('slug, name, is_verified')
           .eq('owner_id', user.id);
 
         if (Array.isArray(dbPages)) {
           for (const p of dbPages) {
-            if (p?.slug && !userPages.some((existing) => existing.slug === p.slug.toLowerCase())) {
-              userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug });
+            if (p?.slug) {
+              const existingIdx = userPages.findIndex((existing) => existing.slug === p.slug.toLowerCase());
+              if (existingIdx >= 0) {
+                userPages[existingIdx].is_verified = Boolean(p.is_verified);
+              } else {
+                userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug, is_verified: Boolean(p.is_verified) });
+              }
             }
           }
         }
@@ -124,14 +145,44 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
+        // Guard: prevent re-purchasing page verification if page is already verified
+        if (matched.is_verified) {
+          return NextResponse.json(
+            { error: `Your Business Page "@${matched.slug}" is already verified. You can manage your subscription in account settings.` },
+            { status: 400 }
+          );
+        }
         selectedBusinessSlug = matched.slug;
       } else if (userPages.length === 1) {
+        // Guard: prevent re-purchasing if the only page is already verified
+        if (userPages[0].is_verified) {
+          return NextResponse.json(
+            { error: `Your Business Page "@${userPages[0].slug}" is already verified. You can manage your subscription in account settings.` },
+            { status: 400 }
+          );
+        }
         selectedBusinessSlug = userPages[0].slug;
       } else {
         return NextResponse.json(
           { error: 'Please select which Business Page you want to verify.' },
           { status: 400 }
         );
+      }
+
+      // Guard: for bundle, also check personal account verification
+      if (isBundle) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_verified')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.is_verified || user.user_metadata?.is_verified) {
+          return NextResponse.json(
+            { error: 'Your personal account is already verified. Consider purchasing the Verified Page plan instead of the bundle.' },
+            { status: 400 }
+          );
+        }
       }
     }
 

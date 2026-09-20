@@ -378,7 +378,7 @@ export default function SellPage() {
         if (selectedBusinessSlug) {
           router.push(`/page/${selectedBusinessSlug}`);
         } else {
-          router.push('/browse');
+          router.push('/marketplace');
         }
         router.refresh();
       }

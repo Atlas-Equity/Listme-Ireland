@@ -3,7 +3,6 @@ import { createPublicClient } from '@/utils/supabase/server';
 import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 import { enrichListingsWithSellers } from '@/utils/sellerMeta';
 import MarketplaceClient from '@/app/marketplace/MarketplaceClient';
-import Hero from '@/components/Hero';
 
 export const revalidate = 30;
 
@@ -31,7 +30,6 @@ export default async function Home({
 
   return (
     <div className="w-full bg-[#f8fafc] dark:bg-black min-h-screen">
-      <Hero />
       <MarketplaceClient
         initialStores={businessPages}
         initialListings={enrichedListings}

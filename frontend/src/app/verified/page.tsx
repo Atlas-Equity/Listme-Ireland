@@ -10,7 +10,6 @@ import {
   Check, 
   ChevronRight,
   Percent,
-  Sparkles,
   HelpCircle
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
@@ -223,7 +222,7 @@ export default function VerifiedPage() {
           <div className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-xs space-y-8">
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-extrabold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
+                <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Choose Your Verification Plan</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">

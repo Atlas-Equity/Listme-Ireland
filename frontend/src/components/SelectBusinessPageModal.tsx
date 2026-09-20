@@ -13,7 +13,6 @@ import {
   Lock,
   ArrowRight,
   PlusCircle,
-  Sparkles,
   ShieldAlert,
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
@@ -229,14 +228,17 @@ export default function SelectBusinessPageModal({
               <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                 {pages.map((p) => {
                   const isSelected = selectedSlug.toLowerCase() === p.slug.toLowerCase();
+                  const isAlreadyVerified = Boolean(p.is_verified);
                   return (
                     <div
                       key={p.slug}
-                      onClick={() => !isProcessing && setSelectedSlug(p.slug)}
-                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20'
-                          : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 hover:border-gray-300 dark:hover:border-zinc-700'
+                      onClick={() => !isProcessing && !isAlreadyVerified && setSelectedSlug(p.slug)}
+                      className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                        isAlreadyVerified
+                          ? 'border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-zinc-900/40 opacity-60 cursor-not-allowed'
+                          : isSelected
+                          ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20 cursor-pointer'
+                          : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 hover:border-gray-300 dark:hover:border-zinc-700 cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -259,12 +261,12 @@ export default function SelectBusinessPageModal({
                             <span className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white truncate">
                               {p.name}
                             </span>
-                            {p.is_verified && (
+                            {isAlreadyVerified ? (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                                 <VerifiedBadge size="xs" />
-                                <span>Active</span>
+                                <span>Already Verified</span>
                               </span>
-                            )}
+                            ) : null}
                           </div>
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
                             @{p.slug}
@@ -273,15 +275,19 @@ export default function SelectBusinessPageModal({
                       </div>
 
                       <div className="shrink-0">
-                        <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            isSelected
-                              ? 'border-primary bg-primary text-white'
-                              : 'border-gray-300 dark:border-zinc-700 bg-transparent'
-                          }`}
-                        >
-                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
-                        </div>
+                        {isAlreadyVerified ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isSelected
+                                ? 'border-primary bg-primary text-white'
+                                : 'border-gray-300 dark:border-zinc-700 bg-transparent'
+                            }`}
+                          >
+                            {isSelected && <CheckCircle2 className="w-3.5 h-3.5 stroke-[3]" />}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -290,7 +296,7 @@ export default function SelectBusinessPageModal({
 
               {selectedSlug && (
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 text-[11px] text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span>
                     Selected: <strong className="text-gray-900 dark:text-white">@{selectedSlug}</strong>
                     {isBundle && ' + your personal account'}
@@ -305,7 +311,7 @@ export default function SelectBusinessPageModal({
                     onConfirm(selectedSlug);
                   }
                 }}
-                disabled={!selectedSlug || isProcessing}
+                disabled={!selectedSlug || isProcessing || Boolean(pages.find(p => p.slug.toLowerCase() === selectedSlug.toLowerCase())?.is_verified)}
                 className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-green-700 text-white font-extrabold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
               >
                 {isProcessing ? (

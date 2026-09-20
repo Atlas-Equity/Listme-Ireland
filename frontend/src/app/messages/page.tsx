@@ -487,7 +487,7 @@ function MessagesContent() {
           </div>
 
           <Link
-            href="/browse"
+            href="/marketplace"
             className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
           >
             <ShoppingBag className="w-3.5 h-3.5" />

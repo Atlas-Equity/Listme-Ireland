@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Loader2, CheckCircle2, Lock, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { Loader2, CheckCircle2, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
 
@@ -242,7 +242,7 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
 
         <div className="bg-white dark:bg-zinc-900 border-2 border-primary rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-lg ring-4 ring-primary/10 transition-all duration-200 relative">
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider shadow-sm flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
+            <ShieldCheck className="w-3 h-3" />
             <span>Best Value • Save €4.99/month</span>
           </div>
 
