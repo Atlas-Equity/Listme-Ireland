@@ -46,6 +46,7 @@ import CreateWatchlistModal from '@/components/CreateWatchlistModal';
 import MakeOfferButton from '@/components/MakeOfferButton';
 import LinkedCardCard from '@/components/LinkedCardCard';
 import RelistNotificationCard from '@/components/RelistNotificationCard';
+import WelcomeGuideNotification from '@/components/WelcomeGuideNotification';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import VerifyAccountButton from './VerifyAccountButton';
@@ -58,6 +59,7 @@ import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
 import { autoCleanupExpiredListings } from '@/app/actions/relist';
 import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
+import { isUserQuinn } from '@/utils/admin';
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -80,7 +82,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     supabase.from('reviews').select('*').eq('reviewee_id', user.id),
     supabase
       .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, status, seller_id')
+      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, status, seller_id, reserve_price, category')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
   ]);
@@ -216,8 +218,9 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     }
   }
 
+  const isWelcomeDismissed = dismissedNotificationIds.includes('welcome_guide');
   const pendingQuestionsCount = listingQuestionsNotifications.length;
-  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount + favUploadNotifications.length;
+  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount + favUploadNotifications.length + (!isWelcomeDismissed ? 1 : 0);
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
@@ -1197,14 +1200,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                         {totalNotificationsCount} Active {totalNotificationsCount === 1 ? 'Alert' : 'Alerts'}
                       </span>
-                      {closedListings.length > 0 && (
-                        <ClearAllNotificationsButton listingIds={closedListings.map((l: any) => l.id)} />
-                      )}
                     </div>
                   </div>
                 </div>
 
-                
+                <WelcomeGuideNotification initialDismissed={isWelcomeDismissed} />
+
                 {pendingBusinessInvites.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -1345,7 +1346,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 flex items-center justify-between">
                       <span className="font-semibold">
-                        You have {closedListings.length} listing(s) that closed with no bids. Relist each for 7 days in 1 click, or they will be automatically deleted after 24 hours.
+                        You have {closedListings.length} listing(s) that closed with no bids. Choose your preferred duration to relist, or delete permanently.
                       </span>
                     </div>
 
@@ -1360,12 +1361,17 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             images: listing.images || [],
                             closes_at: listing.expires_at || listing.ends_at,
                             condition: listing.condition,
+                            price_type: listing.price_type,
+                            reserve_price: listing.reserve_price,
+                            category: listing.category,
                           }}
+                          userCredit={currentAccountCredit}
+                          isQuinn={isUserQuinn(user, profile?.username || userMetadata.username || '')}
                         />
                       ))}
                     </div>
                   </div>
-                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 ? (
+                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 && isWelcomeDismissed ? (
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     

@@ -223,7 +223,7 @@ export default function CheckoutButton({
                         <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">Real Money</span>
                       </div>
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                        {linkedCard ? `${linkedCard.cardNickname} (Visa •• ${cardLast4}) or any card` : 'Visa, Mastercard, Apple Pay, Google Pay'}
+                        {linkedCard ? `${linkedCard.cardNickname} (Visa •• ${cardLast4}) or any card` : 'Visa, Mastercard, & Apple Pay'}
                       </div>
                     </div>
                   </div>

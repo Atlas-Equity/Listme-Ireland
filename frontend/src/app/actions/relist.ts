@@ -5,7 +5,10 @@ import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { isUserQuinn } from '@/utils/admin';
 
-export async function relistListingAction(listingId: string, durationMinutes?: number) {
+export async function relistListingAction(
+  listingId: string, 
+  durationOption: '5m' | '7' | '14' | '30' = '7'
+) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -15,7 +18,7 @@ export async function relistListingAction(listingId: string, durationMinutes?: n
 
   const { data: listing, error: fetchErr } = await supabase
     .from('listings')
-    .select('id, seller_id, title')
+    .select('id, seller_id, title, price, price_type, reserve_price, category')
     .eq('id', listingId)
     .maybeSingle();
 
@@ -31,11 +34,76 @@ export async function relistListingAction(listingId: string, durationMinutes?: n
   let newClosesAt: string;
   let durationMsg = '7 days';
 
-  if (durationMinutes === 5 && userIsQuinn) {
+  if (durationOption === '5m' && userIsQuinn) {
     newClosesAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
     durationMsg = '5 minutes';
+  } else if (durationOption === '14') {
+    newClosesAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    durationMsg = '14 days';
+  } else if (durationOption === '30') {
+    newClosesAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    durationMsg = '30 days';
   } else {
     newClosesAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    durationMsg = '7 days';
+  }
+
+  // Calculate fees required for relisting
+  let totalFee = 0;
+  const feeReasons: string[] = [];
+
+  if (durationOption === '14' || durationOption === '30') {
+    totalFee += 0.10;
+    feeReasons.push(`${durationOption}-day duration (€0.10)`);
+  }
+
+  const hasReserve = listing.price_type === 'Auction' && listing.reserve_price && Number(listing.reserve_price) > 0;
+  if (hasReserve) {
+    totalFee += 0.25;
+    feeReasons.push('reserve auction fee (€0.25)');
+  }
+
+  if (listing.category?.startsWith('Other & Miscellaneous') || listing.category === 'Other & Miscellaneous') {
+    totalFee += 0.50;
+    feeReasons.push('Other & Miscellaneous fee (€0.50)');
+  }
+
+  totalFee = Math.round(totalFee * 100) / 100;
+
+  const currentCredit = typeof user.user_metadata?.account_credit === 'number'
+    ? user.user_metadata.account_credit
+    : 0;
+
+  // Enforce account credit requirement for fees (14/30 days, reserve, etc.)
+  if (totalFee > 0) {
+    if (currentCredit < totalFee) {
+      const reasonText = feeReasons.join(' + ');
+      return {
+        error: `Account credit required: Relisting with ${reasonText} requires €${totalFee.toFixed(2)} in credit. Your available balance is €${currentCredit.toFixed(2)}. Please top up your account credit in Account Details to relist.`
+      };
+    }
+
+    // Deduct fee from account credit
+    const newCredit = Math.round((currentCredit - totalFee) * 100) / 100;
+    const { error: creditErr } = await supabase.auth.updateUser({
+      data: { account_credit: newCredit }
+    });
+
+    if (creditErr) {
+      return { error: `Failed to deduct €${totalFee.toFixed(2)} from account credit: ${creditErr.message}` };
+    }
+
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        const adminClient = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        await adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...user.user_metadata,
+            account_credit: newCredit,
+          }
+        });
+      } catch {}
+    }
   }
 
   const now = new Date().toISOString();
@@ -47,17 +115,29 @@ export async function relistListingAction(listingId: string, durationMinutes?: n
       expires_at: newClosesAt,
       ends_at: newClosesAt,
       created_at: now,
+      upload_fee: totalFee > 0 ? totalFee : null,
     })
     .eq('id', listingId);
 
   if (updateErr) {
+    // Roll back credit if fee was deducted
+    if (totalFee > 0) {
+      await supabase.auth.updateUser({ data: { account_credit: currentCredit } });
+    }
     return { error: updateErr.message };
   }
 
   revalidatePath('/my-listme');
   revalidatePath(`/listing/${listingId}`);
   revalidatePath('/');
-  return { success: true, message: `"${listing.title}" has been relisted for ${durationMsg}!` };
+  revalidatePath('/marketplace');
+
+  const feeNote = totalFee > 0 ? ` (€${totalFee.toFixed(2)} deducted from credit)` : '';
+  return { 
+    success: true, 
+    message: `"${listing.title}" has been relisted for ${durationMsg}${feeNote}!`,
+    newCredit: totalFee > 0 ? Math.round((currentCredit - totalFee) * 100) / 100 : currentCredit,
+  };
 }
 
 /**
@@ -171,14 +251,16 @@ export async function dismissNotificationAction(listingId: string) {
   }
 
   // Automatically delete the closed listing when notification is dismissed/ignored
-  try {
-    await supabase
-      .from('listings')
-      .delete()
-      .eq('id', listingId)
-      .eq('seller_id', user.id);
-  } catch (delErr) {
-    console.warn('Auto-delete on notification dismissal note:', delErr);
+  if (listingId !== 'welcome_guide' && !listingId.startsWith('fav_')) {
+    try {
+      await supabase
+        .from('listings')
+        .delete()
+        .eq('id', listingId)
+        .eq('seller_id', user.id);
+    } catch (delErr) {
+      console.warn('Auto-delete on notification dismissal note:', delErr);
+    }
   }
 
   const dismissed: string[] = user.user_metadata?.dismissed_notifications || [];

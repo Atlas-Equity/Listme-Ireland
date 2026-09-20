@@ -333,7 +333,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                         className="h-5 w-auto object-contain" 
                       />
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely with Visa, Mastercard, Apple Pay, Google Pay via Stripe Escrow with Buyer Protection.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Pay with Visa, Mastercard, &amp; Apple Pay.</p>
                   </div>
                 )}
 
