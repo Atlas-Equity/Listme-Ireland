@@ -18,18 +18,26 @@ export default function StripePricingTable({
   customerEmail,
   className = '',
 }: StripePricingTableProps) {
+  const elementProps: Record<string, string> = {
+    'pricing-table-id': pricingTableId,
+    'publishable-key': publishableKey,
+  };
+
+  if (clientReferenceId) {
+    elementProps['client-reference-id'] = clientReferenceId;
+  }
+
+  if (customerEmail) {
+    elementProps['customer-email'] = customerEmail;
+  }
+
   return (
     <div className={`w-full overflow-hidden ${className}`}>
       <Script
         src="https://js.stripe.com/v3/pricing-table.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
-      {React.createElement('stripe-pricing-table', {
-        'pricing-table-id': pricingTableId,
-        'publishable-key': publishableKey,
-        'client-reference-id': clientReferenceId,
-        'customer-email': customerEmail,
-      })}
+      {React.createElement('stripe-pricing-table', elementProps)}
     </div>
   );
 }

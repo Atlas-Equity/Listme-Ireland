@@ -13,14 +13,17 @@ import {
   HelpCircle
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import VerifiedPricingCard from './VerifiedPricingCard';
+import StripePricingTable from '@/components/StripePricingTable';
+import { createClient } from '@/utils/supabase/server';
 
 export const metadata: Metadata = {
   title: 'ListMe Verified — Trust & Safety | Stand Out with the Verified Badge',
   description: 'Gain immediate buyer trust across Ireland with the ListMe Verified Badge. Choose between Verified Account (€4.99/mo), Verified Page (€4.99/mo), or the Bundle (€7.99/mo).',
 };
 
-export default function VerifiedPage() {
+export default async function VerifiedPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const whyGetVerifiedBenefits = [
     {
       benefit: 'Instant Trust Badge',
@@ -146,7 +149,24 @@ export default function VerifiedPage() {
         </section>
 
         <section id="plans" className="space-y-6">
-          <VerifiedPricingCard initialPlan="bundle" />
+          <div className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-xs relative overflow-hidden">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                Choose Your Verification Plan
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xl mx-auto">
+                Select your verified tier below to subscribe securely with Stripe. Cancel anytime with one click in your account settings.
+              </p>
+            </div>
+
+            <StripePricingTable
+              pricingTableId="prctbl_1UFYqWQ4vWyFpILpWMsKMVmf"
+              publishableKey="pk_live_51TlR2gQ4vWyFpILpKmPSa2iCMOGH5zCE0dracV3PaWTDk1uA4MGJtC0kcIPXIjgSUVNZ6s5WGPOKbqclUPxuwemA00UMLqRB6r"
+              clientReferenceId={user?.id}
+              customerEmail={user?.email}
+              className="min-h-[420px]"
+            />
+          </div>
         </section>
 
         <section className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">

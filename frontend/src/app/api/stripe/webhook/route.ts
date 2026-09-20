@@ -43,16 +43,27 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode === 'subscription' && session.metadata?.type === 'verified_subscription') {
-          const userId = session.metadata?.userId;
+        if (session.mode === 'subscription') {
+          const userId = session.metadata?.userId || session.client_reference_id;
           const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
           const custId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
 
-          if (userId) {
-            const { data: userRecord } = await supabaseAdmin.auth.admin.getUserById(userId);
+          let targetUserId = userId;
+          if (!targetUserId && (session.customer_details?.email || session.customer_email)) {
+            const email = session.customer_details?.email || session.customer_email;
+            const { data: p } = await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('email', email)
+              .maybeSingle();
+            targetUserId = p?.id;
+          }
+
+          if (targetUserId) {
+            const { data: userRecord } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
             if (userRecord?.user) {
               const currentMeta = userRecord.user.user_metadata || {};
-              await supabaseAdmin.auth.admin.updateUserById(userId, {
+              await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
                 user_metadata: {
                   ...currentMeta,
                   is_verified: true,
@@ -71,7 +82,7 @@ export async function POST(req: NextRequest) {
                 stripe_subscription_id: subId,
                 stripe_customer_id: custId,
               })
-              .eq('id', userId);
+              .eq('id', targetUserId);
           }
         }
         break;
