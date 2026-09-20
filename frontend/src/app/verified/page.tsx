@@ -14,7 +14,6 @@ import {
   HelpCircle
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import StripePricingTable from '@/components/StripePricingTable';
 import VerifiedPricingCard from './VerifiedPricingCard';
 
 export const metadata: Metadata = {
@@ -236,26 +235,6 @@ export default function VerifiedPage() {
             </div>
 
             <VerifiedPricingCard />
-
-            <div id="stripe-table" className="pt-10 border-t border-gray-200/80 dark:border-zinc-800 space-y-4">
-              <div className="text-center space-y-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-primary">
-                  Stripe Checkout Table
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
-                  Direct Subscription Table
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Select your tier below to subscribe securely with Stripe.
-                </p>
-              </div>
-
-              <StripePricingTable
-                pricingTableId="prctbl_1UHiSUQ4vWyFpILpF8sCjPPn"
-                publishableKey="pk_live_51TlR2gQ4vWyFpILpKmPSa2iCMOGH5zCE0dracV3PaWTDk1uA4MGJtC0kcIPXIjgSUVNZ6s5WGPOKbqclUPxuwemA00UMLqRB6r"
-                className="min-h-[460px]"
-              />
-            </div>
           </div>
         </section>
 
