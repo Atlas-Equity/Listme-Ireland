@@ -8,9 +8,17 @@ interface SellerMeta {
   is_staff: boolean;
 }
 
-const cache = new Map<string, { meta: SellerMeta; expiresAt: number }>();
-let cachedAuthUsers: any[] | null = null;
-let cachedAuthUsersExpiresAt = 0;
+declare global {
+  var __sellerMetaCache: Map<string, { meta: SellerMeta; expiresAt: number }> | undefined;
+}
+
+if (!globalThis.__sellerMetaCache) {
+  globalThis.__sellerMetaCache = new Map();
+}
+
+function getCache() {
+  return globalThis.__sellerMetaCache!;
+}
 
 function getStatelessClient() {
   return createStatelessClient(
@@ -29,27 +37,11 @@ function getAdminClient() {
   );
 }
 
-async function getAuthUsersList(): Promise<any[]> {
-  const now = Date.now();
-  if (cachedAuthUsers && now < cachedAuthUsersExpiresAt) {
-    return cachedAuthUsers;
-  }
-  const admin = getAdminClient();
-  if (!admin) return [];
-  try {
-    const { data } = await admin.auth.admin.listUsers();
-    cachedAuthUsers = data?.users || [];
-    cachedAuthUsersExpiresAt = now + 60 * 1000;
-    return cachedAuthUsers;
-  } catch {
-    return [];
-  }
-}
-
 export async function getSellerMetaMap(sellerIds: string[]): Promise<Map<string, SellerMeta>> {
   const result = new Map<string, SellerMeta>();
   const missingIds: string[] = [];
   const now = Date.now();
+  const cache = getCache();
 
   for (const id of sellerIds) {
     if (!id) continue;
@@ -66,15 +58,10 @@ export async function getSellerMetaMap(sellerIds: string[]): Promise<Map<string,
   }
 
   const supabase = getStatelessClient();
-  const authUsers = await getAuthUsersList();
-  const authUserMap = new Map<string, any>();
-  for (const u of authUsers) {
-    authUserMap.set(u.id, u);
-  }
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, username, account_type')
+    .select('id, username, account_type, is_verified, is_staff, role, email')
     .in('id', missingIds);
 
   const profileMap = new Map<string, any>();
@@ -84,17 +71,52 @@ export async function getSellerMetaMap(sellerIds: string[]): Promise<Map<string,
     }
   }
 
+  let adminClient: any = null;
+
   for (const id of missingIds) {
     const prof = profileMap.get(id);
-    const authUser = authUserMap.get(id);
 
-    const rawUsername = prof?.username || authUser?.user_metadata?.username || authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Seller';
+    if (prof) {
+      const isStaff = Boolean(
+        prof.is_staff ||
+        prof.role === 'admin' ||
+        prof.role === 'staff' ||
+        prof.role === 'support' ||
+        prof.email === 'admin@listme.ie'
+      );
+
+      const meta: SellerMeta = {
+        username: prof.username || 'Seller',
+        is_verified: Boolean(prof.is_verified),
+        account_type: prof.account_type || 'personal',
+        is_staff: isStaff,
+      };
+
+      cache.set(id, { meta, expiresAt: now + 10 * 60 * 1000 });
+      result.set(id, meta);
+      continue;
+    }
+
+    if (!adminClient) {
+      adminClient = getAdminClient();
+    }
+
+    let authUser: any = null;
+    if (adminClient) {
+      try {
+        const { data: userRes } = await adminClient.auth.admin.getUserById(id);
+        authUser = userRes?.user;
+      } catch {}
+    }
+
+    const rawUsername = authUser?.user_metadata?.username || authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'Seller';
     const isVerified = Boolean(
       authUser?.user_metadata?.is_verified ||
       authUser?.user_metadata?.verification_type === 'paid' ||
+      authUser?.user_metadata?.verification_type === 'subscription' ||
       authUser?.user_metadata?.verified_account === true
     );
-    const accountType = prof?.account_type || authUser?.user_metadata?.account_type || 'personal';
+    const accountType = authUser?.user_metadata?.account_type || 'personal';
     const isStaff = Boolean(
       isAdmin(authUser) ||
       isSupportOfficer(authUser) ||
@@ -109,7 +131,7 @@ export async function getSellerMetaMap(sellerIds: string[]): Promise<Map<string,
       is_staff: isStaff,
     };
 
-    cache.set(id, { meta, expiresAt: now + 5 * 60 * 1000 });
+    cache.set(id, { meta, expiresAt: now + 10 * 60 * 1000 });
     result.set(id, meta);
   }
 

@@ -909,7 +909,7 @@ export async function purchaseVerificationAction() {
   }
 
   const currentCredit = Number(user.user_metadata?.account_credit || 0);
-  const VERIFY_FEE = 4.99;
+  const VERIFY_FEE = 9.99;
   let newCredit = currentCredit;
   if (currentCredit >= VERIFY_FEE) {
     newCredit = Math.round((currentCredit - VERIFY_FEE) * 100) / 100;

@@ -7,11 +7,13 @@ export interface ServiceFeeResult {
   percentageFormatted: string;
   tierLabel: string;
   isCreditDiscountApplied?: boolean;
+  isVerifiedDiscountApplied?: boolean;
 }
 
 export function calculateServiceFee(
   price: number | string,
-  isCreditPayment: boolean = false
+  isCreditPayment: boolean = false,
+  isVerifiedBuyer: boolean = false
 ): ServiceFeeResult {
   const numericPrice = typeof price === 'string' 
     ? parseFloat(price.replace(/[^0-9.]/g, '')) || 0 
@@ -33,7 +35,12 @@ export function calculateServiceFee(
     tierLabel = '€250.01+ (3%)';
   }
 
-  const percentage = isCreditPayment ? Math.max(0, basePercentage - 0.5) : basePercentage;
+  let percentage = basePercentage;
+  if (isVerifiedBuyer) {
+    percentage = basePercentage * 0.5;
+  } else if (isCreditPayment) {
+    percentage = Math.max(0, basePercentage - 0.5);
+  }
 
   const fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
   const total = Math.round((cleanPrice + fee) * 100) / 100;
@@ -45,7 +52,8 @@ export function calculateServiceFee(
     total,
     percentageFormatted: `${percentage}%`,
     tierLabel,
-    isCreditDiscountApplied: isCreditPayment,
+    isCreditDiscountApplied: isCreditPayment && !isVerifiedBuyer,
+    isVerifiedDiscountApplied: isVerifiedBuyer,
   };
 }
 

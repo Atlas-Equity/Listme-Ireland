@@ -1,11 +1,11 @@
 import React from 'react';
-import { createClient } from '@/utils/supabase/server';
+import { createPublicClient } from '@/utils/supabase/server';
 import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 import { enrichListingsWithSellers } from '@/utils/sellerMeta';
 import MarketplaceClient from '@/app/marketplace/MarketplaceClient';
 import Hero from '@/components/Hero';
 
-export const revalidate = 15;
+export const revalidate = 30;
 
 export default async function Home({
   searchParams,
@@ -15,7 +15,7 @@ export default async function Home({
   const resolvedParams = searchParams ? await searchParams : {};
   const defaultFormat = resolvedParams?.format === 'closing-soon' ? 'Closing Soon' : 'All';
 
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [businessPages, listingsResult] = await Promise.all([
     getAllRegisteredBusinessPages(),

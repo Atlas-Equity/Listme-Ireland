@@ -1,11 +1,11 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { createClient } from '@/utils/supabase/server';
+import { createPublicClient } from '@/utils/supabase/server';
 import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 import { enrichListingsWithSellers } from '@/utils/sellerMeta';
 import MarketplaceClient from './MarketplaceClient';
 
-export const revalidate = 15;
+export const revalidate = 30;
 
 export const metadata: Metadata = {
   title: 'Marketplace Ireland | Buy, Sell, Auctions & Deals',
@@ -31,7 +31,7 @@ export default async function MarketplacePage({
   const resolvedParams = searchParams ? await searchParams : {};
   const defaultFormat = resolvedParams?.format === 'closing-soon' ? 'Closing Soon' : 'All';
 
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const [businessPages, listingsResult] = await Promise.all([
     getAllRegisteredBusinessPages(),

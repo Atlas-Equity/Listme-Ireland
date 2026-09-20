@@ -4,26 +4,27 @@ import Link from 'next/link';
 import { 
   ShieldCheck, 
   CheckCircle2, 
-  TrendingUp, 
   Lock, 
   CreditCard, 
   Zap, 
   Check, 
   ChevronRight,
+  Percent,
+  Sparkles,
   HelpCircle
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import StripePricingTable from '@/components/StripePricingTable';
-import { createClient } from '@/utils/supabase/server';
+import VerifiedPricingCard from './VerifiedPricingCard';
 
 export const metadata: Metadata = {
   title: 'ListMe Verified — Trust & Safety | Stand Out with the Verified Badge',
-  description: 'Gain immediate buyer trust across Ireland with the ListMe Verified Badge. Choose between Verified Account (€4.99/mo), Verified Page (€4.99/mo), or the Bundle (€7.99/mo).',
+  description: 'Gain immediate buyer trust across Ireland with the ListMe Verified Badge. Choose between Verified Account (€9.99/mo), Verified Page (€14.99/mo), or the Bundle (€19.99/mo).',
 };
 
-export default async function VerifiedPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export const revalidate = 300;
+
+export default function VerifiedPage() {
   const whyGetVerifiedBenefits = [
     {
       benefit: 'Instant Trust Badge',
@@ -34,12 +35,20 @@ export default async function VerifiedPage() {
       whatItMeans: 'Verified listings appear prominently in search filters, marketplace categories, and featured recommendations',
     },
     {
-      benefit: 'Scam & Fraud Shield',
-      whatItMeans: 'Verified accounts unlock guaranteed platform resolution and Buyer Protection support up to €5,000',
+      benefit: 'Scam and Fraud Shield',
+      whatItMeans: 'Verified accounts unlock guaranteed platform resolution and enhanced Buyer Protection up to €10,000',
+    },
+    {
+      benefit: 'Extra Layer of Safety',
+      whatItMeans: 'Verified members are checked and trusted. They are safer to trade with, buy from, and sell to',
     },
     {
       benefit: 'Priority Support',
       whatItMeans: 'Your support tickets are escalated and handled faster by our team',
+    },
+    {
+      benefit: '50% Off Buyer Service Fees',
+      whatItMeans: 'Verified buyers pay half the standard Service Fee on every purchase',
     },
     {
       benefit: 'Simple, Transparent Pricing',
@@ -50,45 +59,108 @@ export default async function VerifiedPage() {
   const planComparison = [
     {
       feature: 'Official Verified Badge',
-      account: '✅ Profile & Listings',
-      page: '✅ Business Page',
-      bundle: '✅ Both',
+      account: 'Profile and Listings',
+      page: 'Business Page',
+      bundle: 'Both',
     },
     {
       feature: 'Priority Search Ranking',
-      account: '✅',
-      page: '✅',
-      bundle: '✅',
+      account: 'Yes',
+      page: 'Yes',
+      bundle: 'Yes',
     },
     {
       feature: 'Priority Support Escalation',
-      account: '✅',
-      page: '✅',
-      bundle: '✅',
+      account: 'Yes',
+      page: 'Yes',
+      bundle: 'Yes',
     },
     {
-      feature: 'Buyer Protection up to €5,000',
-      account: '✅',
-      page: '✅',
-      bundle: '✅',
+      feature: 'Extra Layer of Safety',
+      account: 'Yes',
+      page: 'Yes',
+      bundle: 'Yes',
+    },
+    {
+      feature: 'Buyer Protection',
+      account: 'Up to €10,000',
+      page: 'N/A (business cannot buy)',
+      bundle: 'Up to €10,000 (personal)',
+    },
+    {
+      feature: '50% Off Buyer Service Fees',
+      account: 'Yes',
+      page: 'N/A',
+      bundle: 'Yes (personal)',
     },
     {
       feature: 'Monthly Price',
-      account: '€4.99',
-      page: '€4.99',
-      bundle: '€7.99',
+      account: '€9.99',
+      page: '€14.99',
+      bundle: '€19.99',
     },
     {
       feature: 'Cancel Anytime',
-      account: '✅',
-      page: '✅',
-      bundle: '✅',
+      account: 'Yes',
+      page: 'Yes',
+      bundle: 'Yes',
+    },
+  ];
+
+  const feeDiscountTiers = [
+    {
+      range: '€10.00 – €50.00',
+      standard: '4%',
+      verified: '2%',
+    },
+    {
+      range: '€50.01 – €250.00',
+      standard: '3.5%',
+      verified: '1.75%',
+    },
+    {
+      range: '€250.01+',
+      standard: '3%',
+      verified: '1.5%',
+    },
+  ];
+
+  const buyerProtectionComparison = [
+    {
+      level: 'Maximum Buyer Protection',
+      standard: 'Up to €5,000',
+      verified: 'Up to €10,000',
+    },
+    {
+      level: 'Extra Layer of Safety',
+      standard: 'No',
+      verified: 'Yes',
+    },
+    {
+      level: 'Safer to Trade With, Buy From, and Sell To',
+      standard: 'Standard',
+      verified: 'Verified and Trusted',
+    },
+    {
+      level: 'Human Investigation',
+      standard: 'Yes',
+      verified: 'Yes',
+    },
+    {
+      level: 'Scam Penalties for Sellers',
+      standard: 'Yes',
+      verified: 'Yes',
+    },
+    {
+      level: 'Priority Ticket Handling',
+      standard: 'No',
+      verified: 'Yes',
     },
   ];
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-black py-10 px-4 sm:px-6 lg:px-8 text-gray-800 dark:text-gray-200">
-      <div className="max-w-5xl mx-auto space-y-12">
+      <div className="max-w-6xl mx-auto space-y-12">
         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
@@ -149,23 +221,41 @@ export default async function VerifiedPage() {
         </section>
 
         <section id="plans" className="space-y-6">
-          <div className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-xs relative overflow-hidden">
-            <div className="text-center mb-8">
+          <div className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-10 shadow-xs space-y-8">
+            <div className="text-center max-w-2xl mx-auto space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-extrabold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Choose Your Verification Plan</span>
+              </div>
               <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                Choose Your Verification Plan
+                Select the Ideal Tier for You
               </h2>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xl mx-auto">
-                Select your verified tier below to subscribe securely with Stripe. Cancel anytime with one click in your account settings.
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                Personal account, Business Page storefront, or the all-inclusive bundle. Cancel anytime with one click in your account settings.
               </p>
             </div>
 
-            <StripePricingTable
-              pricingTableId="prctbl_1UFYqWQ4vWyFpILpWMsKMVmf"
-              publishableKey="pk_live_51TlR2gQ4vWyFpILpKmPSa2iCMOGH5zCE0dracV3PaWTDk1uA4MGJtC0kcIPXIjgSUVNZ6s5WGPOKbqclUPxuwemA00UMLqRB6r"
-              clientReferenceId={user?.id}
-              customerEmail={user?.email}
-              className="min-h-[420px]"
-            />
+            <VerifiedPricingCard />
+
+            <div id="stripe-table" className="pt-10 border-t border-gray-200/80 dark:border-zinc-800 space-y-4">
+              <div className="text-center space-y-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-primary">
+                  Stripe Checkout Table
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+                  Direct Subscription Table
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Select your tier below to subscribe securely with Stripe.
+                </p>
+              </div>
+
+              <StripePricingTable
+                pricingTableId="prctbl_1UHiSUQ4vWyFpILpF8sCjPPn"
+                publishableKey="pk_live_51TlR2gQ4vWyFpILpKmPSa2iCMOGH5zCE0dracV3PaWTDk1uA4MGJtC0kcIPXIjgSUVNZ6s5WGPOKbqclUPxuwemA00UMLqRB6r"
+                className="min-h-[460px]"
+              />
+            </div>
           </div>
         </section>
 
@@ -175,7 +265,7 @@ export default async function VerifiedPage() {
               What You Get With Every Plan
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Compare features across individual Verified Account, Verified Page, and the complete Bundle.
+              Compare features across Verified Account, Verified Page, and the complete Bundle.
             </p>
           </div>
 
@@ -212,6 +302,105 @@ export default async function VerifiedPage() {
         </section>
 
         <section className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="border-b border-gray-200/80 dark:border-zinc-800 pb-4">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 text-xs font-bold mb-2">
+              <Percent className="w-3.5 h-3.5" />
+              <span>50% Fee Discount</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+              How the 50% Buyer Service Fee Discount Works
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Verified buyers pay half the standard Service Fee on every single item purchased across ListMe.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="border-b border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white bg-gray-50/80 dark:bg-zinc-900/60 font-bold">
+                <tr>
+                  <th className="py-3.5 px-4 rounded-l-xl">Purchase Price</th>
+                  <th className="py-3.5 px-4 text-center">Standard Service Fee</th>
+                  <th className="py-3.5 px-4 text-center rounded-r-xl text-emerald-600 dark:text-emerald-400">Verified Member Fee (50% Off)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 font-medium">
+                {feeDiscountTiers.map((tier, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
+                      {tier.range}
+                    </td>
+                    <td className="py-3.5 px-4 text-center font-mono text-gray-600 dark:text-gray-400">
+                      {tier.standard}
+                    </td>
+                    <td className="py-3.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {tier.verified}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-emerald-200/80 dark:border-emerald-900/40 space-y-2">
+            <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Real World Example:</span>
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              You buy an item for €200. Standard Service Fee would be 3.5% (€7.00). As a Verified member, you pay 1.75% (€3.50). That is a saving of €3.50 on a single purchase.
+            </p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">
+              If you buy regularly, the subscription pays for itself quickly.
+            </p>
+          </div>
+        </section>
+
+        <section className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="border-b border-gray-200/80 dark:border-zinc-800 pb-4">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+              Buyer Protection and Safety — Verified vs Standard
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Compare coverage limits and security levels between standard and verified platform members.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="border-b border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white bg-gray-50/80 dark:bg-zinc-900/60 font-bold">
+                <tr>
+                  <th className="py-3.5 px-4 rounded-l-xl">Protection Level</th>
+                  <th className="py-3.5 px-4 text-center">Standard Members</th>
+                  <th className="py-3.5 px-4 text-center rounded-r-xl text-primary font-bold">Verified Members</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 font-medium">
+                {buyerProtectionComparison.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
+                      {row.level}
+                    </td>
+                    <td className="py-3.5 px-4 text-center text-gray-600 dark:text-gray-400">
+                      {row.standard}
+                    </td>
+                    <td className="py-3.5 px-4 text-center text-primary font-bold">
+                      {row.verified}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800">
+            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              Verified members get double the protection ceiling and an extra layer of safety. That means if something goes wrong on a high value purchase, you are covered far beyond the standard limit. And when you trade with a verified member, you know you are dealing with someone who has been checked and trusted.
+            </p>
+          </div>
+        </section>
+
+        <section className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
             Simple, Transparent Pricing
           </h2>
@@ -224,13 +413,13 @@ export default async function VerifiedPage() {
               <CreditCard className="w-5 h-5 text-primary mb-2" />
               <h3 className="font-bold text-sm text-gray-900 dark:text-white">Stripe Security</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Processed securely by Stripe. 256-bit encryption for all card transactions.
+                Processed securely by Stripe. 256 bit encryption for all transactions.
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800">
               <Zap className="w-5 h-5 text-primary mb-2" />
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white">No Long-Term Contracts</h3>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white">No Long Term Contracts</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 Rolling monthly subscription. You can cancel at any moment with one click.
               </p>
@@ -240,7 +429,7 @@ export default async function VerifiedPage() {
               <ShieldCheck className="w-5 h-5 text-primary mb-2" />
               <h3 className="font-bold text-sm text-gray-900 dark:text-white">Instant Badge Activation</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Your badge activates automatically across your profile, listings, and pages once payment is confirmed.
+                Instant badge activation once payment is confirmed.
               </p>
             </div>
           </div>
@@ -262,17 +451,19 @@ export default async function VerifiedPage() {
                 <tr>
                   <th className="py-3.5 px-4 rounded-l-xl">Plan</th>
                   <th className="py-3.5 px-4">Price</th>
+                  <th className="py-3.5 px-4">Best For</th>
                   <th className="py-3.5 px-4 text-right rounded-r-xl">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 font-medium">
                 <tr className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                   <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">Verified Account</td>
-                  <td className="py-3.5 px-4 text-gray-700 dark:text-gray-300">€4.99/month</td>
+                  <td className="py-3.5 px-4 font-mono text-gray-700 dark:text-gray-300">€9.99/month</td>
+                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">Personal buyers and sellers</td>
                   <td className="py-3.5 px-4 text-right">
                     <a
                       href="#plans"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-green-700 transition-colors shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs hover:bg-black dark:hover:bg-zinc-100 transition-colors shadow-xs"
                     >
                       <span>Get Verified Account</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -281,11 +472,12 @@ export default async function VerifiedPage() {
                 </tr>
                 <tr className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                   <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">Verified Page</td>
-                  <td className="py-3.5 px-4 text-gray-700 dark:text-gray-300">€4.99/month</td>
+                  <td className="py-3.5 px-4 font-mono text-gray-700 dark:text-gray-300">€14.99/month</td>
+                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">Business sellers only</td>
                   <td className="py-3.5 px-4 text-right">
                     <a
                       href="#plans"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-green-700 transition-colors shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs hover:bg-black dark:hover:bg-zinc-100 transition-colors shadow-xs"
                     >
                       <span>Get Verified Page</span>
                       <ChevronRight className="w-3.5 h-3.5" />
@@ -296,7 +488,8 @@ export default async function VerifiedPage() {
                   <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
                     Verified Account + Page Bundle
                   </td>
-                  <td className="py-3.5 px-4 text-primary font-bold">€7.99/month</td>
+                  <td className="py-3.5 px-4 font-mono text-primary font-bold">€19.99/month</td>
+                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">Personal and Business together (best value)</td>
                   <td className="py-3.5 px-4 text-right">
                     <a
                       href="#plans"
@@ -313,7 +506,7 @@ export default async function VerifiedPage() {
 
           <div className="pt-4 border-t border-gray-200/80 dark:border-zinc-800 text-center space-y-2 text-xs text-gray-500 dark:text-gray-400">
             <p className="font-semibold text-gray-700 dark:text-gray-300">
-              Secured by Stripe • Cancel anytime in 1-click • No long-term contracts • Instant badge activation
+              Secured by Stripe • Cancel anytime in 1 click • No long term contracts • Instant badge activation
             </p>
             <p>
               This page forms part of our{' '}

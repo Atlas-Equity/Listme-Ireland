@@ -77,9 +77,9 @@ export default function CommunityHubClient({
       date: 'September 2026',
       title: 'Verified Accounts & Scam Chargeback Protection',
       tag: 'Trust & Safety',
-      summary: 'Get verified starting at €4.99/month for individual members or €7.99/month for businesses. All sellers require a linked credit card.',
-      link: '/buyer-protection',
-      linkLabel: 'Buyer Protection guide',
+      summary: 'Get verified starting at €9.99/month for individual members or €14.99/month for businesses. All sellers require a linked credit card.',
+      link: '/verified',
+      linkLabel: 'Verified plans & benefits',
     },
   ];
 

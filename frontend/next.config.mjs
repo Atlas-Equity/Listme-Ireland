@@ -54,10 +54,13 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '15mb',
     },
+    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
   },
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: 'https',
@@ -112,6 +115,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/:all*(png|jpg|jpeg|webp|avif|ico|svg)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         source: '/clover-logo.png',
         headers: [
           {
@@ -122,6 +134,33 @@ const nextConfig = {
       },
       {
         source: '/ListMeBanner.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/ListMeBusinessVerifiedPage.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/ListMeVerifiedPersonalAccount.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/ListMeVerifiedBundle.png',
         headers: [
           {
             key: 'Cache-Control',

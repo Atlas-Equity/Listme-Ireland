@@ -492,7 +492,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
           verificationNotification = {
             success: true,
-            message: '🎉 Account Verified! Your monthly €4.99 Verified Badge subscription is now active on your profile and listings.',
+            message: '🎉 Account Verified! Your monthly Verified Badge subscription is now active on your profile and listings.',
           };
         } else {
           verificationNotification = {
@@ -533,7 +533,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
     verificationNotification = {
       success: true,
-      message: '🎉 Account Verified! Your monthly €4.99 Verified Badge subscription is now active on your profile and listings.',
+      message: '🎉 Account Verified! Your monthly Verified Badge subscription is now active on your profile and listings.',
     };
   } else if (params?.verified_status === 'cancelled') {
     verificationNotification = {
@@ -999,7 +999,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 </span>
                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                                   {isSubscriptionVerified
-                                    ? 'Active Monthly Subscription (€4.99/mo) • Verified Badge Active'
+                                    ? 'Active Monthly Subscription • Verified Badge Active'
                                     : 'Personally Verified by ListMe'}
                                 </p>
                               </div>
@@ -1021,7 +1021,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 Standard Member
                               </span>
                               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                                Unlock immediate verified status starting at €4.99/month for individual members or €7.99/month for businesses.
+                                Unlock immediate verified status starting at €9.99/month for individual members or €14.99/month for businesses.
                               </p>
                             </div>
                             <div className="shrink-0">

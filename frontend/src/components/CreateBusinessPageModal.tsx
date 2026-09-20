@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { 
   Building2, 
   Store,
@@ -64,6 +65,38 @@ export default function CreateBusinessPageModal({
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCheckingOutVerified, setIsCheckingOutVerified] = useState(false);
+  const [verifiedCheckoutError, setVerifiedCheckoutError] = useState<string | null>(null);
+
+  const handleBuyVerified = async () => {
+    setIsCheckingOutVerified(true);
+    setVerifiedCheckoutError(null);
+    try {
+      const res = await fetch('/api/verified/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'page' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        if (res.status === 401) {
+          router.push(`/login?redirect=/page/${slug || initialData?.slug || ''}`);
+          return;
+        }
+        throw new Error(data.error || 'Failed to start verified checkout.');
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned from server.');
+      }
+    } catch (err: any) {
+      setVerifiedCheckoutError(err?.message || 'Failed to start verified checkout.');
+      setIsCheckingOutVerified(false);
+    }
+  };
 
   const [businessType, setBusinessType] = useState<'service' | 'marketplace'>(
     initialData?.business_type || 'marketplace'
@@ -401,6 +434,94 @@ export default function CreateBusinessPageModal({
                 <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {isEditing && (
+                <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-zinc-800 bg-gray-50/70 dark:bg-zinc-900/60 p-4 space-y-3">
+                  {initialData?.is_verified ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white block">
+                            Verified Business Storefront Active
+                          </span>
+                          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                            Official Verified Badge active across search and category rankings
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold uppercase tracking-wider">
+                        Active
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="w-full rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800/80 bg-zinc-900 shadow-2xs">
+                        <Image
+                          src="/ListMeBusinessVerifiedPage.png"
+                          alt="ListMe Business Verified Page Banner"
+                          width={1020}
+                          height={120}
+                          className="w-full h-auto object-cover"
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-black text-gray-900 dark:text-white">
+                              Upgrade to Verified Storefront
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-extrabold">
+                              €14.99/mo
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                            Official badge on your Business Page, priority ranking in searches &amp; categories, and up to 3x higher customer trust.
+                          </p>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleBuyVerified}
+                            disabled={isCheckingOutVerified}
+                            className="px-4 py-2.5 rounded-xl bg-primary hover:bg-green-700 text-white font-extrabold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            {isCheckingOutVerified ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Lock className="w-3.5 h-3.5" />
+                            )}
+                            <span>Get Verified for €14.99/mo</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {verifiedCheckoutError && (
+                        <p className="text-[11px] text-red-600 dark:text-red-400 font-medium">
+                          {verifiedCheckoutError}
+                        </p>
+                      )}
+
+                      <div className="pt-2 border-t border-gray-200/70 dark:border-zinc-800 flex items-center justify-between text-[11px]">
+                        <span className="text-gray-400 dark:text-gray-500">
+                          Cancel anytime with one click in account settings
+                        </span>
+                        <Link
+                          href="/verified"
+                          target="_blank"
+                          className="text-primary font-bold hover:underline"
+                        >
+                          View all plans &amp; benefits &rarr;
+                        </Link>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

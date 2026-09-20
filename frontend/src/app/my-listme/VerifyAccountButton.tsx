@@ -184,10 +184,10 @@ export default function VerifyAccountButton({
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-gray-900 dark:text-white">Personal / Member</span>
-                      <span className="text-sm font-black text-primary">€4.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
+                      <span className="text-sm font-black text-primary">€9.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                      Verified badge on your personal profile and marketplace listings.
+                      Verified badge on your personal profile, 50% fee discount &amp; marketplace listings.
                     </p>
                   </div>
 
@@ -200,8 +200,8 @@ export default function VerifyAccountButton({
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-gray-900 dark:text-white">Business / Combined</span>
-                      <span className="text-sm font-black text-primary">€7.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">Account + Page Bundle</span>
+                      <span className="text-sm font-black text-primary">€19.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
                     </div>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
                       Verify yourself &amp; your business storefront with verified commercial badges across both.
@@ -228,9 +228,9 @@ export default function VerifyAccountButton({
                   <div className="flex items-start gap-3">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="text-xs font-bold text-gray-900 dark:text-white">Priority Ranking in Searches</h4>
+                      <h4 className="text-xs font-bold text-gray-900 dark:text-white">Priority Ranking &amp; 50% Off Fees</h4>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                        Verified items rank higher in marketplace searches and generate higher buyer confidence.
+                        Verified items rank higher in marketplace searches and buyers save 50% on all service fees.
                       </p>
                     </div>
                   </div>
@@ -240,7 +240,7 @@ export default function VerifyAccountButton({
                     <div>
                       <h4 className="text-xs font-bold text-gray-900 dark:text-white">Priority Support &amp; Buyer Protection</h4>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                        Expedited human support ticket handling and full platform dispute protection up to €5,000.
+                        Expedited human support ticket handling and enhanced Buyer Protection up to €10,000.
                       </p>
                     </div>
                   </div>
@@ -261,7 +261,7 @@ export default function VerifyAccountButton({
                 ) : (
                   <>
                     <VerifiedBadge size="xs" />
-                    <span>Subscribe for {selectedPlan === 'business_combined' ? '€7.99' : '€4.99'}/mo</span>
+                    <span>Subscribe for {selectedPlan === 'business_combined' ? '€19.99' : '€9.99'}/mo</span>
                   </>
                 )}
               </button>

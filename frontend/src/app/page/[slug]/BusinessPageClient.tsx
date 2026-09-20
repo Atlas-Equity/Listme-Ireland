@@ -202,11 +202,11 @@ export default function BusinessPageClient({
                 </span>
               ) : isOwner ? (
                 <Link
-                  href="/my-listme?tab=settings"
+                  href="/verified"
                   className="px-2.5 py-1 rounded-md bg-black/70 hover:bg-black/90 text-zinc-200 text-xs font-semibold border border-white/20 flex items-center gap-1.5 transition-colors"
-                  title="Subscribe to Business Verification for €4.99/mo"
+                  title="Subscribe to Business Verification for €14.99/mo"
                 >
-                  <span>Unverified Business • Get Verified (€4.99/mo)</span>
+                  <span>Unverified Business • Get Verified (€14.99/mo)</span>
                 </Link>
               ) : null}
             </div>

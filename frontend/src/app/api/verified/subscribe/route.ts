@@ -81,17 +81,20 @@ export async function POST(req: NextRequest) {
     const isPage = plan === 'page';
 
     let productName = 'ListMe Verified Account';
-    let productDesc = 'Official Verified Badge on your profile and all listings.';
-    let unitAmount = 499;
+    let productDesc = 'Official Verified Badge on your profile and all listings. 50% off buyer fees and up to €10,000 Buyer Protection.';
+    let unitAmount = 999;
+    let productImages = [`${origin}/ListMeVerifiedPersonalAccount.png`];
 
     if (isBundle) {
       productName = 'ListMe Verified Account + Verified Page Bundle';
-      productDesc = 'Official Verified Badge on your profile, all listings, and your Business Page storefront.';
-      unitAmount = 799;
+      productDesc = 'Official Verified Badge on your profile, all listings, and your Business Page storefront. Best value bundle.';
+      unitAmount = 1999;
+      productImages = [`${origin}/ListMeVerifiedBundle.png`];
     } else if (isPage) {
       productName = 'ListMe Verified Page';
-      productDesc = 'Official Verified Badge on your Business Page storefront.';
-      unitAmount = 499;
+      productDesc = 'Official Verified Badge and priority ranking for your Business Page storefront.';
+      unitAmount = 1499;
+      productImages = [`${origin}/ListMeBusinessVerifiedPage.png`];
     }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
@@ -105,6 +108,7 @@ export async function POST(req: NextRequest) {
           product_data: {
             name: productName,
             description: productDesc,
+            images: productImages,
           },
         },
         quantity: 1,

@@ -25,13 +25,14 @@ export default function ServiceFeeModal({
 
   const primaryStandardCalc = calculateServiceFee(price, false);
   const primaryCreditCalc = calculateServiceFee(price, true);
+  const primaryVerifiedCalc = calculateServiceFee(price, false, true);
 
   const buyNowStandardCalc = numericBuyNow ? calculateServiceFee(numericBuyNow, false) : null;
   const buyNowCreditCalc = numericBuyNow ? calculateServiceFee(numericBuyNow, true) : null;
+  const buyNowVerifiedCalc = numericBuyNow ? calculateServiceFee(numericBuyNow, false, true) : null;
 
   return (
     <>
-      
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -54,15 +55,12 @@ export default function ServiceFeeModal({
         )}
       </button>
 
-      
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
           <div 
             className="relative w-full max-w-lg bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            
-            
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-zinc-800">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -82,21 +80,19 @@ export default function ServiceFeeModal({
               </button>
             </div>
 
-            
             <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-              
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                Our Service Fee helps keep our platform operating and means we can continue to offer local support and Buyer Protection up to €5,000. The fee is charged to buyers for payments made on Listme. It&apos;s calculated based on the purchase price.
+                Our Service Fee helps keep our platform operating and means we can continue to offer local support and Buyer Protection up to €5,000 (up to €10,000 for Verified members). The fee is charged to buyers for payments made on Listme and is calculated based on the purchase price.
               </p>
 
-              
               <div className="rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden text-xs">
                 <table className="w-full text-left">
                   <thead className="bg-gray-50 dark:bg-zinc-900/80 border-b border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-gray-300 font-bold">
                     <tr>
-                      <th className="py-3 px-4">Purchase price</th>
-                      <th className="py-3 px-4 text-right">Standard Fee</th>
-                      <th className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400">With Credit</th>
+                      <th className="py-2.5 px-3">Purchase price</th>
+                      <th className="py-2.5 px-3 text-right">Standard</th>
+                      <th className="py-2.5 px-3 text-right text-emerald-600 dark:text-emerald-400">With Credit</th>
+                      <th className="py-2.5 px-3 text-right text-primary">Verified (50% Off)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80">
@@ -108,25 +104,29 @@ export default function ServiceFeeModal({
 
                       const basePct = parseFloat(tier.feePercent);
                       const creditPct = Math.max(0, basePct - 0.5);
+                      const verifiedPct = basePct * 0.5;
 
                       return (
                         <tr 
                           key={tier.range}
                           className={isCurrentTier ? 'bg-blue-50/70 dark:bg-blue-950/30 font-semibold text-primary dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}
                         >
-                          <td className="py-2.5 px-4 flex items-center gap-2">
+                          <td className="py-2 px-3 flex items-center gap-1.5">
                             <span>{tier.range}</span>
                             {isCurrentTier && (
-                              <span className="text-[10px] px-1.5 py-0.2 bg-primary text-white rounded-full uppercase font-bold">
+                              <span className="text-[9px] px-1 py-0.2 bg-primary text-white rounded-full uppercase font-bold">
                                 Current
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-4 text-right font-mono font-medium">
+                          <td className="py-2 px-3 text-right font-mono font-medium">
                             {tier.feePercent}
                           </td>
-                          <td className="py-2.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             {creditPct}%
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-primary">
+                            {verifiedPct}%
                           </td>
                         </tr>
                       );
@@ -135,18 +135,25 @@ export default function ServiceFeeModal({
                 </table>
               </div>
 
-              
               <div className="p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 flex items-start gap-2.5 text-xs text-zinc-800 dark:text-zinc-200">
-                <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold">ListMe Account Credit Discount:</span> Pay using your ListMe Account Credit at checkout and your service fee automatically drops by <strong>0.5%</strong>!
                 </div>
               </div>
 
-              
-              {isMixed && buyNowStandardCalc && buyNowCreditCalc ? (
+              <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/40 flex items-start gap-2.5 text-xs text-blue-900 dark:text-blue-200">
+                <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">ListMe Verified 50% Fee Discount:</span> Verified buyers pay half the standard Service Fee on every purchase, plus enhanced Buyer Protection up to €10,000.{' '}
+                  <Link href="/verified" onClick={() => setIsOpen(false)} className="text-primary font-bold underline hover:opacity-80">
+                    Get Verified from €9.99/mo &rarr;
+                  </Link>
+                </div>
+              </div>
+
+              {isMixed && buyNowStandardCalc && buyNowCreditCalc && buyNowVerifiedCalc ? (
                 <div className="space-y-3">
-                  
                   <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       Auction Fee Breakdown (Current Bid)
@@ -166,19 +173,25 @@ export default function ServiceFeeModal({
                       </span>
                       <span className="font-bold font-mono">+€{primaryCreditCalc.fee.toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between text-xs text-primary font-medium">
+                      <span className="flex items-center gap-1">
+                        <span>Service Fee (Verified Member {primaryVerifiedCalc.percentageFormatted}):</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-primary font-bold">50% off</span>
+                      </span>
+                      <span className="font-bold font-mono">+€{primaryVerifiedCalc.fee.toFixed(2)}</span>
+                    </div>
                     <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
                       <div>
                         <span className="text-[11px] text-gray-500 dark:text-gray-400 block">Est. Total (Standard):</span>
                         <span className="font-bold text-gray-900 dark:text-white font-mono">€{primaryStandardCalc.total.toFixed(2)}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[11px] text-gray-600 dark:text-gray-300 block font-bold">Est. Total (With Credit):</span>
-                        <span className="text-sm font-extrabold text-gray-900 dark:text-white font-mono">€{primaryCreditCalc.total.toFixed(2)}</span>
+                        <span className="text-[11px] text-primary block font-bold">Est. Total (Verified):</span>
+                        <span className="text-sm font-extrabold text-primary font-mono">€{primaryVerifiedCalc.total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
 
-                  
                   <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-2.5">
                     <div className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       Buy Now Fee Breakdown
@@ -198,14 +211,21 @@ export default function ServiceFeeModal({
                       </span>
                       <span className="font-bold font-mono">+€{buyNowCreditCalc.fee.toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between text-xs text-primary font-medium">
+                      <span className="flex items-center gap-1">
+                        <span>Service Fee (Verified Member {buyNowVerifiedCalc.percentageFormatted}):</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-primary font-bold">50% off</span>
+                      </span>
+                      <span className="font-bold font-mono">+€{buyNowVerifiedCalc.fee.toFixed(2)}</span>
+                    </div>
                     <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
                       <div>
                         <span className="text-[11px] text-gray-500 dark:text-gray-400 block">Est. Total (Standard):</span>
                         <span className="font-bold text-gray-900 dark:text-white font-mono">€{buyNowStandardCalc.total.toFixed(2)}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[11px] text-gray-600 dark:text-gray-300 block font-bold">Est. Total (With Credit):</span>
-                        <span className="text-sm font-extrabold text-gray-900 dark:text-white font-mono">€{buyNowCreditCalc.total.toFixed(2)}</span>
+                        <span className="text-[11px] text-primary block font-bold">Est. Total (Verified):</span>
+                        <span className="text-sm font-extrabold text-primary font-mono">€{buyNowVerifiedCalc.total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -227,28 +247,32 @@ export default function ServiceFeeModal({
                     </span>
                     <span className="font-bold font-mono">+€{primaryCreditCalc.fee.toFixed(2)}</span>
                   </div>
+                  <div className="flex justify-between text-xs text-primary font-medium">
+                    <span className="flex items-center gap-1">
+                      <span>Service Fee (Verified Member {primaryVerifiedCalc.percentageFormatted}):</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-primary font-bold">50% off</span>
+                    </span>
+                    <span className="font-bold font-mono">+€{primaryVerifiedCalc.fee.toFixed(2)}</span>
+                  </div>
                   <div className="pt-2 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
                     <div>
                       <span className="text-[11px] text-gray-500 dark:text-gray-400 block">Estimated Total (Standard):</span>
                       <span className="font-bold text-gray-900 dark:text-white font-mono">€{primaryStandardCalc.total.toFixed(2)}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block font-bold">Estimated Total (With Credit):</span>
-                      <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">€{primaryCreditCalc.total.toFixed(2)}</span>
+                      <span className="text-[11px] text-primary block font-bold">Estimated Total (Verified):</span>
+                      <span className="text-sm font-extrabold text-primary font-mono">€{primaryVerifiedCalc.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Your trade is protected under Listme Buyer Protection up to €5,000.</span>
+                <span>Your trade is protected under Listme Buyer Protection up to €5,000 (up to €10,000 for Verified members).</span>
               </div>
-
             </div>
 
-            
             <div className="p-4 bg-gray-50 dark:bg-zinc-900/80 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
               <Link
                 href="/buyer-protection"
@@ -266,7 +290,6 @@ export default function ServiceFeeModal({
                 Close
               </button>
             </div>
-
           </div>
         </div>
       )}
