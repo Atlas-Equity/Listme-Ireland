@@ -140,17 +140,23 @@ export async function getSellerMetaMap(sellerIds: string[]): Promise<Map<string,
 
 export async function enrichListingsWithSellers(listings: any[]): Promise<any[]> {
   if (!listings || listings.length === 0) return [];
-  const sellerIds = Array.from(new Set(listings.map(l => l.seller_id).filter(Boolean)));
+  const sellerIds = Array.from(new Set(listings.map((l) => l.seller_id).filter(Boolean)));
   const metaMap = await getSellerMetaMap(sellerIds);
 
-  return listings.map(item => {
+  return listings.map((item) => {
     const meta = item.seller_id ? metaMap.get(item.seller_id) : undefined;
+    const bizMatch = item.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
+    const businessSlug = item.business_page_slug || (bizMatch ? bizMatch[1].trim().toLowerCase() : undefined);
+    const businessName = bizMatch && bizMatch[2] ? bizMatch[2].trim() : (businessSlug ? businessSlug : undefined);
+
     return {
       ...item,
-      seller_name: meta?.username || item.seller_name || 'Seller',
+      seller_name: businessName || meta?.username || item.seller_name || 'Seller',
       seller_verified: meta ? meta.is_verified : Boolean(item.seller_verified),
-      seller_account_type: meta?.account_type || item.seller_account_type || 'personal',
+      seller_account_type: businessSlug ? 'business' : (meta?.account_type || item.seller_account_type || 'personal'),
       seller_is_staff: meta ? meta.is_staff : Boolean(item.seller_is_staff),
+      business_page_slug: businessSlug,
+      business_page_name: businessName,
     };
   });
 }

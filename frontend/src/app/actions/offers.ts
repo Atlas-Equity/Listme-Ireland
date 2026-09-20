@@ -44,12 +44,24 @@ export async function submitOfferAction({
   try {
     const { data: listing, error: listingError } = await supabase
       .from('listings')
-      .select('id, title, price')
+      .select('id, title, price, price_type')
       .eq('id', listingId)
       .single();
 
     if (listingError || !listing) {
       return { success: false, error: 'Listing not found.' };
+    }
+
+    if (listing.price_type === 'Auction') {
+      return { success: false, error: 'Offers cannot be made on auction listings. Please place a bid.' };
+    }
+
+    const askingPrice = typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : Number(listing.price);
+    if (!isNaN(askingPrice) && askingPrice > 0) {
+      const minAllowed = Math.round((askingPrice * 0.90) * 100) / 100;
+      if (amount < minAllowed) {
+        return { success: false, error: `Offers must be at least 90% of the asking price (€${minAllowed.toFixed(2)}).` };
+      }
     }
 
     const buyerName = user.user_metadata?.username || user.email?.split('@')[0] || 'Buyer';

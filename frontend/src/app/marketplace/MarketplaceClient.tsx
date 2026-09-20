@@ -9,6 +9,7 @@ import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
 import CustomSelect from '@/components/CustomSelect';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { MARKETPLACE_CATEGORIES, CATEGORY_NAMES } from '@/constants/marketplaceCategories';
 
 interface MarketplaceClientProps {
   initialStores: BusinessPageData[];
@@ -23,7 +24,24 @@ export default function MarketplaceClient({
 }: MarketplaceClientProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('All');
   const [buyingFormat, setBuyingFormat] = useState(defaultFormat || 'All');
+
+  const subcategoryOptions = useMemo(() => {
+    if (selectedCategory === 'All' || !MARKETPLACE_CATEGORIES[selectedCategory]) {
+      return [{ value: 'All', label: 'All Subcategories' }];
+    }
+    return [
+      { value: 'All', label: 'All Subcategories' },
+      ...MARKETPLACE_CATEGORIES[selectedCategory].map((sub) => ({ value: sub, label: sub })),
+    ];
+  }, [selectedCategory]);
+
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    setSelectedSubcategory('All');
+  };
 
   const closingSoonListings = useMemo(() => {
     const nowMs = Date.now();
@@ -39,13 +57,15 @@ export default function MarketplaceClient({
     const list = initialStores.filter((store) => {
       const isMarketplace = store.business_type === 'marketplace' || !store.business_type;
       const matchesCounty = selectedCounty === 'All' || store.county?.toLowerCase() === selectedCounty.toLowerCase();
+      const matchesCategory = selectedCategory === 'All' ||
+        (store.category && store.category.toLowerCase().includes(selectedCategory.toLowerCase()));
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q ||
         store.name.toLowerCase().includes(q) ||
         (store.tagline && store.tagline.toLowerCase().includes(q)) ||
         (store.category && store.category.toLowerCase().includes(q));
 
-      return isMarketplace && matchesCounty && matchesSearch;
+      return isMarketplace && matchesCounty && matchesCategory && matchesSearch;
     });
 
     return list.sort((a, b) => {
@@ -55,7 +75,7 @@ export default function MarketplaceClient({
       if (!isA && isB) return 1;
       return 0;
     });
-  }, [initialStores, searchQuery, selectedCounty]);
+  }, [initialStores, searchQuery, selectedCounty, selectedCategory]);
 
   const filteredListings = useMemo(() => {
     const nowMs = Date.now();
@@ -71,18 +91,33 @@ export default function MarketplaceClient({
         (buyingFormat === 'Buy Now' && item.price_type?.toLowerCase() !== 'auction') ||
         (buyingFormat === 'Closing Soon' && isClosingSoon);
 
+      const matchesCategory = selectedCategory === 'All' ||
+        item.category?.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        item.description?.toLowerCase().includes(selectedCategory.toLowerCase());
+
+      const matchesSubcategory = selectedSubcategory === 'All' ||
+        item.description?.toLowerCase().includes(`[subcategory: ${selectedSubcategory.toLowerCase()}]`) ||
+        item.description?.toLowerCase().includes(selectedSubcategory.toLowerCase()) ||
+        (item as any).subcategory?.toLowerCase() === selectedSubcategory.toLowerCase() ||
+        item.title?.toLowerCase().includes(selectedSubcategory.toLowerCase());
+
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q ||
         item.title?.toLowerCase().includes(q) ||
         item.description?.toLowerCase().includes(q);
 
-      return matchesCounty && matchesFormat && matchesSearch;
+      return matchesCounty && matchesFormat && matchesCategory && matchesSubcategory && matchesSearch;
     });
-  }, [initialListings, searchQuery, selectedCounty, buyingFormat]);
+  }, [initialListings, searchQuery, selectedCounty, buyingFormat, selectedCategory, selectedSubcategory]);
+
+  const [showAllStores, setShowAllStores] = useState(false);
+  const [visibleListingsCount, setVisibleListingsCount] = useState(40);
+
+  const displayedStores = showAllStores ? filteredStores : filteredStores.slice(0, 6);
+  const displayedListings = filteredListings.slice(0, visibleListingsCount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
@@ -105,9 +140,8 @@ export default function MarketplaceClient({
           </div>
         </div>
 
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-[#f8fafc] dark:bg-[#181818] p-3 rounded-2xl border border-gray-200/90 dark:border-zinc-800 shadow-xs">
-          <div className="sm:col-span-2 relative flex items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-[#f8fafc] dark:bg-[#181818] p-3 rounded-2xl border border-gray-200/90 dark:border-zinc-800 shadow-xs">
+          <div className="sm:col-span-2 lg:col-span-2 relative flex items-center">
             <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
@@ -115,6 +149,23 @@ export default function MarketplaceClient({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search marketplace items and verified seller storefronts..."
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <CustomSelect
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              options={[{ value: 'All', label: 'All Categories' }, ...CATEGORY_NAMES.map((c) => ({ value: c, label: c }))]}
+            />
+          </div>
+
+          <div>
+            <CustomSelect
+              value={selectedSubcategory}
+              onChange={setSelectedSubcategory}
+              disabled={selectedCategory === 'All'}
+              options={subcategoryOptions}
             />
           </div>
 
@@ -141,7 +192,6 @@ export default function MarketplaceClient({
         </div>
       </div>
 
-      
       <section className="mb-12">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -159,69 +209,83 @@ export default function MarketplaceClient({
         </div>
 
         {filteredStores.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredStores.map((store) => (
-              <Link
-                key={store.slug}
-                href={`/page/${store.slug}`}
-                className="p-5 rounded-2xl bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start gap-3.5 mb-3.5">
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 overflow-hidden relative shrink-0 flex items-center justify-center">
-                      {store.avatarUrl ? (
-                        <Image
-                          src={store.avatarUrl}
-                          alt={store.name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <Store className="w-6 h-6 text-primary" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                          {store.name}
-                        </h3>
-                        {(store.is_verified || store.slug === 'listme') && (
-                          <VerifiedBadge size="xs" />
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {displayedStores.map((store) => (
+                <Link
+                  key={store.slug}
+                  href={`/page/${store.slug}`}
+                  className="p-5 rounded-2xl bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start gap-3.5 mb-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 overflow-hidden relative shrink-0 flex items-center justify-center">
+                        {store.avatarUrl ? (
+                          <Image
+                            src={store.avatarUrl}
+                            alt={store.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <Store className="w-6 h-6 text-primary" />
                         )}
-                        <span className="text-[11px] font-semibold">
-                          {store.slug === 'listme' ? (
-                            <span className="text-primary font-bold">Official Platform</span>
-                          ) : store.is_verified ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Storefront</span>
-                          ) : (
-                            <span className="text-gray-500">Storefront</span>
-                          )}
-                        </span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                        {store.category || 'Retail & Local Storefront'}
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
+                            {store.name}
+                          </h3>
+                          {(store.is_verified || store.slug === 'listme') && (
+                            <VerifiedBadge size="xs" />
+                          )}
+                          <span className="text-[11px] font-semibold">
+                            {store.slug === 'listme' ? (
+                              <span className="text-primary font-bold">Official Platform</span>
+                            ) : store.is_verified ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Storefront</span>
+                            ) : (
+                              <span className="text-gray-500">Storefront</span>
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                          {store.category || 'Retail & Local Storefront'}
+                        </p>
+                      </div>
                     </div>
+
+                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed mb-4">
+                      {store.announcement || store.tagline || 'Official storefront on ListMe Ireland.'}
+                    </p>
                   </div>
 
-                  <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed mb-4">
-                    {store.announcement || store.tagline || 'Official storefront on ListMe Ireland.'}
-                  </p>
-                </div>
+                  <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{store.county || 'Ireland'}</span>
+                    </span>
+                    <span className="font-bold text-primary flex items-center gap-1 group-hover:underline">
+                      Visit Storefront <ExternalLink className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
 
-                <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{store.county || 'Ireland'}</span>
-                  </span>
-                  <span className="font-bold text-primary flex items-center gap-1 group-hover:underline">
-                    Visit Storefront <ExternalLink className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+            {filteredStores.length > 6 && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllStores(!showAllStores)}
+                  className="px-5 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-800 dark:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  {showAllStores ? 'Show Fewer Storefronts' : `View All Storefronts (${filteredStores.length})`}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="p-8 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-center">
             <Store className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -232,7 +296,6 @@ export default function MarketplaceClient({
         )}
       </section>
 
-      
       {closingSoonListings.length > 0 && (
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
@@ -266,13 +329,14 @@ export default function MarketplaceClient({
                 sellerName={item.seller_name}
                 sellerVerified={item.seller_verified}
                 sellerId={item.seller_id}
+                businessPageSlug={item.business_page_slug}
+                businessPageName={item.business_page_name}
               />
             ))}
           </div>
         </section>
       )}
 
-      
       <section>
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
           <div>
@@ -290,25 +354,41 @@ export default function MarketplaceClient({
         </div>
 
         {filteredListings.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
-            {filteredListings.map((item) => (
-              <ListingCard
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                price={Number(item.price)}
-                priceType={item.price_type || 'Buy Now'}
-                condition={item.condition || 'Used'}
-                images={item.images || []}
-                createdAt={item.created_at}
-                location={item.location}
-                closesAt={item.expires_at || item.ends_at}
-                sellerName={item.seller_name}
-                sellerVerified={item.seller_verified}
-                sellerId={item.seller_id}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
+              {displayedListings.map((item) => (
+                <ListingCard
+                  key={item.id}
+                  id={item.id}
+                  title={item.title}
+                  price={Number(item.price)}
+                  priceType={item.price_type || 'Buy Now'}
+                  condition={item.condition || 'Used'}
+                  images={item.images || []}
+                  createdAt={item.created_at}
+                  location={item.location}
+                  closesAt={item.expires_at || item.ends_at}
+                  sellerName={item.seller_name}
+                  sellerVerified={item.seller_verified}
+                  sellerId={item.seller_id}
+                  businessPageSlug={item.business_page_slug}
+                  businessPageName={item.business_page_name}
+                />
+              ))}
+            </div>
+
+            {filteredListings.length > visibleListingsCount && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleListingsCount((prev) => prev + 40)}
+                  className="px-6 py-3 rounded-2xl bg-primary hover:bg-green-700 text-white text-xs sm:text-sm font-extrabold transition-all shadow-md cursor-pointer active:scale-95"
+                >
+                  View More Listings ({filteredListings.length - visibleListingsCount} remaining)
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="p-8 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-center">
             <Tag className="w-8 h-8 text-gray-400 mx-auto mb-2" />

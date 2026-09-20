@@ -31,12 +31,15 @@ import {
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { ListingCard } from '@/components/ListingCard';
-import { BusinessPageData, createOrUpdateBusinessPage } from '@/app/actions/businessPages';
+import { createOrUpdateBusinessPage, type BusinessPageData } from '@/app/actions/businessPages';
 import { uploadAvatarAction } from '@/app/my-listme/actions';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import DeleteBusinessPageButton from '@/components/DeleteBusinessPageButton';
 import BusinessTeamManagement from '@/components/BusinessTeamManagement';
 import FavouriteBusinessButton from '@/components/FavouriteBusinessButton';
+import AdminVerifyBusinessButton from '@/components/AdminVerifyBusinessButton';
+import ReportButton from '@/components/ReportButton';
+import { isUserQuinn } from '@/utils/admin';
 
 interface BusinessPageClientProps {
   businessPage: BusinessPageData;
@@ -164,7 +167,13 @@ export default function BusinessPageClient({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {isAdmin && (
+                <AdminVerifyBusinessButton
+                  slug={businessPage.slug}
+                  isVerified={businessPage.is_verified}
+                />
+              )}
               {(isOwner || isAdmin || isTeamMember) && <CreateBusinessPageModal initialData={businessPage} />}
               {isTrueOwner && !isListMeOfficial && (
                 <DeleteBusinessPageButton slug={businessPage.slug} pageName={businessPage.name} />
@@ -314,38 +323,31 @@ export default function BusinessPageClient({
                 >
                   {copied ? <Check className="w-4 h-4 text-zinc-200" /> : <Share2 className="w-4 h-4" />}
                 </button>
+
+                {!isListMeOfficial && (
+                  <ReportButton
+                    targetType="business"
+                    targetIdentifier={`@${businessPage.slug}`}
+                    targetUrl={`https://www.listme.ie/page/${businessPage.slug}`}
+                    targetName={businessPage.name}
+                  />
+                )}
               </div>
 
             </div>
 
             
-            <div className="flex items-center gap-2 pt-2 text-xs font-bold">
-              {!isListMeOfficial && (
+            {isListMeOfficial && (
+              <div className="flex items-center gap-2 pt-2 text-xs font-bold">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('listings')}
-                  className={`px-4 py-2.5 rounded-lg transition-colors cursor-pointer ${
-                    activeTab === 'listings'
-                      ? 'text-primary border-b-2 border-primary bg-gray-100 dark:bg-zinc-800'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                  onClick={() => setActiveTab('about')}
+                  className="px-4 py-2.5 rounded-lg text-primary border-b-2 border-primary bg-gray-100 dark:bg-zinc-800 transition-colors cursor-pointer"
                 >
-                  Store Items ({listings.length})
+                  Official Platform Info & Safety
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('about')}
-                className={`px-4 py-2.5 rounded-lg transition-colors cursor-pointer ${
-                  activeTab === 'about'
-                    ? 'text-primary border-b-2 border-primary bg-gray-100 dark:bg-zinc-800'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                {isListMeOfficial ? 'Official Platform Info & Safety' : 'About & Opening Hours'}
-              </button>
-            </div>
+              </div>
+            )}
 
           </div>
         </div>
@@ -384,15 +386,17 @@ export default function BusinessPageClient({
                 </div>
 
                 
-                <div className="flex items-start gap-3">
-                  <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-semibold text-gray-900 dark:text-white">Opening Hours</span>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      {businessPage.opening_hours || 'Mon - Fri: 9:00 AM - 6:00 PM'}
-                    </span>
+                {businessPage.opening_hours && (
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="block font-semibold text-gray-900 dark:text-white">Opening Hours</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {businessPage.opening_hours}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 
                 <div className="flex items-center gap-3">

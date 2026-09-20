@@ -10,7 +10,8 @@ interface BiddingFormProps {
 }
 
 export default function BiddingForm({ listingId, minBid }: BiddingFormProps) {
-  const [amount, setAmount] = useState<string>(minBid.toString());
+  const effectiveMinBid = Math.max(1.00, Number(minBid) || 1.00);
+  const [amount, setAmount] = useState<string>(effectiveMinBid.toFixed(2));
   const [error, setError] = useState<string | null>(null);
   const [requiresCard, setRequiresCard] = useState(false);
   const [linkingCard, setLinkingCard] = useState(false);
@@ -42,9 +43,9 @@ export default function BiddingForm({ listingId, minBid }: BiddingFormProps) {
     setError(null);
     setRequiresCard(false);
 
-    const bidAmount = parseFloat(amount);
-    if (isNaN(bidAmount) || bidAmount < minBid) {
-      setError(`Bid must be at least €${minBid.toFixed(2)}`);
+    const bidAmount = Math.round((parseFloat(amount) || 0) * 100) / 100;
+    if (isNaN(bidAmount) || bidAmount < effectiveMinBid) {
+      setError(`Bid must be at least €${effectiveMinBid.toFixed(2)}`);
       return;
     }
 
@@ -99,7 +100,7 @@ export default function BiddingForm({ listingId, minBid }: BiddingFormProps) {
           <input
             type="number"
             step="0.01"
-            min={minBid}
+            min={effectiveMinBid}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-full bg-[#1a1a1a] border border-[#333] rounded-md py-3 pl-8 pr-4 text-white text-lg font-bold focus:outline-none focus:border-[#0073e6]"

@@ -1452,7 +1452,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             sellerId={listing.seller_id}
                           />
 
-                          {listing.seller_id !== user.id && (
+                          {listing.seller_id !== user.id && listing.price_type !== 'Auction' && (
                             <MakeOfferButton
                               listingId={listing.id}
                               sellerId={listing.seller_id}

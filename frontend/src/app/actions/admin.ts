@@ -3,7 +3,7 @@
 import { createClient as createServerClient } from '@/utils/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { isAdmin, ADMIN_EMAILS, isSupportOfficer } from '@/utils/admin';
+import { isAdmin, ADMIN_EMAILS, isSupportOfficer, isSuperAdmin } from '@/utils/admin';
 import { getMemberNumber } from '@/utils/irelandLocations';
 
 function getAdminClient() {
@@ -69,10 +69,18 @@ export async function revokeAdminRoleAction(targetUserId: string) {
       return { error: 'You cannot revoke your own administrator access.' };
     }
 
+    if (isSuperAdmin(targetUserId)) {
+      return { error: 'Super Admin and Platform Owner privileges are protected and cannot be revoked.' };
+    }
+
     const adminClient = getAdminClient();
     const { data: targetUser } = await adminClient.auth.admin.getUserById(targetUserId);
     if (!targetUser?.user) {
       return { error: 'Target user not found.' };
+    }
+
+    if (isSuperAdmin(targetUser.user)) {
+      return { error: 'Super Admin and Platform Owner privileges are protected and cannot be revoked.' };
     }
 
     const currentMeta = targetUser.user.user_metadata || {};
@@ -155,11 +163,20 @@ export async function grantFreeVerifiedAction(targetUserId: string, reason: stri
 export async function revokeVerifiedAction(targetUserId: string) {
   try {
     await requireAdminCaller();
+
+    if (isSuperAdmin(targetUserId)) {
+      return { error: 'Super Admin verified status is protected and cannot be revoked.' };
+    }
+
     const adminClient = getAdminClient();
 
     const { data: targetUser } = await adminClient.auth.admin.getUserById(targetUserId);
     if (!targetUser?.user) {
       return { error: 'Target user not found.' };
+    }
+
+    if (isSuperAdmin(targetUser.user)) {
+      return { error: 'Super Admin verified status is protected and cannot be revoked.' };
     }
 
     const currentMeta = targetUser.user.user_metadata || {};
@@ -194,10 +211,18 @@ export async function banUserAccountAction(targetUserId: string, durationHours: 
       return { error: 'You cannot ban your own administrator account.' };
     }
 
+    if (isSuperAdmin(targetUserId)) {
+      return { error: 'Super Admin and Platform Owner accounts cannot be banned or suspended.' };
+    }
+
     const adminClient = getAdminClient();
     const { data: targetUser, error: fetchErr } = await adminClient.auth.admin.getUserById(targetUserId);
     if (fetchErr || !targetUser?.user) {
       return { error: 'Target user not found.' };
+    }
+
+    if (isSuperAdmin(targetUser.user)) {
+      return { error: 'Super Admin and Platform Owner accounts cannot be banned or suspended.' };
     }
 
     const isPermanent = durationHours <= 0;

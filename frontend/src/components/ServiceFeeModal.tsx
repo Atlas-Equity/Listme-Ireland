@@ -122,11 +122,11 @@ export default function ServiceFeeModal({
                           <td className="py-2 px-3 text-right font-mono font-medium">
                             {tier.feePercent}
                           </td>
-                          <td className="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                            {creditPct}%
+                          <td className="py-2 px-3 text-right font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            {tier.creditDiscount}
                           </td>
                           <td className="py-2 px-3 text-right font-mono font-bold text-primary">
-                            {verifiedPct}%
+                            {tier.verifiedPercent}
                           </td>
                         </tr>
                       );
@@ -138,7 +138,7 @@ export default function ServiceFeeModal({
               <div className="p-3.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 flex items-start gap-2.5 text-xs text-zinc-800 dark:text-zinc-200">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">ListMe Account Credit Discount:</span> Pay using your ListMe Account Credit at checkout and your service fee automatically drops by <strong>0.5%</strong>!
+                  <span className="font-bold">ListMe Account Credit Discount:</span> Pay using your ListMe Account Credit at checkout and you get a flat discount off your Service Fee: <strong>-€1 off base total</strong> (up to €250), or <strong>-€5 off base total</strong> (above €250). If the -€1 discount is more than the fee, the fee is rounded down to €0.
                 </div>
               </div>
 

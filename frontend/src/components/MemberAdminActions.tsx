@@ -22,6 +22,7 @@ import {
   assignAdminRoleAction, 
   revokeAdminRoleAction 
 } from '@/app/actions/admin';
+import { isSuperAdmin } from '@/utils/admin';
 import { useRouter } from 'next/navigation';
 import { emitToast } from '@/context/ToastContext';
 
@@ -45,6 +46,7 @@ export default function MemberAdminActions({
   banStatus,
 }: MemberAdminActionsProps) {
   const router = useRouter();
+  const isTargetSuperAdmin = isSuperAdmin(targetUserId) || isSuperAdmin(targetUsername);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showBanModal, setShowBanModal] = useState(false);
@@ -186,6 +188,11 @@ export default function MemberAdminActions({
           </div>
           <p className="text-xs text-zinc-300 mt-1">
             Managing account <strong className="text-white">@{targetUsername}</strong> (UUID: {targetUserId.slice(0, 8)}...)
+            {isTargetSuperAdmin && (
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-extrabold uppercase">
+                Super Admin
+              </span>
+            )}
           </p>
           {banStatus.isBanned && (
             <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-950/60 px-2.5 py-1 rounded-md border border-red-800/80 w-fit">
@@ -198,68 +205,73 @@ export default function MemberAdminActions({
           )}
         </div>
 
-        
         <div className="flex flex-wrap items-center gap-2">
-          
-          {isCurrentlyVerified ? (
-            <button
-              type="button"
-              onClick={handleRevokeVerified}
-              disabled={loading}
-              className="px-3 py-1.5 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <Award className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Revoke Verified</span>
-            </button>
+          {isTargetSuperAdmin ? (
+            <div className="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2 shadow-xs">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Super Admin & Platform Owner (Protected Account)</span>
+            </div>
           ) : (
-            <button
-              type="button"
-              onClick={handleGrantVerified}
-              disabled={loading}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <Award className="w-3.5 h-3.5" />
-              <span>Give Free Verified</span>
-            </button>
-          )}
+            <>
+              {isCurrentlyVerified ? (
+                <button
+                  type="button"
+                  onClick={handleRevokeVerified}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Award className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Revoke Verified</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGrantVerified}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Award className="w-3.5 h-3.5" />
+                  <span>Give Free Verified</span>
+                </button>
+              )}
 
-          
-          {banStatus.isBanned ? (
-            <button
-              type="button"
-              onClick={handleUnban}
-              disabled={loading}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <Unlock className="w-3.5 h-3.5" />
-              <span>Unban Account</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowBanModal(true)}
-              disabled={loading}
-              className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-            >
-              <Ban className="w-3.5 h-3.5" />
-              <span>Ban / Suspend User</span>
-            </button>
-          )}
+              {banStatus.isBanned ? (
+                <button
+                  type="button"
+                  onClick={handleUnban}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>Unban Account</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowBanModal(true)}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Ban className="w-3.5 h-3.5" />
+                  <span>Ban / Suspend User</span>
+                </button>
+              )}
 
-          
-          <button
-            type="button"
-            onClick={handleToggleAdminRole}
-            disabled={loading}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 ${
-              isCurrentlyAdmin
-                ? 'border-amber-700 bg-amber-950/60 text-amber-300 hover:bg-amber-900'
-                : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5 text-primary" />
-            <span>{isCurrentlyAdmin ? 'Revoke Admin' : 'Assign Admin'}</span>
-          </button>
+              <button
+                type="button"
+                onClick={handleToggleAdminRole}
+                disabled={loading}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 ${
+                  isCurrentlyAdmin
+                    ? 'border-amber-700 bg-amber-950/60 text-amber-300 hover:bg-amber-900'
+                    : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5 text-primary" />
+                <span>{isCurrentlyAdmin ? 'Revoke Admin' : 'Assign Admin'}</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { isAdmin } from '@/utils/admin';
+import { isAdmin, isUserQuinn } from '@/utils/admin';
 
 export interface TeamMemberData {
   user_id: string;
@@ -618,6 +618,16 @@ export async function inviteBusinessTeamMemberAction(pageSlug: string, targetUse
     return { error: 'Please enter a valid @username.' };
   }
 
+  const currentUsername = (user.user_metadata?.username || user.user_metadata?.full_name || user.email?.split('@')[0] || '').toLowerCase();
+  const currentUserEmail = (user.email || '').toLowerCase();
+  if (
+    cleanUser === currentUsername ||
+    cleanUser === currentUserEmail ||
+    cleanUser === user.id.toLowerCase()
+  ) {
+    return { error: 'You cannot invite yourself to your own page.' };
+  }
+
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!serviceKey || !supabaseUrl) {
@@ -626,7 +636,6 @@ export async function inviteBusinessTeamMemberAction(pageSlug: string, targetUse
 
   const adminClient = createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-  // 1. Fetch freshest owner metadata to find the business page
   const { data: adminUser } = await adminClient.auth.admin.getUserById(user.id);
   const ownerMeta = adminUser?.user?.user_metadata || {};
   const businessPages: BusinessPageData[] = ownerMeta.business_pages || [];
@@ -638,7 +647,6 @@ export async function inviteBusinessTeamMemberAction(pageSlug: string, targetUse
 
   const page = businessPages[pageIdx];
 
-  // 2. Lookup target user by username in profiles table first
   const { data: profile } = await adminClient
     .from('profiles')
     .select('id, username')
@@ -649,7 +657,6 @@ export async function inviteBusinessTeamMemberAction(pageSlug: string, targetUse
   let resolvedUsername = profile?.username || cleanUser;
 
   if (!targetUserId) {
-    // Check auth users list
     const { data: usersData } = await adminClient.auth.admin.listUsers({ perPage: 100 });
     const matchedUser = usersData?.users.find(
       (u) =>
@@ -666,8 +673,8 @@ export async function inviteBusinessTeamMemberAction(pageSlug: string, targetUse
     return { error: `User @${cleanUser} was not found on ListMe.` };
   }
 
-  if (targetUserId === user.id) {
-    return { error: 'You cannot invite yourself as you already own this page.' };
+  if (targetUserId === user.id || cleanUser === currentUsername || (page.owner_id && page.owner_id === targetUserId)) {
+    return { error: 'You cannot invite yourself to your own page.' };
   }
 
   // Check if user is already a team member
@@ -1133,5 +1140,67 @@ export async function transferBusinessPageOwnershipAction(
   revalidatePath('/my-listme');
   revalidatePath(`/page/${pageSlug}`);
   return { success: true, message: `Full ownership transferred to @${newOwnerUsername}.` };
+}
+
+export async function adminToggleBusinessVerification(slug: string) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const userIsAdmin = isAdmin(user) || isUserQuinn(user);
+  if (!userIsAdmin) {
+    return { success: false, error: 'Administrator access required.' };
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!supabaseUrl || !serviceKey) {
+    return { success: false, error: 'Admin client not available.' };
+  }
+  const adminClient = createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+  const cleanSlug = slug.toLowerCase().trim();
+
+  const { data: pageData } = await adminClient
+    .from('business_pages')
+    .select('*')
+    .ilike('slug', cleanSlug)
+    .maybeSingle();
+
+  const newVerified = !pageData?.is_verified;
+  const newPlan = newVerified ? 'Verified Pro Page' : 'Commercial Storefront';
+
+  await adminClient
+    .from('business_pages')
+    .update({ is_verified: newVerified, plan: newPlan })
+    .ilike('slug', cleanSlug);
+
+  const ownerId = pageData?.owner_id;
+  if (ownerId) {
+    try {
+      const { data: ownerUser } = await adminClient.auth.admin.getUserById(ownerId);
+      if (ownerUser?.user) {
+        const ownerMeta = ownerUser.user.user_metadata || {};
+        const ownerPages: BusinessPageData[] = Array.isArray(ownerMeta.business_pages) ? [...ownerMeta.business_pages] : [];
+        const idx = ownerPages.findIndex((p: any) => p.slug?.toLowerCase() === cleanSlug);
+        if (idx >= 0) {
+          ownerPages[idx] = { ...ownerPages[idx], is_verified: newVerified, plan: newPlan };
+          await adminClient.auth.admin.updateUserById(ownerId, {
+            user_metadata: {
+              ...ownerMeta,
+              business_pages: ownerPages,
+            },
+          });
+        }
+      }
+    } catch {}
+  }
+
+  invalidateBusinessPagesCache();
+  revalidatePath(`/page/${cleanSlug}`);
+  revalidatePath('/marketplace');
+  return { success: true, is_verified: newVerified };
 }
 

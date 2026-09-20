@@ -36,20 +36,9 @@ import { isUserQuinn } from '@/utils/admin';
 
 type ListingBranch = 'item' | 'job' | 'service';
 
-const ITEM_CONDITIONS = ['New', 'Fairly New', 'Used', 'Partially Used', 'Very Used'];
+const ITEM_CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Poor'];
 
-const ITEM_SUBCATEGORIES = [
-  'Marketplace - Electronics & Tech',
-  'Marketplace - Home & Living',
-  'Marketplace - Fashion & Accessories',
-  'Marketplace - Motors & Vehicles',
-  'Marketplace - Baby, Kids & Toys',
-  'Marketplace - Sports, Leisure & Hobbies',
-  'Marketplace - Books, Music & Movies',
-  'Marketplace - Garden & DIY',
-  'Marketplace - Health & Beauty',
-  'Marketplace - Other & Miscellaneous'
-];
+import { MARKETPLACE_CATEGORIES, CATEGORY_NAMES } from '@/constants/marketplaceCategories';
 
 const JOB_TYPES = [
   'Full-time',
@@ -97,11 +86,14 @@ export default function SellPage() {
   const [images, setImages] = useState<File[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  const [itemCategory, setItemCategory] = useState(ITEM_SUBCATEGORIES[0]);
+  const [mainCategory, setMainCategory] = useState<string>(CATEGORY_NAMES[0]);
+  const [subCategory, setSubCategory] = useState<string>(MARKETPLACE_CATEGORIES[CATEGORY_NAMES[0]][0]);
   const [itemCondition, setItemCondition] = useState(ITEM_CONDITIONS[0]);
   const [priceType, setPriceType] = useState('Fixed Price');
   const [price, setPrice] = useState('');
   const [buyNowPrice, setBuyNowPrice] = useState('');
+  const [hasReserve, setHasReserve] = useState(false);
+  const [reservePrice, setReservePrice] = useState('');
   const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash', 'stripe']);
 
   const [companyName, setCompanyName] = useState('');
@@ -270,10 +262,36 @@ export default function SellPage() {
         setError('Please enter a description.');
         return;
       }
+      if (description.length > 1000) {
+        setError('Description cannot exceed 1000 characters.');
+        return;
+      }
     }
     if (step === 2 && listingBranch === 'item' && images.length === 0) {
       setError('A minimum of 1 photo is required for marketplace item listings.');
       return;
+    }
+    if (step === 3 && listingBranch === 'item') {
+      if (priceType === 'Auction') {
+        const numPrice = parseFloat(price);
+        if (isNaN(numPrice) || numPrice < 1.00) {
+          setError('Starting bid for auctions must be at least €1.00.');
+          return;
+        }
+        if (hasReserve) {
+          const numReserve = parseFloat(reservePrice);
+          if (isNaN(numReserve) || numReserve < numPrice) {
+            setError('Reserve price must be greater than or equal to the starting bid.');
+            return;
+          }
+        }
+      } else {
+        const numPrice = parseFloat(price);
+        if (isNaN(numPrice) || numPrice < 0) {
+          setError('Please enter a valid asking price.');
+          return;
+        }
+      }
     }
     setError(null);
     setStep(prev => Math.min(prev + 1, 4));
@@ -304,7 +322,7 @@ export default function SellPage() {
       let finalCondition = 'New';
 
       if (listingBranch === 'item') {
-        categoryName = itemCategory;
+        categoryName = `${mainCategory} - ${subCategory}`;
         numericPrice = parseFloat(price) || 0;
         finalCondition = itemCondition;
       } else if (listingBranch === 'job') {
@@ -317,18 +335,25 @@ export default function SellPage() {
         finalCondition = 'Service';
       }
 
+      let calculatedUploadFee = 0;
+      if (duration === '14' || duration === '30') calculatedUploadFee += 0.10;
+      if (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous') calculatedUploadFee += 0.50;
+      if (listingBranch === 'item' && priceType === 'Auction' && hasReserve) calculatedUploadFee += 0.25;
+
       const result = await createListing({
         title,
         description,
         location: county,
         category: categoryName,
+        subcategory: listingBranch === 'item' ? subCategory : undefined,
         condition: finalCondition,
         priceType: listingBranch === 'item' ? priceType : 'Fixed Price',
         price: numericPrice,
         buyNowPrice: (listingBranch === 'item' && priceType === 'Auction' && buyNowPrice) ? parseFloat(buyNowPrice) : undefined,
+        reservePrice: (listingBranch === 'item' && priceType === 'Auction' && hasReserve && reservePrice) ? parseFloat(reservePrice) : undefined,
         durationDays: duration === '5m' ? 0 : parseInt(duration),
         durationMinutes: duration === '5m' ? 5 : undefined,
-        uploadFee: (duration === '14' || duration === '30') ? 0.10 : undefined,
+        uploadFee: calculatedUploadFee > 0 ? calculatedUploadFee : undefined,
         paymentOptions: listingBranch === 'item' ? paymentOptions : ['cash', 'stripe'],
         images: uploadedUrls,
         listingType: listingBranch,
@@ -534,26 +559,48 @@ export default function SellPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Subcategory</label>
+                      <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Category</label>
                       <CustomSelect
-                        value={itemCategory}
-                        onChange={setItemCategory}
-                        options={ITEM_SUBCATEGORIES.map(cat => ({ value: cat, label: cat }))}
+                        value={mainCategory}
+                        onChange={(cat) => {
+                          setMainCategory(cat);
+                          if (MARKETPLACE_CATEGORIES[cat]?.length) {
+                            setSubCategory(MARKETPLACE_CATEGORIES[cat][0]);
+                          }
+                        }}
+                        options={CATEGORY_NAMES.map(cat => ({ value: cat, label: cat }))}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Condition</label>
+                      <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Subcategory</label>
                       <CustomSelect
-                        value={itemCondition}
-                        onChange={setItemCondition}
-                        options={ITEM_CONDITIONS.map(cond => ({ value: cond, label: cond }))}
+                        value={subCategory}
+                        onChange={setSubCategory}
+                        options={(MARKETPLACE_CATEGORIES[mainCategory] || []).map(sub => ({ value: sub, label: sub }))}
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Condition</label>
+                    <CustomSelect
+                      value={itemCondition}
+                      onChange={setItemCondition}
+                      options={ITEM_CONDITIONS.map(cond => ({ value: cond, label: cond }))}
+                    />
+                  </div>
+
+                  {mainCategory === 'Other & Miscellaneous' && (
+                    <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>
+                        <strong>Other &amp; Miscellaneous category:</strong> Listings placed in this catch-all category incur a <strong>€0.50 upload fee</strong>.
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
 
-              
               {listingBranch === 'job' && (
                 <>
                   <div>
@@ -614,7 +661,6 @@ export default function SellPage() {
                 </>
               )}
 
-              
               {listingBranch === 'service' && (
                 <>
                   <div>
@@ -664,7 +710,6 @@ export default function SellPage() {
                 </>
               )}
 
-              
               <div>
                 <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1.5">
                   Location (County)
@@ -679,7 +724,6 @@ export default function SellPage() {
                 </p>
               </div>
 
-              
               <div>
                 <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">
                   {listingBranch === 'job' 
@@ -691,6 +735,7 @@ export default function SellPage() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  maxLength={1000}
                   rows={5}
                   placeholder={
                     listingBranch === 'job'
@@ -701,6 +746,12 @@ export default function SellPage() {
                   }
                   className="w-full px-4 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                 />
+                <div className="flex items-center justify-between text-xs mt-1.5">
+                  <span className="text-gray-400 dark:text-gray-500">Maximum 1,000 characters per post</span>
+                  <span className={description.length >= 1000 ? "text-red-500 font-bold" : "text-gray-500 font-medium"}>
+                    {description.length} / 1000
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -803,14 +854,19 @@ export default function SellPage() {
                       </div>
                       <input
                         type="number"
-                        min="0"
+                        min={priceType === 'Auction' ? "1.00" : "0.00"}
                         step="0.01"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        placeholder="0.00"
+                        placeholder={priceType === 'Auction' ? "1.00" : "0.00"}
                         className="block w-full pl-9 pr-4 py-2.5 text-sm font-bold border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
                       />
                     </div>
+                    {priceType === 'Auction' && (
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                        Minimum starting bid for auctions is €1.00.
+                      </p>
+                    )}
                   </div>
 
                   {priceType === 'Auction' && (
@@ -838,6 +894,60 @@ export default function SellPage() {
                     </div>
                   )}
 
+                  {priceType === 'Auction' && (
+                    <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-900 dark:text-white">
+                              Set Reserve Price
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                              +€0.25 reserve fee
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                            The item will not sell unless bidding reaches or exceeds your reserve price. If not met, the listing closes and no sale takes place.
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={hasReserve}
+                          onChange={(e) => {
+                            setHasReserve(e.target.checked);
+                            if (!e.target.checked) setReservePrice('');
+                          }}
+                          className="mt-0.5 w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer"
+                        />
+                      </div>
+
+                      {hasReserve && (
+                        <div className="pt-2 border-t border-gray-200 dark:border-zinc-800">
+                          <label className="block text-xs font-bold text-gray-900 dark:text-white mb-1">
+                            Minimum Reserve Amount (€)
+                          </label>
+                          <div className="relative max-w-xs">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                              <span className="text-gray-400 text-sm font-bold">€</span>
+                            </div>
+                            <input
+                              type="number"
+                              min={price || "1.00"}
+                              step="0.01"
+                              value={reservePrice}
+                              onChange={(e) => setReservePrice(e.target.value)}
+                              placeholder="e.g. 25.00"
+                              className="block w-full pl-9 pr-4 py-2 text-sm font-medium border border-gray-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                            />
+                          </div>
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            Must be equal to or higher than the starting bid (€{price || '1.00'}).
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-sm font-bold text-gray-900 dark:text-white">Accepted Payment Methods</label>
@@ -845,54 +955,47 @@ export default function SellPage() {
                         {paymentOptions.length === 2
                           ? 'Both cash & card enabled'
                           : paymentOptions.includes('cash')
-                          ? 'In-hand cash only locked'
-                          : 'Stripe escrow only locked'}
+                          ? 'Euro in hand only'
+                          : paymentOptions.includes('stripe')
+                          ? 'Stripe card escrow only'
+                          : 'Opted out (Direct buyer arrangement)'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mb-2">Select payment options accepted on this listing. At least one method must remain enabled.</p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Select payment options accepted on this listing. You can choose card escrow, cash on collection, both, or opt out to arrange payment directly.
+                    </p>
                     <div className="space-y-2.5">
                       {[
-                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection' },
-                        { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)', note: 'Secure digital card payment protected by escrow' },
+                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection (No fee)' },
+                        { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)', note: 'Secure digital card payment protected by escrow (1.4% + €0.25 seller fee)' },
                       ].map(({ id: method, name, note }) => {
                         const isChecked = paymentOptions.includes(method);
-                        const isOnlyOne = paymentOptions.length === 1 && isChecked;
 
                         return (
                           <label
                             key={method}
-                            className={`flex items-start gap-3 p-3.5 border rounded-xl transition-colors ${
-                              isOnlyOne
-                                ? 'border-primary/50 bg-primary/5 dark:bg-primary/10 cursor-not-allowed opacity-95'
-                                : isChecked
-                                ? 'border-gray-300 dark:border-zinc-700 bg-gray-50/80 dark:bg-zinc-800/80 cursor-pointer'
-                                : 'border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 cursor-pointer'
+                            className={`flex items-start gap-3 p-3.5 border rounded-xl transition-colors cursor-pointer ${
+                              isChecked
+                                ? 'border-gray-300 dark:border-zinc-700 bg-gray-50/80 dark:bg-zinc-800/80'
+                                : 'border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50'
                             }`}
                           >
                             <input
                               type="checkbox"
                               checked={isChecked}
-                              disabled={isOnlyOne}
                               onChange={(e) => {
                                 if (e.target.checked) {
                                   setPaymentOptions([...paymentOptions, method]);
-                                } else if (paymentOptions.length > 1) {
+                                } else {
                                   setPaymentOptions(paymentOptions.filter(m => m !== method));
                                 }
                               }}
-                              className="mt-0.5 w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
+                              className="mt-0.5 w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer"
                             />
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-gray-900 dark:text-white">
-                                  {name}
-                                </span>
-                                {isOnlyOne && (
-                                  <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400">
-                                    Locked (Only Active Method)
-                                  </span>
-                                )}
-                              </div>
+                              <span className="text-xs font-bold text-gray-900 dark:text-white block">
+                                {name}
+                              </span>
                               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                                 {note}
                               </p>
@@ -901,6 +1004,11 @@ export default function SellPage() {
                         );
                       })}
                     </div>
+                    {paymentOptions.length === 0 && (
+                      <div className="mt-2 p-3 rounded-xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400">
+                        <strong>Direct Arrangement Opt-Out:</strong> No integrated payment method selected. Buyers will contact you directly to agree on collection and payment.
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -996,7 +1104,7 @@ export default function SellPage() {
                   <div>
                     <span className="text-gray-500 block">Category</span>
                     <span className="font-bold text-gray-900 dark:text-white">
-                      {listingBranch === 'item' ? itemCategory : listingBranch === 'job' ? 'Jobs' : serviceCategory}
+                      {listingBranch === 'item' ? `${mainCategory} - ${subCategory}` : listingBranch === 'job' ? 'Jobs' : serviceCategory}
                     </span>
                   </div>
                   <div>
@@ -1013,9 +1121,17 @@ export default function SellPage() {
                       <div>
                         <span className="text-gray-500 block">Price</span>
                         <span className="font-bold text-gray-900 dark:text-white">
-                          €{price || '0.00'} ({priceType})
+                          €{price ? parseFloat(price).toFixed(2) : '0.00'} ({priceType})
                         </span>
                       </div>
+                      {priceType === 'Auction' && hasReserve && reservePrice && (
+                        <div>
+                          <span className="text-gray-500 block">Reserve Price</span>
+                          <span className="font-bold text-amber-600 dark:text-amber-400">
+                            €{parseFloat(reservePrice).toFixed(2)} (+€0.25 fee)
+                          </span>
+                        </div>
+                      )}
                     </>
                   ) : listingBranch === 'job' ? (
                     <>
@@ -1046,11 +1162,6 @@ export default function SellPage() {
                     <span className="font-bold text-gray-900 dark:text-white">
                       {duration === '5m' ? '5 minutes' : `${duration} days`}
                     </span>
-                    {(duration === '14' || duration === '30') && (
-                      <span className="block text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
-                        Includes €0.10 upload fee
-                      </span>
-                    )}
                   </div>
                   <div>
                     <span className="text-gray-500 block">Publisher</span>
@@ -1060,6 +1171,23 @@ export default function SellPage() {
                   </div>
                 </div>
 
+                {((duration === '14' || duration === '30') || (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous') || (listingBranch === 'item' && priceType === 'Auction' && hasReserve)) && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/60 text-xs text-emerald-800 dark:text-emerald-300 space-y-1 mb-4">
+                    <span className="font-bold block">
+                      Fee Breakdown (Total: €{(
+                        (duration === '14' || duration === '30' ? 0.10 : 0) +
+                        (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' ? 0.50 : 0) +
+                        (listingBranch === 'item' && priceType === 'Auction' && hasReserve ? 0.25 : 0)
+                      ).toFixed(2)})
+                    </span>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[11px]">
+                      {(duration === '14' || duration === '30') && <li>Extended duration fee: €0.10</li>}
+                      {listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' && <li>Other &amp; Miscellaneous upload fee: €0.50</li>}
+                      {listingBranch === 'item' && priceType === 'Auction' && hasReserve && <li>Reserve auction fee: €0.25</li>}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="pt-3 border-t border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400">
                   <span className="font-bold text-gray-900 dark:text-white block mb-1">Description:</span>
                   <p className="line-clamp-3 whitespace-pre-line">{description}</p>
@@ -1068,7 +1196,6 @@ export default function SellPage() {
             </div>
           )}
 
-          
           <div className="mt-8 pt-5 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
             {step > 1 ? (
               <button
@@ -1104,9 +1231,12 @@ export default function SellPage() {
                 <span>
                   {uploadingImages
                     ? 'Uploading Photos...'
-                    : (duration === '14' || duration === '30')
-                    ? 'Publish Listing (€0.10 fee)'
-                    : 'Publish Listing'}
+                    : (() => {
+                        const totalFee = (duration === '14' || duration === '30' ? 0.10 : 0) +
+                          (listingBranch === 'item' && mainCategory === 'Other & Miscellaneous' ? 0.50 : 0) +
+                          (listingBranch === 'item' && priceType === 'Auction' && hasReserve ? 0.25 : 0);
+                        return totalFee > 0 ? `Publish Listing (€${totalFee.toFixed(2)} fee)` : 'Publish Listing';
+                      })()}
                 </span>
               </button>
             )}

@@ -86,9 +86,14 @@ export async function placeBid(listingId: string, amount: number) {
       .single();
 
     const currentPrice = highestBid ? highestBid.amount : listing.price;
-    const minRequiredBid = currentPrice + 1;
+    const minRequiredBid = Math.max(1.00, highestBid ? highestBid.amount + 1 : listing.price);
+    const roundedAmount = Math.round(amount * 100) / 100;
 
-    if (amount < minRequiredBid) {
+    if (roundedAmount < 1.00) {
+      return { success: false, error: 'Minimum bid allowed on Listme is €1.00.' };
+    }
+
+    if (roundedAmount < minRequiredBid) {
       return { success: false, error: `Bid must be at least €${minRequiredBid.toFixed(2)}` };
     }
 
@@ -99,10 +104,10 @@ export async function placeBid(listingId: string, amount: number) {
       1000000
     );
 
-    if (amount > maxAllowedBid) {
+    if (roundedAmount > maxAllowedBid) {
       return {
         success: false,
-        error: `Bid rejected: €${amount.toLocaleString()} is too high. Under auction safety rules, a single bid cannot exceed €${maxAllowedBid.toLocaleString()} (maximum allowed: 5x current price) to protect against accidental typos and bid manipulation.`,
+        error: `Bid rejected: €${roundedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} is too high. Under auction safety rules, a single bid cannot exceed €${maxAllowedBid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} to protect against accidental typos.`,
       };
     }
 
@@ -112,7 +117,7 @@ export async function placeBid(listingId: string, amount: number) {
       .insert({
         listing_id: listingId,
         bidder_id: user.id,
-        amount,
+        amount: roundedAmount,
       });
 
     if (bidInsertError) throw bidInsertError;

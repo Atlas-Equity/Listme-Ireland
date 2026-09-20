@@ -6,7 +6,7 @@ import { BusinessPageData, getAllRegisteredBusinessPages } from '@/app/actions/b
 
 import { cookies } from 'next/headers';
 import BusinessPageClient from './BusinessPageClient';
-import { isAdmin } from '@/utils/admin';
+import { isAdmin, isUserQuinn } from '@/utils/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +72,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   const supabase = await createClient();
 
   const user = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null;
-  const userIsAdmin = isAdmin(user);
+  const userIsAdmin = isAdmin(user) || isUserQuinn(user);
 
   let businessPage: BusinessPageData | null = null;
   let sellerId: string | null = null;

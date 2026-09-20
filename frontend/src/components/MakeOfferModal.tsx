@@ -33,8 +33,10 @@ export default function MakeOfferModal({
 
   if (!isOpen) return null;
 
+  const minAllowedOffer = Math.round((askingPrice * 0.90) * 100) / 100;
+
   const handlePreset = (percentage: number) => {
-    const discounted = isAuction ? askingPrice * (1 + percentage / 100) : askingPrice * (1 - percentage / 100);
+    const discounted = Math.max(minAllowedOffer, Math.round((askingPrice * (1 - percentage / 100)) * 100) / 100);
     setOfferAmount(discounted.toFixed(2));
     setError(null);
   };
@@ -53,8 +55,8 @@ export default function MakeOfferModal({
       return;
     }
 
-    if (amountNum < askingPrice * 0.2) {
-      setError('Please offer a reasonable amount (at least 20% of the asking price).');
+    if (amountNum < minAllowedOffer) {
+      setError(`Offers must be at least 90% of the asking price (€${minAllowedOffer.toFixed(2)}).`);
       return;
     }
 
@@ -125,35 +127,39 @@ export default function MakeOfferModal({
 
           
           <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
-              Quick Suggestions
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                Quick Suggestions
+              </label>
+              <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                Minimum 90% floor (€{minAllowedOffer.toFixed(2)})
+              </span>
+            </div>
             <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => handlePreset(3)}
+                className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
+              >
+                -3% (€{(askingPrice * 0.97).toFixed(2)})
+              </button>
               <button
                 type="button"
                 onClick={() => handlePreset(5)}
                 className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
               >
-                -5% (€{(askingPrice * 0.95).toFixed(0)})
+                -5% (€{(askingPrice * 0.95).toFixed(2)})
               </button>
               <button
                 type="button"
                 onClick={() => handlePreset(10)}
                 className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
               >
-                -10% (€{(askingPrice * 0.9).toFixed(0)})
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePreset(15)}
-                className="py-1.5 px-2 text-xs font-semibold rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 transition-colors"
-              >
-                -15% (€{(askingPrice * 0.85).toFixed(0)})
+                -10% (€{minAllowedOffer.toFixed(2)})
               </button>
             </div>
           </div>
 
-          
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Your Offer Amount (€)
@@ -165,17 +171,21 @@ export default function MakeOfferModal({
               <input
                 type="number"
                 step="0.50"
-                min="1"
-                {...(!isAuction ? { max: askingPrice } : {})}
+                min={minAllowedOffer.toString()}
+                max={askingPrice.toString()}
                 value={offerAmount}
                 onChange={(e) => {
                   setOfferAmount(e.target.value);
                   setError(null);
                 }}
-                placeholder="0.00"
+                placeholder={minAllowedOffer.toFixed(2)}
                 required
                 className="w-full pl-9 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-xl font-bold text-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-1 px-1">
+              <span>Minimum allowed: €{minAllowedOffer.toFixed(2)} (90%)</span>
+              <span>Asking price: €{askingPrice.toFixed(2)}</span>
             </div>
             {parseFloat(offerAmount) > 0 && (
               <div className="mt-2 p-2.5 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 flex items-center justify-between text-xs">

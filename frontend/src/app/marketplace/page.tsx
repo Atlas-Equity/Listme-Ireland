@@ -40,7 +40,7 @@ export default async function MarketplacePage({
       .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, description, category, seller_id')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .limit(50),
+      .limit(120),
   ]);
 
   const enrichedListings = await enrichListingsWithSellers(listingsResult.data || []);

@@ -90,8 +90,8 @@ export default function SafetyPage() {
   const NEXT_STEPS = [
     {
       title: 'The Buyer Is Refunded',
-      desc: 'Eligible victims are refunded up to €5,000 under our Buyer Protection policy.',
-      badge: 'Refund up to €5,000',
+      desc: 'Eligible victims are refunded up to €5,000 (or up to €10,000 for Verified members) under our Buyer Protection policy.',
+      badge: 'Refund up to €5,000 (€10,000 for Verified members)',
       icon: ShieldCheck,
       color: 'text-emerald-500',
     },
@@ -115,14 +115,12 @@ export default function SafetyPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black py-10 sm:py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         
-        
         <nav className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white font-medium">Scam Prevention &amp; Advice</span>
         </nav>
 
-        
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-10 shadow-xs space-y-4">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300">
             <ShieldCheck className="w-4 h-4 text-primary" />
@@ -139,7 +137,7 @@ export default function SafetyPage() {
 
           <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-gray-700 dark:text-gray-300">
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Buyer Protection up to €5,000
+              <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Buyer Protection up to €5,000 (€10,000 for Verified members)
             </span>
             <span className="text-gray-300 dark:text-zinc-700">•</span>
             <span className="flex items-center gap-1.5">
@@ -323,7 +321,7 @@ export default function SafetyPage() {
               <strong>No email support</strong> – all support is handled through our ticket system for record retention and fraud tracking.
             </p>
             <p>
-              We aim to respond within <strong>24 to 48 hours</strong>.
+              We aim to respond within <strong>3 to 24 hours</strong>.
             </p>
           </div>
 

@@ -1,4 +1,3 @@
-
 export interface ServiceFeeResult {
   price: number;
   percentage: number;
@@ -36,13 +35,17 @@ export function calculateServiceFee(
   }
 
   let percentage = basePercentage;
+  let fee = Math.round((cleanPrice * (basePercentage / 100)) * 100) / 100;
+
   if (isVerifiedBuyer) {
     percentage = basePercentage * 0.5;
+    fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
   } else if (isCreditPayment) {
-    percentage = Math.max(0, basePercentage - 0.5);
+    const discountAmount = cleanPrice > 250 ? 5.00 : 1.00;
+    fee = Math.max(0, Math.round((fee - discountAmount) * 100) / 100);
+    percentage = cleanPrice > 0 ? Math.round(((fee / cleanPrice) * 100) * 100) / 100 : 0;
   }
 
-  const fee = Math.round((cleanPrice * (percentage / 100)) * 100) / 100;
   const total = Math.round((cleanPrice + fee) * 100) / 100;
 
   return {
@@ -50,7 +53,7 @@ export function calculateServiceFee(
     percentage,
     fee,
     total,
-    percentageFormatted: `${percentage}%`,
+    percentageFormatted: isCreditPayment ? `Credit Discount` : `${percentage}%`,
     tierLabel,
     isCreditDiscountApplied: isCreditPayment && !isVerifiedBuyer,
     isVerifiedDiscountApplied: isVerifiedBuyer,
@@ -58,7 +61,7 @@ export function calculateServiceFee(
 }
 
 export const SERVICE_FEE_TIERS = [
-  { range: '€10 – €50', feePercent: '4%', example: 'e.g. €25.00 purchase = €1.00 fee' },
-  { range: '€50.01 – €250', feePercent: '3.5%', example: 'e.g. €100.00 purchase = €3.50 fee' },
-  { range: '€250.01+', feePercent: '3%', example: 'e.g. €300.00 purchase = €9.00 fee' },
+  { range: '€10 – €50', feePercent: '4%', creditDiscount: '-€1 off base total (rounded down to 0 if less than €1)', verifiedPercent: '2%' },
+  { range: '€50.01 – €250', feePercent: '3.5%', creditDiscount: '-€1 off base total', verifiedPercent: '1.75%' },
+  { range: '€250.01+', feePercent: '3%', creditDiscount: '-€5 off base total', verifiedPercent: '1.5%' },
 ];

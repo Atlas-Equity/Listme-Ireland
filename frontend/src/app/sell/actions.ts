@@ -9,10 +9,12 @@ export interface CreateListingInput {
   description: string;
   location: string;
   category: string;
+  subcategory?: string;
   condition: string;
   priceType: string;
   price: number;
   buyNowPrice?: number;
+  reservePrice?: number;
   durationDays?: number;
   durationMinutes?: number;
   uploadFee?: number;
@@ -73,6 +75,18 @@ export async function createListing(formData: CreateListingInput) {
 
   let finalDescription = formData.description || '';
 
+  if (formData.description && formData.description.length > 1000) {
+    return { error: 'Item description cannot exceed 1000 characters.' };
+  }
+
+  if (formData.priceType === 'Auction' && (isNaN(formData.price) || formData.price < 1.00)) {
+    return { error: 'Starting bid for auctions must be at least €1.00.' };
+  }
+
+  if (formData.priceType === 'Auction' && formData.reservePrice && formData.reservePrice < formData.price) {
+    return { error: 'Reserve price must be greater than or equal to the starting bid.' };
+  }
+
   if (formData.businessPageSlug) {
     finalDescription = `${finalDescription}\n\n[Business Page: ${formData.businessPageSlug} | ${formData.businessPageName || formData.businessPageSlug}]`;
   }
@@ -85,6 +99,14 @@ export async function createListing(formData: CreateListingInput) {
 
   if (formData.priceType === 'Auction' && formData.buyNowPrice && formData.buyNowPrice > 0) {
     finalDescription = `${finalDescription}\n\n[Buy It Now: €${formData.buyNowPrice}]`;
+  }
+
+  if (formData.priceType === 'Auction' && formData.reservePrice && formData.reservePrice > 0) {
+    finalDescription = `${finalDescription}\n\n[Reserve Price: €${formData.reservePrice}]`;
+  }
+
+  if (formData.subcategory) {
+    finalDescription = `${finalDescription}\n\n[Subcategory: ${formData.subcategory}]`;
   }
 
   const basePayload: any = {
@@ -103,13 +125,18 @@ export async function createListing(formData: CreateListingInput) {
     status: 'active'
   };
 
-  // Attempt insert with additional columns if present, otherwise fallback to standard
   let data: any = null;
   let error: any = null;
 
   const extendedPayload: any = { ...basePayload };
+  if (formData.subcategory) {
+    extendedPayload.subcategory = formData.subcategory;
+  }
   if (formData.priceType === 'Auction' && formData.buyNowPrice && formData.buyNowPrice > 0) {
     extendedPayload.buy_now_price = formData.buyNowPrice;
+  }
+  if (formData.priceType === 'Auction' && formData.reservePrice && formData.reservePrice > 0) {
+    extendedPayload.reserve_price = formData.reservePrice;
   }
   if (formData.businessPageSlug) {
     extendedPayload.business_page_slug = formData.businessPageSlug;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
-import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote, Store } from 'lucide-react';
+import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote, Store, CheckCircle2, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { getAllRegisteredBusinessPages, BusinessPageData } from '@/app/actions/businessPages';
 import Link from 'next/link';
@@ -175,9 +175,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
   const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
   const rawBuyNowPrice: number | null = listing.buy_now_price || (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
+  const reserveMatch = listing.description?.match(/\[Reserve Price:\s*€?([0-9.]+)\]/i);
+  const reservePrice: number | null = listing.reserve_price || (reserveMatch ? parseFloat(reserveMatch[1]) : null);
+
   const cleanDescription = listing.description 
     ? listing.description
         .replace(/\[Buy It Now:\s*€?[0-9.]+\]/gi, '')
+        .replace(/\[Reserve Price:\s*€?[0-9.]+\]/gi, '')
         .replace(/\[Business Page:[^\]]+\]/gi, '')
         .replace(/\[Job:[^\]]+\]/gi, '')
         .replace(/\[Service:[^\]]+\]/gi, '')
@@ -189,6 +193,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   if (isAuction && bidsResult.data && bidsResult.data.length > 0) {
     highestBidAmount = bidsResult.data[0].amount;
   }
+
+  const isReserveMet = isAuction && reservePrice !== null && highestBidAmount !== null && highestBidAmount >= reservePrice;
 
   const isBuyNowOverriddenByBid = rawBuyNowPrice !== null && highestBidAmount !== null && highestBidAmount >= rawBuyNowPrice;
   const buyNowPrice: number | null = isBuyNowOverriddenByBid ? null : rawBuyNowPrice;
@@ -206,8 +212,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     ? new Date(listing.expires_at) 
     : new Date(new Date(listing.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
   
-  const isClosed = expirationDate < new Date();
+  const now = new Date();
+  const isClosed = expirationDate < now;
   const timeRemaining = isClosed ? 'Closed' : formatDistanceToNow(expirationDate);
+
+  const diffMs = expirationDate.getTime() - now.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  let timeColorClass = 'text-emerald-600 dark:text-emerald-400';
+  if (diffHours <= 6) {
+    timeColorClass = 'text-red-600 dark:text-red-400';
+  } else if (diffHours <= 72) {
+    timeColorClass = 'text-amber-500 dark:text-amber-400';
+  }
 
   const itemLocation = getCoreLocation(listing.location);
 
@@ -307,26 +323,34 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               
               <div className="font-semibold text-gray-900 dark:text-white">Payment Options</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
-                  <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-1.5">
-                    <img 
-                      src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
-                      alt="Stripe" 
-                      className="h-5 w-auto object-contain" 
-                    />
+                {paymentOptions.includes('stripe') && (
+                  <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
+                    <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-1.5">
+                      <img 
+                        src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
+                        alt="Stripe" 
+                        className="h-5 w-auto object-contain" 
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely with Visa, Mastercard, Apple Pay, Google Pay via Stripe Escrow with Buyer Protection.</p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Pay securely with Visa, Mastercard, Apple Pay, Google Pay via Stripe.</p>
-                </div>
+                )}
 
                 {(paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) && (
                   <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40 space-y-2">
-                    <div className="font-semibold text-xs text-gray-900 dark:text-white uppercase tracking-wider">Other Accepted Options</div>
+                    <div className="font-semibold text-xs text-gray-900 dark:text-white uppercase tracking-wider">Accepted Cash Options</div>
                     <ul className="text-xs text-gray-700 dark:text-gray-300 space-y-2">
                       <li className="flex items-center gap-2">
                         <Banknote className="w-4 h-4 text-emerald-500 shrink-0" />
                         <span className="font-medium">Euro in Hand (Cash on Collection)</span>
                       </li>
                     </ul>
+                  </div>
+                )}
+
+                {!paymentOptions.includes('stripe') && !paymentOptions.includes('cash') && !paymentOptions.includes('euro_in_hand') && (
+                  <div className="sm:col-span-2 p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40 text-xs text-gray-500 dark:text-gray-400">
+                    <strong>Direct Arrangement:</strong> The seller has opted out of integrated card escrow and cash terms for this listing. Please contact the seller directly to agree upon payment and delivery/collection details.
                   </div>
                 )}
               </div>
@@ -359,13 +383,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             </div>
 
             <div className="flex items-center text-sm mb-6">
-              <Clock className="w-4 h-4 mr-1 text-gray-500 dark:text-gray-400" /> 
+              <Clock className={`w-4 h-4 mr-1 ${timeColorClass}`} /> 
               {isClosed ? (
                 <span className="text-red-500 font-semibold mr-1">Closed</span>
               ) : (
                 <>
-                  <span className="text-[#e35205] font-semibold mr-1">Closes:</span>
-                  <span className="text-gray-500 dark:text-gray-400">in {timeRemaining}</span>
+                  <span className={`font-semibold mr-1 ${timeColorClass}`}>Closes:</span>
+                  <span className={`font-medium ${timeColorClass}`}>in {timeRemaining}</span>
                 </>
               )}
             </div>
@@ -374,19 +398,18 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               <WatchlistButton listingId={listing.id} initialIsWatchlisted={isWatchlisted} />
             )}
 
-            
             <div className="bg-white dark:bg-transparent border border-gray-200 dark:border-[#333] rounded-sm">
               <div className="p-6 text-center border-b border-gray-200 dark:border-[#333]">
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                   {isAuction ? (highestBidAmount !== null ? 'Current bid' : 'Starting price') : 'Buy Now'}
                 </div>
                 <div className="text-[40px] font-bold text-gray-900 dark:text-white leading-none mb-4">
-                  €{currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  €{currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
 
                 {isAuction && buyNowPrice && (
                   <div className="text-xs text-gray-400 mb-5">
-                    Buy It Now Price: <span className="font-semibold text-white">€{buyNowPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    Buy It Now Price: <span className="font-semibold text-white">€{buyNowPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
                 
@@ -408,34 +431,45 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                       {buyNowPrice && (
                         <div className="pt-3 border-t border-gray-200 dark:border-[#333]">
                           <div className="text-xs text-gray-400 mb-2">
-                            Skip bidding & buy instantly:
+                            Skip bidding &amp; buy instantly:
                           </div>
-                          <CheckoutButton 
-                            listingId={listing.id} 
-                            isAuction={false} 
-                            stripeEnabled={true} 
-                            listingTitle={listing.title}
-                            price={buyNowPrice}
-                          />
+                          {paymentOptions.includes('stripe') ? (
+                            <CheckoutButton 
+                              listingId={listing.id} 
+                              isAuction={false} 
+                              stripeEnabled={true} 
+                              listingTitle={listing.title}
+                              price={buyNowPrice}
+                            />
+                          ) : (paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) ? (
+                            <div className="w-full py-2.5 px-3 bg-emerald-600/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold rounded-lg text-center text-xs flex items-center justify-center gap-1.5">
+                              <Banknote className="w-3.5 h-3.5" />
+                              <span>Cash on Collection Accepted (€{buyNowPrice.toFixed(2)})</span>
+                            </div>
+                          ) : null}
                         </div>
                       )}
-                      <MakeOfferButton
-                        listingId={listing.id}
-                        sellerId={listing.seller_id}
-                        listingTitle={listing.title}
-                        askingPrice={buyNowPrice || currentPrice}
-                        isAuction={true}
-                      />
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <CheckoutButton 
-                        listingId={listing.id} 
-                        isAuction={false} 
-                        stripeEnabled={true} 
-                        listingTitle={listing.title}
-                        price={currentPrice}
-                      />
+                      {paymentOptions.includes('stripe') ? (
+                        <CheckoutButton 
+                          listingId={listing.id} 
+                          isAuction={false} 
+                          stripeEnabled={true} 
+                          listingTitle={listing.title}
+                          price={currentPrice}
+                        />
+                      ) : (paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) ? (
+                        <div className="w-full py-3 px-4 bg-emerald-600/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold rounded-lg text-center text-xs flex items-center justify-center gap-2">
+                          <Banknote className="w-4 h-4" />
+                          <span>Euro in Hand / Cash on Collection Only</span>
+                        </div>
+                      ) : (
+                        <div className="w-full py-3 px-4 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-semibold rounded-lg text-center text-xs">
+                          Direct arrangement with seller
+                        </div>
+                      )}
                       <MakeOfferButton
                         listingId={listing.id}
                         sellerId={listing.seller_id}
@@ -445,14 +479,38 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     </div>
                   )
                 ) : (
-                  <div className="w-full py-3 px-4 bg-gray-600 text-gray-900 dark:text-white font-bold rounded-sm cursor-not-allowed">
-                    Listing Closed
+                  <div className="w-full py-3 px-4 bg-zinc-800 text-zinc-300 font-bold rounded-sm cursor-not-allowed text-xs">
+                    {isAuction && reservePrice !== null && !isReserveMet 
+                      ? 'Auction Closed — Reserve Not Met. Item not sold.'
+                      : 'Listing Closed'}
                   </div>
                 )}
                 
                 {isAuction && (
-                  <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                    <div>No reserve</div>
+                  <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                    {reservePrice !== null ? (
+                      isClosed ? (
+                        isReserveMet ? (
+                          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            Reserve met (€{reservePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                          </div>
+                        ) : (
+                          <div className="text-xs font-bold text-red-500 dark:text-red-400">
+                            Reserve not met — Item not sold
+                          </div>
+                        )
+                      ) : isReserveMet ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Reserve met
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                          <AlertCircle className="w-3.5 h-3.5" /> Reserve not met
+                        </div>
+                      )
+                    ) : (
+                      <div>No reserve</div>
+                    )}
                     <div>{totalBids === 0 ? 'No bids' : `${totalBids} bid${totalBids === 1 ? '' : 's'}`}</div>
                   </div>
                 )}

@@ -18,8 +18,10 @@ import { getCoreLocation, getMemberNumber } from '@/utils/irelandLocations';
 import { cookies } from 'next/headers';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import MemberAdminActions from '@/components/MemberAdminActions';
-import { isAdmin, isAccountBanned } from '@/utils/admin';
+import { isAdmin, isAccountBanned, isSuperAdmin } from '@/utils/admin';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import ShareButton from '@/components/ShareButton';
+import ReportButton from '@/components/ReportButton';
 
 export const revalidate = 30;
 
@@ -330,11 +332,15 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                         tooltipText="Verified Account • Safe to Trade With (Personally verified by ListMe)"
                       />
                     )}
-                    {targetIsAdmin && (
+                    {(isSuperAdmin(sellerId) || isSuperAdmin(displayName) || isSuperAdmin(username)) ? (
+                      <span className="text-xs font-bold text-amber-500 dark:text-amber-400">
+                        Platform Owner
+                      </span>
+                    ) : targetIsAdmin ? (
                       <span className="text-xs font-bold text-amber-500 dark:text-amber-400">
                         ListMe Staff
                       </span>
-                    )}
+                    ) : null}
                     {accountType === 'business' && (
                       <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
                         Business Account
@@ -374,7 +380,11 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               </div>
 
               
-              <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-2.5">
+                <ShareButton
+                  title={`${displayName} on ListMe Ireland`}
+                  text={`Check out ${displayName}'s profile and marketplace listings on ListMe:`}
+                />
                 {isOwnProfile ? (
                   <div className="flex items-center gap-2">
                     <Link
@@ -392,8 +402,14 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                     </Link>
                   </div>
                 ) : (
-                  <div className="w-full sm:w-auto">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <FavouriteSellerButton sellerId={sellerId} initialIsFavourite={isFavourited} />
+                    <ReportButton
+                      targetType="user"
+                      targetIdentifier={`@${username || displayName}`}
+                      targetUrl={`https://www.listme.ie/member/${memberNumber}`}
+                      targetName={displayName}
+                    />
                   </div>
                 )}
               </div>
@@ -514,22 +530,30 @@ export default async function MemberProfilePage({ params, searchParams }: Member
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
-                {activeListings.map((listing) => (
-                  <ListingCard
-                    key={listing.id}
-                    id={listing.id}
-                    title={listing.title}
-                    price={listing.price}
-                    priceType={listing.price_type}
-                    condition={listing.condition}
-                    images={listing.images}
-                    createdAt={listing.created_at}
-                    location={listing.location || coreLocation}
-                    closesAt={listing.expires_at || listing.ends_at}
-                    sellerName={displayName}
-                    sellerVerified={isVerified}
-                  />
-                ))}
+                {activeListings.map((listing) => {
+                  const bizMatch = listing.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
+                  const itemSellerName = bizMatch ? (bizMatch[2] ? bizMatch[2].trim() : bizMatch[1].trim()) : displayName;
+                  const itemBusinessSlug = bizMatch ? bizMatch[1].trim().toLowerCase() : undefined;
+
+                  return (
+                    <ListingCard
+                      key={listing.id}
+                      id={listing.id}
+                      title={listing.title}
+                      price={listing.price}
+                      priceType={listing.price_type}
+                      condition={listing.condition}
+                      images={listing.images}
+                      createdAt={listing.created_at}
+                      location={listing.location || coreLocation}
+                      closesAt={listing.expires_at || listing.ends_at}
+                      sellerName={itemSellerName}
+                      sellerVerified={isVerified}
+                      businessPageSlug={itemBusinessSlug}
+                      businessPageName={itemSellerName !== displayName ? itemSellerName : undefined}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>

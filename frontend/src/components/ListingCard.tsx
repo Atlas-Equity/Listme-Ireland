@@ -24,6 +24,8 @@ export interface ListingCardProps {
   sellerId?: string;
   sellerName?: string;
   sellerVerified?: boolean;
+  businessPageSlug?: string;
+  businessPageName?: string;
 }
 
 const clientSellerCache = new Map<string, { username: string; is_verified: boolean }>();
@@ -43,16 +45,18 @@ export function ListingCard({
   sellerId,
   sellerName,
   sellerVerified = false,
+  businessPageSlug,
+  businessPageName,
 }: ListingCardProps) {
   const { isWatchlisted, toggleWatchlist } = useWatchlist();
   const isSaved = isWatchlisted(id) || initialWatchlisted;
 
-  const [resolvedName, setResolvedName] = useState<string | undefined>(sellerName);
+  const [resolvedName, setResolvedName] = useState<string | undefined>(businessPageName || sellerName);
   const [resolvedVerified, setResolvedVerified] = useState<boolean>(sellerVerified);
 
   React.useEffect(() => {
-    if (sellerName) {
-      setResolvedName(sellerName);
+    if (businessPageName || sellerName) {
+      setResolvedName(businessPageName || sellerName);
       setResolvedVerified(sellerVerified);
       return;
     }
@@ -67,30 +71,29 @@ export function ListingCard({
     }
 
     let isMounted = true;
-    fetch(`/api/sellers/meta?id=${encodeURIComponent(sellerId)}`)
+    fetch(`/api/sellers/meta?sellerIds=${sellerId}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!isMounted || !data || !data[sellerId]) return;
         const meta = data[sellerId];
         clientSellerCache.set(sellerId, {
-          username: meta.username || 'Seller',
-          is_verified: Boolean(meta.is_verified),
+          username: meta.username,
+          is_verified: meta.is_verified,
         });
-        setResolvedName(meta.username || 'Seller');
-        setResolvedVerified(Boolean(meta.is_verified));
+        setResolvedName(meta.username);
+        setResolvedVerified(meta.is_verified);
       })
       .catch(() => {});
 
     return () => {
       isMounted = false;
     };
-  }, [sellerId, sellerName, sellerVerified]);
-
-  const displayName = resolvedName || sellerName || (sellerId ? 'Seller' : undefined);
-  const isVerified = resolvedVerified || sellerVerified;
+  }, [sellerId, sellerName, sellerVerified, businessPageName]);
 
   const mainImage = images && images.length > 0 ? images[0] : null;
   const coreLocation = getCoreLocation(location);
+  const displayName = businessPageName || (businessPageSlug ? (sellerName || businessPageSlug) : (resolvedName || sellerName));
+  const isVerified = resolvedVerified;
 
   const createdDate = createdAt ? new Date(createdAt) : new Date();
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true });
@@ -99,7 +102,17 @@ export function ListingCard({
   const diffMs = closingDate.getTime() - Date.now();
   const isClosed = diffMs <= 0;
   let closesFormatted = 'Closed';
+  let timeColorClass = 'text-emerald-600 dark:text-emerald-400 font-medium';
+
   if (!isClosed) {
+    if (diffMs <= 6 * 60 * 60 * 1000) {
+      timeColorClass = 'text-red-500 dark:text-red-400 font-bold';
+    } else if (diffMs <= 3 * 24 * 60 * 60 * 1000) {
+      timeColorClass = 'text-amber-500 dark:text-amber-400 font-semibold';
+    } else {
+      timeColorClass = 'text-emerald-600 dark:text-emerald-400 font-medium';
+    }
+
     if (diffMs < 60 * 60 * 1000) {
       const mins = Math.max(1, Math.round(diffMs / 60000));
       closesFormatted = `Closes in ${mins}m`;
@@ -200,7 +213,7 @@ export function ListingCard({
         </div>
 
         {isAuction && !isClosed && (
-          <div className="mt-2 pt-1.5 border-t border-gray-100 dark:border-zinc-800/60 flex items-center text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+          <div className={`mt-2 pt-1.5 border-t border-gray-100 dark:border-zinc-800/60 flex items-center text-[10px] ${timeColorClass}`}>
             <Clock className="w-3 h-3 mr-1 inline shrink-0" />
             <span className="truncate">{closesFormatted}</span>
           </div>

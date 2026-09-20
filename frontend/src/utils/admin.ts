@@ -16,6 +16,16 @@ export const SUPPORT_OFFICER_UIDS = [
   '387eb6d6-e83c-4414-b0e3-831d60cd1c16',
 ];
 
+export const SUPER_ADMIN_USERNAMES = ['sahleyis', 'quinn'];
+export const SUPER_ADMIN_EMAILS = [
+  'dahiruhammajam@gmail.com',
+  'qrmooney@outlook.com',
+];
+export const SUPER_ADMIN_UIDS = [
+  '88beddab-0640-4f99-a04a-ff58c03704e4',
+  '387eb6d6-e83c-4414-b0e3-831d60cd1c16',
+];
+
 export interface AdminCheckableUser {
   id?: string;
   email?: string;
@@ -100,3 +110,21 @@ export function isUserQuinn(user: AdminCheckableUser | null | undefined, extraUs
   if (username === 'quinn') return true;
   return false;
 }
+
+export function isSuperAdmin(userOrIdentifier: any, extraUsername?: string): boolean {
+  if (!userOrIdentifier && !extraUsername) return false;
+  if (typeof userOrIdentifier === 'string') {
+    const val = userOrIdentifier.toLowerCase().trim();
+    if (SUPER_ADMIN_UIDS.includes(userOrIdentifier) || SUPER_ADMIN_EMAILS.includes(val) || SUPER_ADMIN_USERNAMES.includes(val)) {
+      return true;
+    }
+  }
+  const id = userOrIdentifier?.id;
+  if (id && SUPER_ADMIN_UIDS.includes(id)) return true;
+  const email = userOrIdentifier?.email?.toLowerCase().trim();
+  if (email && SUPER_ADMIN_EMAILS.includes(email)) return true;
+  const username = (extraUsername || userOrIdentifier?.user_metadata?.username || userOrIdentifier?.user_metadata?.preferred_username || '')?.toLowerCase().trim();
+  if (username && SUPER_ADMIN_USERNAMES.includes(username)) return true;
+  return false;
+}
+

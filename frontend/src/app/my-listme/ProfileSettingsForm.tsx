@@ -2,10 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Phone, Mail, ShieldAlert } from 'lucide-react';
+import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Phone, Mail } from 'lucide-react';
 import { updateProfileSettings, uploadAvatarAction, ProfileData } from './actions';
 import { useRouter } from 'next/navigation';
-import PhoneVerificationModal from '@/components/PhoneVerificationModal';
 import { validatePhoneNumber } from '@/utils/phoneValidation';
 import { COUNTIES, getCoreLocation } from '@/utils/irelandLocations';
 import CustomSelect from '@/components/CustomSelect';
@@ -52,7 +51,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
 
   // Status and verification state
   const [isSaving, setIsSaving] = useState(false);
-  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -299,23 +297,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
       }
     }
 
-    // Check if phone was changed
-    const isPhoneChanged = trimmedPhone !== initialTrimmedPhone;
-
-    if (isPhoneChanged && trimmedPhone) {
-      // Require phone OTP verification before saving
-      setIsVerifyingPhone(true);
-      return;
-    }
-
-    // Phone unchanged or cleared (for personal accounts) -> proceed to save directly
     await executeSave(trimmedPhone);
-  };
-
-  const handlePhoneVerified = async (verifiedPhoneE164: string) => {
-    setIsVerifyingPhone(false);
-    setPhone(verifiedPhoneE164);
-    await executeSave(verifiedPhoneE164);
   };
 
   const displayName = fullName || username || initialData.email.split('@')[0] || 'User';
@@ -521,16 +503,10 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Contact Phone {accountType === 'business' ? <span className="text-red-500">*</span> : '(Optional)'}
               </label>
-              {accountType === 'business' ? (
+              {accountType === 'business' && (
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                   Required for Business
                 </span>
-              ) : (
-                phone.trim() && phone.trim() !== (initialData.phone || '').trim() && (
-                  <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    Verification required
-                  </span>
-                )
               )}
             </div>
             <div className="flex rounded-lg shadow-xs overflow-hidden border border-gray-300 dark:border-zinc-700 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
@@ -563,12 +539,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
             {phone.replace(/^\+353\s?/, '').trim() && !validatePhoneNumber(phone, 'IE').isValid && (
               <p className="text-xs text-red-500 mt-1">
                 {validatePhoneNumber(phone, 'IE').error || 'Please enter a valid Irish phone number (e.g. 87 123 4567).'}
-              </p>
-            )}
-            {phone.replace(/^\+353\s?/, '').trim() && validatePhoneNumber(phone, 'IE').isValid && phone.trim() !== (initialData.phone || '').trim() && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                <ShieldAlert className="w-3.5 h-3.5" />
-                Updating your phone number requires 6-digit SMS verification on save.
               </p>
             )}
           </div>
@@ -614,14 +584,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
           )}
         </button>
       </div>
-
-      
-      <PhoneVerificationModal
-        isOpen={isVerifyingPhone}
-        onClose={() => setIsVerifyingPhone(false)}
-        onVerified={handlePhoneVerified}
-        phone={phone}
-      />
     </form>
   );
 }

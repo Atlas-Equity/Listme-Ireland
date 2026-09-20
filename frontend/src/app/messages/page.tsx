@@ -608,9 +608,14 @@ function MessagesContent() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className="font-bold text-xs text-gray-900 dark:text-white truncate">
-                            {conv.otherUser.username}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-bold text-xs text-gray-900 dark:text-white truncate">
+                              {conv.otherUser.username}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400 font-medium shrink-0">
+                              {conv.isSeller ? 'Buyer' : 'Seller'}
+                            </span>
+                          </div>
                           <span className="text-[10px] text-gray-400 shrink-0">
                             {conv.lastMessageAt ? formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: false }) : ''}
                           </span>
@@ -669,7 +674,7 @@ function MessagesContent() {
                         {activeConversation?.otherUser?.username || 'User'}
                       </h2>
                       <p className="text-[11px] text-green-600 dark:text-green-400 font-medium">
-                        {activeConversation?.isSeller ? 'Seller of this listing' : 'Interested Buyer'}
+                        {activeConversation?.isSeller ? 'Buyer' : 'Seller'}
                       </p>
                     </div>
                   </div>

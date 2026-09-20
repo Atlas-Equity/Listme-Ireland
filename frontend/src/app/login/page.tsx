@@ -9,7 +9,6 @@ import {
   Mail, 
   Lock, 
   AlertCircle, 
-  Phone, 
   KeyRound, 
   Loader2, 
   ShieldCheck, 
@@ -20,7 +19,6 @@ import {
 
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'password' | 'otp'>('password');
-  const [otpChannel, setOtpChannel] = useState<'email' | 'phone'>('email');
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +28,6 @@ export default function LoginPage() {
   const [otpLength, setOtpLength] = useState<number>(6);
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [smsWarning, setSmsWarning] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,70 +64,27 @@ export default function LoginPage() {
     if (e) e.preventDefault();
     setLoading(true);
     setError(null);
-    setSmsWarning(null);
 
     const trimmed = otpTarget.trim();
 
-    if (otpChannel === 'email') {
-      if (!trimmed || !trimmed.includes('@')) {
-        setError('Please enter a valid email address.');
-        setLoading(false);
-        return;
-      }
+    if (!trimmed || !trimmed.includes('@')) {
+      setError('Please enter a valid email address.');
+      setLoading(false);
+      return;
+    }
 
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: trimmed,
-      });
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+    });
 
-      if (otpError) {
-        setError(otpError.message);
-        setLoading(false);
-      } else {
-        setOtpLength(6);
-        setOtpStep('verify');
-        setResendCooldown(30);
-        setLoading(false);
-      }
+    if (otpError) {
+      setError(otpError.message);
+      setLoading(false);
     } else {
-      const digits = trimmed.replace(/\D/g, '');
-      if (!trimmed || digits.length < 7) {
-        setError('Please enter a valid phone number (e.g. +353 87 123 4567).');
-        setLoading(false);
-        return;
-      }
-
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone: trimmed,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
-
-      if (otpError) {
-        const msg = otpError.message.toLowerCase();
-        if (
-          msg.includes('sms provider') || 
-          msg.includes('provider is not enabled') || 
-          msg.includes('unsupported phone provider') ||
-          msg.includes('twilio')
-        ) {
-          setSmsWarning(
-            'SMS provider is not configured in this Supabase project. For testing, you can use Supabase test phone numbers or code 123456.'
-          );
-          setOtpLength(6);
-          setOtpStep('verify');
-          setResendCooldown(30);
-          setLoading(false);
-        } else {
-          setError(otpError.message);
-          setLoading(false);
-        }
-      } else {
-        setOtpLength(6);
-        setOtpStep('verify');
-        setResendCooldown(30);
-        setLoading(false);
-      }
+      setOtpLength(6);
+      setOtpStep('verify');
+      setResendCooldown(30);
+      setLoading(false);
     }
   };
 
@@ -146,40 +100,18 @@ export default function LoginPage() {
 
     const trimmed = otpTarget.trim();
 
-    if (otpChannel === 'email') {
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        email: trimmed,
-        token: code,
-        type: 'email',
-      });
+    const { data, error: verifyError } = await supabase.auth.verifyOtp({
+      email: trimmed,
+      token: code,
+      type: 'email',
+    });
 
-      if (verifyError) {
-        setError(verifyError.message || 'Invalid verification code.');
-        setLoading(false);
-      } else if (data.session) {
-        router.push('/');
-        router.refresh();
-      }
-    } else {
-      if (smsWarning && (code === '123456' || code === '000000')) {
-        router.push('/');
-        router.refresh();
-        return;
-      }
-
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        phone: trimmed,
-        token: code,
-        type: 'sms',
-      });
-
-      if (verifyError) {
-        setError(verifyError.message || 'Invalid or expired SMS verification code.');
-        setLoading(false);
-      } else if (data.session) {
-        router.push('/');
-        router.refresh();
-      }
+    if (verifyError) {
+      setError(verifyError.message || 'Invalid verification code.');
+      setLoading(false);
+    } else if (data.session) {
+      router.push('/');
+      router.refresh();
     }
   };
 
@@ -220,17 +152,6 @@ export default function LoginPage() {
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-md flex items-start">
             <AlertCircle className="w-5 h-5 text-red-500 mr-2 shrink-0" />
             <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-          </div>
-        )}
-
-        
-        {smsWarning && (
-          <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 p-4 rounded-md flex items-start text-xs text-amber-800 dark:text-amber-300">
-            <Info className="w-4 h-4 text-amber-500 mr-2 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold mb-0.5">Development Note</p>
-              <p>{smsWarning}</p>
-            </div>
           </div>
         )}
 
@@ -371,89 +292,28 @@ export default function LoginPage() {
             
             {otpStep === 'input' && (
               <form onSubmit={handleSendOtp} className="space-y-4">
-                
-                <div className="flex rounded-md shadow-sm" role="group">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpChannel('email');
-                      setOtpTarget('');
-                      setError(null);
-                    }}
-                    className={`flex-1 py-2 px-3 text-xs font-medium rounded-l-lg border ${
-                      otpChannel === 'email'
-                        ? 'bg-primary text-white border-primary z-10'
-                        : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                    } transition-colors flex items-center justify-center gap-1.5`}
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    Email OTP
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpChannel('phone');
-                      setOtpTarget('');
-                      setError(null);
-                    }}
-                    className={`flex-1 py-2 px-3 text-xs font-medium rounded-r-lg border-t border-b border-r ${
-                      otpChannel === 'phone'
-                        ? 'bg-primary text-white border-primary z-10'
-                        : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                    } transition-colors flex items-center justify-center gap-1.5`}
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    Phone OTP (SMS)
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="otpEmail">
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <input
+                      id="otpEmail"
+                      type="email"
+                      required
+                      value={otpTarget}
+                      onChange={(e) => setOtpTarget(e.target.value)}
+                      placeholder="you@example.com"
+                      className="block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-colors"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    We will send a 6-digit one-time passcode to your inbox.
+                  </p>
                 </div>
-
-                {otpChannel === 'email' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="otpEmail">
-                      Email address
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <Mail className="h-5 w-5" />
-                      </div>
-                      <input
-                        id="otpEmail"
-                        type="email"
-                        required
-                        value={otpTarget}
-                        onChange={(e) => setOtpTarget(e.target.value)}
-                        placeholder="you@example.com"
-                        className="block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-colors"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      We will send a 6-digit one-time passcode to your inbox.
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="otpPhone">
-                      Phone number
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <Phone className="h-5 w-5" />
-                      </div>
-                      <input
-                        id="otpPhone"
-                        type="tel"
-                        required
-                        value={otpTarget}
-                        onChange={(e) => setOtpTarget(e.target.value)}
-                        placeholder="+353 87 123 4567"
-                        className="block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-colors"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      We will send a 6-digit text message to verify your identity.
-                    </p>
-                  </div>
-                )}
 
                 <button
                   type="submit"
@@ -589,7 +449,7 @@ export default function LoginPage() {
                     className="w-full py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center gap-1"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    Back to email / phone input
+                    Back to email input
                   </button>
                 </div>
               </div>
