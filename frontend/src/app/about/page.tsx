@@ -154,7 +154,7 @@ export default function AboutPage() {
                 <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300 pl-2">
                   <li className="flex items-start gap-2.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0"></span>
-                    <span>Buyer Protection up to €5,000 on eligible purchases</span>
+                    <span>Buyer Protection up to €5,000 on eligible purchases (up to €10,000 for Verified members)</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0"></span>
@@ -174,7 +174,11 @@ export default function AboutPage() {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0"></span>
-                    <span>An Garda Síochána reporting for extreme cases</span>
+                    <span>Chargeback protection. If a scammer refuses to pay, we can charge back the amount directly through the card on file and refund the buyer</span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0"></span>
+                    <span>Credit card required to post listings. We require a valid credit card on file before you can post anything on Listme.ie. This lets us process chargebacks against scammers, recover funds for victims, and keep the platform safe for everyone</span>
                   </li>
                 </ul>
               </div>
