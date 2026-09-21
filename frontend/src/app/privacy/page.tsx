@@ -95,33 +95,34 @@ const privacyData: Section[] = [
         }
       },
       {
-        id: '2.3',
-        number: '2.3',
-        title: 'Credit Card Information — We Do NOT Store Your Card Number',
-        paragraphs: [
-          'Listme.ie does NOT store your credit card number, CVV, or full card details on our servers.',
-          'Credit card information is stored and processed by Stripe, our PCI-compliant payment processor. Stripe meets the highest security standards (PCI DSS Level 1).',
-          'What we store locally:',
-          {
-            type: 'bullets',
-            items: [
-              'A tokenized reference to your saved card (provided by Stripe) so you can pay easily without re-entering your card details',
-              'The last 4 digits of your card for identification',
-              'Card brand and expiry date'
-            ]
-          },
-          'What we do NOT store:',
-          {
-            type: 'bullets',
-            items: [
-              'Your full credit card number',
-              'Your CVV security code',
-              'Your full card details'
-            ]
-          },
-          "Your card number never touches our servers. It is entered directly into Stripe's secure iframe and tokenized before being stored."
-        ]
-      },
+  id: '2.3',
+  number: '2.3',
+  title: 'Credit Card Information — We Do NOT Store Your Card Number',
+  paragraphs: [
+    'Listme.ie does NOT store your credit card number, CVV, or full card details on our servers.',
+    'Credit card information is stored and processed by Stripe, our PCI-compliant payment processor. Stripe meets the highest security standards (PCI DSS Level 1).',
+    'A valid credit card is required on file before you can post any listing on Listme.ie. This lets us process chargebacks against scammers, recover funds for victims, and keep the platform safe for everyone.',
+    'What we store locally:',
+    {
+      type: 'bullets',
+      items: [
+        'A tokenized reference to your saved card (provided by Stripe) so you can pay easily without re-entering your card details',
+        'The last 4 digits of your card for identification',
+        'Card brand and expiry date'
+      ]
+    },
+    'What we do NOT store:',
+    {
+      type: 'bullets',
+      items: [
+        'Your full credit card number',
+        'Your CVV security code',
+        'Your full card details'
+      ]
+    },
+    "Your card number never touches our servers. It is entered directly into Stripe's secure iframe and tokenized before being stored."
+  ]
+},
       {
         id: '2.4',
         number: '2.4',
