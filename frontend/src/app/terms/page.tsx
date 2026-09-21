@@ -202,6 +202,7 @@ const termsData: Section[] = [
         paragraphs: [
           'Listme.ie does NOT store your credit card number, CVV, or full card details on our servers.',
           'Credit card information is stored and processed by Stripe, our PCI-compliant payment processor. Stripe is a globally trusted payment provider that meets the highest security standards (PCI DSS Level 1).',
+          'A valid credit card is required on file before you can post any listing on Listme.ie. This lets us process chargebacks against scammers, recover funds for victims, and keep the platform safe for everyone.',
           'What we do store locally:',
           {
             type: 'bullets',
@@ -220,7 +221,7 @@ const termsData: Section[] = [
               'Your full card details'
             ]
           },
-          'Your card number never touches our servers. It is entered directly into Stripe\'s secure iframe and tokenized before being stored.'
+          "Your card number never touches our servers. It is entered directly into Stripe's secure iframe and tokenized before being stored."
         ]
       },
       {
@@ -276,15 +277,58 @@ const termsData: Section[] = [
       {
         id: '5.1',
         number: '5.1',
-        title: 'Fees are shown clearly before you list or buy anything',
+        title: 'You keep 100% of everything you sell',
         paragraphs: [
-          'All platform fees — including listing upgrades, seller success fees, and payment processing charges — are clearly presented before you confirm any action.',
-          'You will never be charged a surprise or hidden fee.'
+          'Listme.ie does NOT charge any Success Fee. When your item sells, you keep 100% of the sale price.',
+          'Example: You sell an item for €499.99. You keep €499.99. No Success Fee. No commission. No hidden cuts.'
         ]
       },
       {
         id: '5.2',
         number: '5.2',
+        title: 'Fees are shown clearly before you list or buy anything',
+        paragraphs: [
+          'All platform fees — including listing upgrades, optional extras, and payment processing charges — are clearly presented before you confirm any action.',
+          'You will never be charged a surprise or hidden fee.'
+        ]
+      },
+      {
+        id: '5.3',
+        number: '5.3',
+        title: 'Buyer Service Fee',
+        paragraphs: [
+          'Buyers pay a Service Fee based on purchase price:'
+        ],
+        table: {
+          headers: ['Purchase Price', 'Standard', 'With Credit', 'Verified (50% Off)'],
+          rows: [
+            ['€10 – €50', '4%', '-€1 off base total (rounded down to 0 if less than €1)', '2%'],
+            ['€50.01 – €250', '3.5%', '-€1 off base total', '1.75%'],
+            ['€250.01+', '3%', '-€5 off base total', '1.5%']
+          ]
+        }
+      },
+      {
+        id: '5.4',
+        number: '5.4',
+        title: 'Seller fees',
+        paragraphs: [
+          'Sellers pay:',
+          {
+            type: 'bullets',
+            items: [
+              'Optional extras (Reserve fee: €0.25, Exceed listing allowance: €0.10 per listing)',
+              'Listing duration fee (14 or 30 days: €0.10)',
+              'Stripe Escrow processing fee (1.4% + €0.25 per transaction)',
+              'No Success Fee'
+            ]
+          },
+          'Using Account Credit is advised for security, refund reasons, and more.'
+        ]
+      },
+      {
+        id: '5.5',
+        number: '5.5',
         title: 'We may change fees from time to time with advance notice',
         paragraphs: [
           'We reserve the right to review and adjust our fee schedules periodically to reflect marketplace improvements.',
@@ -294,13 +338,72 @@ const termsData: Section[] = [
     ]
   },
   {
-    id: 'section-6',
+    id: 'section-5a',
     number: 6,
+    title: 'ListMe Verified',
+    clauses: [
+      {
+        id: '5a.1',
+        number: '6.1',
+        title: 'Verified tiers',
+        paragraphs: [
+          'ListMe offers three paid verification tiers:',
+          {
+            type: 'bullets',
+            items: [
+              'Verified Account — €9.99/month',
+              'Verified Page — €14.99/month',
+              'Verified Account + Page Bundle — €19.99/month'
+            ]
+          }
+        ]
+      },
+      {
+        id: '5a.2',
+        number: '6.2',
+        title: 'Benefits',
+        paragraphs: [
+          'Verified members receive:',
+          {
+            type: 'bullets',
+            items: [
+              'Official Verified Badge on profile, listings, or Business Page',
+              'Priority search ranking',
+              'Priority support escalation',
+              'Enhanced Buyer Protection up to €10,000',
+              '50% off buyer Service Fees (Verified Account and Bundle only)',
+              'Increased listing limits (100 for Verified Account, 250 for Verified Page)'
+            ]
+          }
+        ]
+      },
+      {
+        id: '5a.3',
+        number: '6.3',
+        title: 'Billing',
+        paragraphs: [
+          'Subscriptions are billed monthly through Stripe and can be cancelled anytime in one click.',
+          'Benefits remain active until the end of the current billing period. No long-term contracts.'
+        ]
+      },
+      {
+        id: '5a.4',
+        number: '6.4',
+        title: 'Business accounts',
+        paragraphs: [
+          'Business accounts are seller-only and cannot purchase on ListMe.ie. Buyer benefits do not apply to Business accounts.'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'section-6',
+    number: 7,
     title: 'Listing & Selling',
     clauses: [
       {
         id: '6.1',
-        number: '6.1',
+        number: '7.1',
         title: 'Only list items you actually have in hand',
         paragraphs: [
           'You must only list items that you physically possess or have verified, immediate authorization to sell.',
@@ -309,7 +412,7 @@ const termsData: Section[] = [
       },
       {
         id: '6.2',
-        number: '6.2',
+        number: '7.2',
         title: 'No real estate, no cars, and no motorbikes',
         paragraphs: [
           'Listme.ie does not cater to real estate or motor vehicle listings.',
@@ -318,7 +421,7 @@ const termsData: Section[] = [
       },
       {
         id: '6.3',
-        number: '6.3',
+        number: '7.3',
         title: 'You must clearly state your shipping and collection terms',
         paragraphs: [
           'Every listing must explicitly state delivery terms: whether the item is collection-only, who pays postage, estimated shipping costs, and accepted courier options.',
@@ -327,7 +430,7 @@ const termsData: Section[] = [
       },
       {
         id: '6.4',
-        number: '6.4',
+        number: '7.4',
         title: 'For auctions, you must sell to the highest bidder if reserve is met',
         paragraphs: [
           'When you run an auction and the bidding reaches or exceeds your reserve price (or starting bid if no reserve is set), you are legally obligated to complete the trade with the winning bidder.',
@@ -336,7 +439,7 @@ const termsData: Section[] = [
       },
       {
         id: '6.5',
-        number: '6.5',
+        number: '7.5',
         title: 'For classifieds, you can choose who to sell to',
         paragraphs: [
           'For fixed-price or classified listings, sellers retain discretion in accepting, negotiating, or declining prospective buyers.',
@@ -345,7 +448,7 @@ const termsData: Section[] = [
       },
       {
         id: '6.6',
-        number: '6.6',
+        number: '7.6',
         title: 'Reselling is allowed and encouraged',
         paragraphs: [
           'Listme.ie explicitly permits and encourages reselling.',
@@ -355,7 +458,7 @@ const termsData: Section[] = [
       },
       {
         id: '6.7',
-        number: '6.7',
+        number: '7.7',
         title: 'Business Pages for sellers',
         paragraphs: [
           'Business account holders can create and customise Business Pages — a dedicated storefront on Listme.ie showcasing your brand, listings, opening hours, and announcements.',
@@ -365,13 +468,61 @@ const termsData: Section[] = [
     ]
   },
   {
+    id: 'section-6a',
+    number: 8,
+    title: 'Listing Limits',
+    clauses: [
+      {
+        id: '6a.1',
+        number: '8.1',
+        title: 'Active listing limits by account type',
+        paragraphs: ['Your active listing allowance depends on your account type and Verified status:'],
+        table: {
+          headers: ['Account Type', 'Active Listings Allowed'],
+          rows: [
+            ['Personal (Unverified)', '30 listings'],
+            ['Personal (Verified)', '100 listings'],
+            ['Business Page (Unverified)', '50 listings'],
+            ['Business Page (Verified)', '250 listings']
+          ]
+        }
+      },
+      {
+        id: '6a.2',
+        number: '8.2',
+        title: 'Exceeding your limit',
+        paragraphs: [
+          'If you need to exceed your listing allowance, you can add more listings for €0.10 per listing.'
+        ]
+      },
+      {
+        id: '6a.3',
+        number: '8.3',
+        title: 'Longer listings get more exposure',
+        paragraphs: [
+          'When you list an item, you can choose how long your listing stays up. The longer your post is up, the more views and exposure it gets. Listings with longer durations are pushed further in search results and category pages.'
+        ],
+        table: {
+          headers: ['Listing Duration', 'Fee'],
+          rows: [
+            ['3 days', 'Free'],
+            ['5 days', 'Free'],
+            ['7 days (Standard)', 'Free'],
+            ['14 days', '€0.10'],
+            ['30 days', '€0.10']
+          ]
+        }
+      }
+    ]
+  },
+  {
     id: 'section-7',
-    number: 7,
+    number: 9,
     title: 'Buying',
     clauses: [
       {
         id: '7.1',
-        number: '7.1',
+        number: '9.1',
         title: 'Only bid or buy if you intend to pay — it creates a legal contract',
         paragraphs: [
           'Submitting a winning bid or confirming an instant Buy Now creates a legally binding contract between you and the seller to purchase the item.',
@@ -380,7 +531,7 @@ const termsData: Section[] = [
       },
       {
         id: '7.2',
-        number: '7.2',
+        number: '9.2',
         title: "Check the listing carefully and understand the seller's terms",
         paragraphs: [
           "It is your responsibility as a buyer to review the item condition, photos, description, and the seller's location and delivery terms prior to committing.",
@@ -389,7 +540,7 @@ const termsData: Section[] = [
       },
       {
         id: '7.3',
-        number: '7.3',
+        number: '9.3',
         title: 'Non-payment can lead to complaints and account suspension',
         paragraphs: [
           'If you win an auction or commit to Buy Now and fail to pay, the seller has the right to file a non-payment dispute with our team.',
@@ -399,23 +550,62 @@ const termsData: Section[] = [
     ]
   },
   {
+    id: 'section-7a',
+    number: 10,
+    title: 'Accepted Payment Methods',
+    clauses: [
+      {
+        id: '7a.1',
+        number: '10.1',
+        title: 'What sellers can accept',
+        paragraphs: [
+          'Sellers on Listme.ie may accept:',
+          {
+            type: 'bullets',
+            items: [
+              'Stripe Escrow (Credit / Debit Card) — secure card payment with Buyer Protection',
+              'Euro in Hand / Cash on Collection — paid directly at collection'
+            ]
+          }
+        ]
+      },
+      {
+        id: '7a.2',
+        number: '10.2',
+        title: 'Bank transfer is not supported',
+        paragraphs: [
+          'Bank transfer is not a supported payment method on Listme.ie. Scams involving bank transfer are on the rise, and we removed it to keep the platform safe.'
+        ]
+      },
+      {
+        id: '7a.3',
+        number: '10.3',
+        title: 'Buyer Protection applies only to Stripe Escrow',
+        paragraphs: [
+          'Cash payments are not covered by Buyer Protection. If you want protection, pay with Stripe Escrow.'
+        ]
+      }
+    ]
+  },
+  {
     id: 'section-8',
-    number: 8,
+    number: 11,
     title: 'If You Get Scammed (Buyer Protection & Penalties)',
     clauses: [
       {
         id: '8.1',
-        number: '8.1',
+        number: '11.1',
         title: 'What You Do: Contact real human support and send your proof',
         paragraphs: [
           'Contact our customer support team immediately. All dispute tickets are handled directly by real human support staff (not automated bots).',
-          'Send us clear proof: payment records (bank or Revolut transfer confirmations), screenshots of communication, photos of packaging, or tracking numbers.',
-          'By contacting customer support regarding a scam or dispute, you explicitly consent to our Trust & Safety personnel accessing and inspecting the private message log between you and that specific accused user.'
+          'Send us clear proof: payment records (bank transfer confirmations or Stripe receipts), screenshots of communication, photos of packaging, or tracking numbers.',
+          'By contacting customer support regarding a scam or dispute, you explicitly consent to our Trust & Safety personnel accessing and inspecting the private message log between you and that specific accused user.',
+          'We aim to respond within 3 to 24 hours.'
         ]
       },
       {
         id: '8.2',
-        number: '8.2',
+        number: '11.2',
         title: 'What We Do: Thorough investigation, refunds, and scammer fine',
         paragraphs: [
           "We will investigate using the evidence you provide and (with your consent) we'll check the private chat logs between you and the accused scammer.",
@@ -425,31 +615,112 @@ const termsData: Section[] = [
       },
       {
         id: '8.3',
-        number: '8.3',
+        number: '11.3',
         title: 'Scam severity, penalties, and ban length schedule',
         paragraphs: [
           'Depending on the severity and financial impact of the scam, the scammer will be suspended or permanently banned according to the schedule below:'
         ],
         table: {
-          headers: ['Scam Severity', 'Ban Length', 'Account Penalty'],
+          headers: ['Scam Amount', 'Penalty', 'Ban Length'],
           rows: [
-            ['Minor / low-value scam', '1 month suspension', '€5 penalty + full refund restitution'],
-            ['Medium-value scam', '6 months to 1 year ban', '€5 penalty + full refund restitution'],
-            ['High-value scam', '1 to 3 years ban', '€5 penalty + full refund restitution'],
-            ['Multiple scams or extreme cases', 'Lifetime permanent ban', 'Account closed & reported to An Garda Síochána']
+            ['Under €50', '€10', '1 month'],
+            ['€50 – €200', '€20', '3 months'],
+            ['€200 – €500', '€50', '6 months'],
+            ['€500 – €1,000', '€100', '1 year'],
+            ['€1,000 – €5,000', '€200', '2 years'],
+            ['Over €5,000', '€500', 'Lifetime ban'],
+            ['Multiple scams (any value)', '€500 + previous', 'Lifetime ban']
           ]
         }
       }
     ]
   },
   {
+    id: 'section-8a',
+    number: 12,
+    title: 'Buyer Protection',
+    clauses: [
+      {
+        id: '8a.1',
+        number: '12.1',
+        title: 'What is covered',
+        paragraphs: [
+          'Buyer Protection covers purchases made through Stripe Escrow for:',
+          {
+            type: 'bullets',
+            items: [
+              'Non-delivery',
+              'Not as described',
+              'Faulty goods',
+              'Late delivery'
+            ]
+          }
+        ]
+      },
+      {
+        id: '8a.2',
+        number: '12.2',
+        title: 'Coverage limits',
+        paragraphs: [
+          'Coverage limits are:',
+          {
+            type: 'bullets',
+            items: [
+              'Standard members: up to €5,000',
+              'Verified members: up to €10,000'
+            ]
+          }
+        ]
+      },
+      {
+        id: '8a.3',
+        number: '12.3',
+        title: 'Reporting window',
+        paragraphs: [
+          'You must report within 3 days of purchase. Full policy available at https://www.listme.ie/buyer-protection.'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'section-8b',
+    number: 13,
+    title: 'Refund Process',
+    clauses: [
+      {
+        id: '8b.1',
+        number: '13.1',
+        title: 'How refunds are paid',
+        paragraphs: [
+          'Approved refunds are returned directly to your original payment method (card or bank account).'
+        ]
+      },
+      {
+        id: '8b.2',
+        number: '13.2',
+        title: 'Extra amounts go to Account Credit',
+        paragraphs: [
+          'If the refund amount is greater than what you originally paid, or if any extra money is owed to you, we will place the additional amount into your Listme Account Credit. This credit can be used for future purchases on Listme.ie.'
+        ]
+      },
+      {
+        id: '8b.3',
+        number: '13.3',
+        title: 'Alternative refund methods',
+        paragraphs: [
+          'If a direct bank refund will not work (for example, because your bank account has closed), we may determine the most appropriate way to get you your money back, including by deposit into your Listme Account Credit. We may request your help to find the best solution for you.'
+        ]
+      }
+    ]
+  },
+  {
     id: 'section-9',
-    number: 9,
+    number: 14,
     title: 'Private Messaging on Our Platform',
     clauses: [
       {
         id: '9.1',
-        number: '9.1',
+        number: '14.1',
         title: 'We provide a private messaging system for Members to communicate',
         paragraphs: [
           'We provide a built-in private messaging tool for Members to communicate regarding listings, ask item questions, and coordinate collection logistics.',
@@ -458,7 +729,7 @@ const termsData: Section[] = [
       },
       {
         id: '9.2',
-        number: '9.2',
+        number: '14.2',
         title: 'We do not read or monitor your private messages under normal circumstances',
         paragraphs: [
           'We do NOT read, intercept, or monitor your private messages under normal operating conditions.',
@@ -467,7 +738,7 @@ const termsData: Section[] = [
       },
       {
         id: '9.3',
-        number: '9.3',
+        number: '14.3',
         title: 'Consent to inspect specific chats when a scam or dispute is reported',
         paragraphs: [
           'However, if you contact customer support about a scam, fraud, or serious dispute, you consent to us accessing and reviewing the specific chat between you and the accused user.',
@@ -476,7 +747,7 @@ const termsData: Section[] = [
       },
       {
         id: '9.4',
-        number: '9.4',
+        number: '14.4',
         title: 'Automatic deletion: chats & logs are deleted after 3 days of inactivity',
         paragraphs: [
           'To protect Member privacy, prevent unnecessary data retention, and keep communications clean, all chat conversations, direct messages, and associated communication logs (including call records) are automatically and permanently deleted after three (3) consecutive days of inactivity.',
@@ -488,12 +759,12 @@ const termsData: Section[] = [
   },
   {
     id: 'section-10',
-    number: 10,
+    number: 15,
     title: 'Feedback',
     clauses: [
       {
         id: '10.1',
-        number: '10.1',
+        number: '15.1',
         title: 'Leave honest, factual feedback about transactions',
         paragraphs: [
           'Feedback ratings and comments must reflect genuine, factual experiences of completed or attempted trades.',
@@ -502,7 +773,7 @@ const termsData: Section[] = [
       },
       {
         id: '10.2',
-        number: '10.2',
+        number: '15.2',
         title: 'No offensive, defamatory, or retaliatory comments',
         paragraphs: [
           'You must not post offensive, abusive, defamatory, threatening, or retaliatory feedback.',
@@ -513,12 +784,12 @@ const termsData: Section[] = [
   },
   {
     id: 'section-11',
-    number: 11,
+    number: 16,
     title: 'Disputes & Problems',
     clauses: [
       {
         id: '11.1',
-        number: '11.1',
+        number: '16.1',
         title: 'Try to sort it out directly with the other Member first',
         paragraphs: [
           'If a misunderstanding or disagreement occurs, members must make a good-faith effort to resolve the issue directly between themselves first.'
@@ -526,7 +797,7 @@ const termsData: Section[] = [
       },
       {
         id: '11.2',
-        number: '11.2',
+        number: '16.2',
         title: 'If direct negotiation fails, contact customer support',
         paragraphs: [
           'If direct communication fails, you can contact our customer support team to request an administrative review and investigation.',
@@ -535,7 +806,7 @@ const termsData: Section[] = [
       },
       {
         id: '11.3',
-        number: '11.3',
+        number: '16.3',
         title: 'Court disputes and Irish legal disclosures',
         paragraphs: [
           "For formal legal disputes (such as Small Claims Court proceedings), we strictly uphold GDPR regulations and will only release another Member's personal details if legally compelled by an Irish court or law enforcement order.",
@@ -546,12 +817,12 @@ const termsData: Section[] = [
   },
   {
     id: 'section-12',
-    number: 12,
-    title: 'Our Liability (What We\'re NOT Responsible For)',
+    number: 17,
+    title: "Our Liability (What We're NOT Responsible For)",
     clauses: [
       {
         id: '12.1',
-        number: '12.1',
+        number: '17.1',
         title: 'Shipping, postal, or delivery issues',
         paragraphs: [
           'Listme.ie is not responsible for postal delays, courier damages, lost parcels, or undelivered shipments.',
@@ -560,7 +831,7 @@ const termsData: Section[] = [
       },
       {
         id: '12.2',
-        number: '12.2',
+        number: '17.2',
         title: 'Member conduct and representations',
         paragraphs: [
           'We do not police every interaction or pre-screen all members.',
@@ -569,7 +840,7 @@ const termsData: Section[] = [
       },
       {
         id: '12.3',
-        number: '12.3',
+        number: '17.3',
         title: "Service provided 'as is' without 100% perfection guarantee",
         paragraphs: [
           "We provide the platform on an 'as is' and 'as available' basis, with no guarantee that access will be 100% uninterrupted or error-free at all times.",
@@ -580,12 +851,12 @@ const termsData: Section[] = [
   },
   {
     id: 'section-13',
-    number: 13,
+    number: 18,
     title: 'Your Content (Photos, Descriptions, etc.)',
     clauses: [
       {
         id: '13.1',
-        number: '13.1',
+        number: '18.1',
         title: 'You own your content, but grant us permission to run the site',
         paragraphs: [
           'You retain ownership of all original text, photos, descriptions, and materials you upload to Listme.ie.',
@@ -594,7 +865,7 @@ const termsData: Section[] = [
       },
       {
         id: '13.2',
-        number: '13.2',
+        number: '18.2',
         title: 'Archival and compliance copies',
         paragraphs: [
           'We may retain archival copies of your listings, transactions, and correspondence for legal, audit, and tax compliance even after you close your account.'
@@ -604,12 +875,12 @@ const termsData: Section[] = [
   },
   {
     id: 'section-14',
-    number: 14,
+    number: 19,
     title: 'Terminating Your Account',
     clauses: [
       {
         id: '14.1',
-        number: '14.1',
+        number: '19.1',
         title: 'You can leave anytime',
         paragraphs: [
           'You may request to close your Member account at any time by contacting our customer support team.'
@@ -617,7 +888,7 @@ const termsData: Section[] = [
       },
       {
         id: '14.2',
-        number: '14.2',
+        number: '19.2',
         title: 'We can suspend or ban accounts that break the rules',
         paragraphs: [
           'We reserve the right to suspend, restrict, or permanently terminate your account if you breach these Terms, incur scam penalties, or engage in unlawful behaviour.'
@@ -625,7 +896,7 @@ const termsData: Section[] = [
       },
       {
         id: '14.3',
-        number: '14.3',
+        number: '19.3',
         title: 'Refund of real positive account balances',
         paragraphs: [
           'Any unused real credit balance (excluding promotional or non-withdrawable credits) will be refunded to your designated account, minus standard processing fees.'
@@ -635,12 +906,12 @@ const termsData: Section[] = [
   },
   {
     id: 'section-15',
-    number: 15,
+    number: 20,
     title: 'Changes to These Terms',
     clauses: [
       {
         id: '15.1',
-        number: '15.1',
+        number: '20.1',
         title: "We'll tell you in advance about major changes",
         paragraphs: [
           'We will inform Members of substantial updates or amendments to these Terms at least two (2) weeks in advance via email or prominent on-site notice.'
@@ -648,11 +919,27 @@ const termsData: Section[] = [
       },
       {
         id: '15.2',
-        number: '15.2',
+        number: '20.2',
         title: 'Stop using the site if you do not agree',
         paragraphs: [
           'If you do not agree with the updated terms, we advise you to discontinue using Listme.ie prior to the effective date.',
           'Continuing to use the platform after changes take effect constitutes acceptance of the new Terms.'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'section-16',
+    number: 21,
+    title: 'Contact Us',
+    clauses: [
+      {
+        id: '16.1',
+        number: '21.1',
+        title: 'Customer Support',
+        paragraphs: [
+          'Visit our Support Page at https://www.listme.ie/help to create a ticket and message our team directly from your admin panel.',
+          'No email support. All customer support is handled exclusively through our ticket system to verify account ownership.'
         ]
       }
     ]
@@ -661,13 +948,15 @@ const termsData: Section[] = [
 
 const summaryPoints = [
   { topic: 'Email & phone', detail: 'We store these securely for account and support purposes' },
-  { topic: 'Credit card', detail: 'Stripe stores your card. We only keep a token and last 4 digits. We NEVER see or store your full card number.' },
+  { topic: 'Credit card', detail: 'Stripe stores your card. We only keep a token and last 4 digits. We never see or store your full card number. Required to post listings.' },
   { topic: 'Support', detail: 'Real humans only — no AI, no bots' },
   { topic: 'Reselling', detail: 'Fully allowed and encouraged' },
   { topic: 'Business Pages', detail: 'Create your own storefront on Listme.ie' },
   { topic: 'Shipping', detail: "We don't handle it — buyers and sellers arrange directly" },
   { topic: 'Scams', detail: 'Report within 3 days. Human investigates. Scammer penalised and banned.' },
   { topic: 'Messages', detail: 'Deleted after 3 days of inactivity' },
+  { topic: 'Success Fees', detail: 'We do not charge any. You keep 100% of everything you sell.' },
+  { topic: 'Verified', detail: 'Optional paid subscription. 50% off buyer Service Fees, up to €10,000 Buyer Protection.' },
   { topic: 'Data', detail: 'Never sold. GDPR rights apply.' }
 ];
 
