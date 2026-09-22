@@ -3,9 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { isUserQuinn } from '@/utils/admin';
-import Stripe from 'stripe';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { LinkedCardData } from '@/app/my-listme/actions';
 
 export interface CreateListingInput {
   title: string;
@@ -55,10 +53,10 @@ export async function createListing(formData: CreateListingInput) {
 
   const username = (profile?.username || user.user_metadata?.username || '').toLowerCase();
   const userEmail = (user.email || '').toLowerCase();
-  const isExempt = 
-    username === 'quinn' || 
-    username === 'sahleyis' || 
-    userEmail === 'qrmooney@outlook.com' || 
+  const isExempt =
+    username === 'quinn' ||
+    username === 'sahleyis' ||
+    userEmail === 'qrmooney@outlook.com' ||
     userEmail === 'dahiruhammajam@gmail.com' ||
     user.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16' ||
     user.id === '88beddab-0640-4f99-a04a-ff58c03704e4';
@@ -169,200 +167,52 @@ export async function createListing(formData: CreateListingInput) {
   }
 
   let feePaymentResult: {
-    method: 'account_credit' | 'linked_card' | 'split';
+    method: 'account_credit';
     amountPaid: number;
     creditDeducted: number;
-    cardCharged: number;
-    paymentIntentId?: string;
   } | null = null;
 
   const userMeta = user.user_metadata || {};
   const currentCredit = typeof userMeta.account_credit === 'number' ? userMeta.account_credit : 0;
 
   if (feeToCharge > 0) {
-    // 1. Backcharge credit first if sufficient
-    if (currentCredit >= feeToCharge) {
-      const newCredit = Math.round((currentCredit - feeToCharge) * 100) / 100;
-      const { error: creditErr } = await supabase.auth.updateUser({
-        data: { account_credit: newCredit }
-      });
-
-      if (creditErr) {
-        return { error: `Failed to deduct €${feeToCharge.toFixed(2)} listing fee from account credit: ${creditErr.message}` };
-      }
-
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        try {
-          const adminClient = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.SUPABASE_SERVICE_ROLE_KEY
-          );
-          await adminClient.auth.admin.updateUserById(user.id, {
-            user_metadata: {
-              ...user.user_metadata,
-              account_credit: newCredit,
-            }
-          });
-        } catch (adminErr) {
-          console.warn('Admin client sync note:', adminErr);
-        }
-      }
-
-      feePaymentResult = {
-        method: 'account_credit',
-        amountPaid: feeToCharge,
-        creditDeducted: feeToCharge,
-        cardCharged: 0,
+    if (currentCredit < feeToCharge) {
+      return {
+        error: `This listing requires an upload fee of €${feeToCharge.toFixed(2)}. You have €${currentCredit.toFixed(2)} in account credit. Please top up your account credit to publish this listing.`
       };
-    } else {
-      // 2. Insufficient or zero credit: backcharge available credit, then charge remainder to assigned card
-      const creditToUse = currentCredit > 0 ? currentCredit : 0;
-      const cardAmountToCharge = Math.round((feeToCharge - creditToUse) * 100) / 100;
+    }
 
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        return {
-          error: `This listing requires an upload fee of €${feeToCharge.toFixed(2)}. You have €${currentCredit.toFixed(2)} account credit, and card processing is currently unavailable.`
-        };
-      }
+    const newCredit = Math.round((currentCredit - feeToCharge) * 100) / 100;
+    const { error: creditErr } = await supabase.auth.updateUser({
+      data: { account_credit: newCredit }
+    });
 
-      const allCards: LinkedCardData[] = Array.isArray(userMeta.linked_cards) && userMeta.linked_cards.length > 0
-        ? userMeta.linked_cards
-        : userMeta.linked_card
-          ? [userMeta.linked_card]
-          : [];
+    if (creditErr) {
+      return { error: `Failed to deduct €${feeToCharge.toFixed(2)} listing fee from account credit: ${creditErr.message}` };
+    }
 
-      // Prefer credit card as per ListMe seller requirements, or fallback to first card
-      const assignedCard = allCards.find(c => c?.funding === 'credit' || c?.cardType === 'credit')
-        || allCards[0]
-        || userMeta.linked_card;
-
-      const stripe = new Stripe(stripeKey);
-
-      let customerId: string | undefined = userMeta.stripe_customer_id;
-      if (!customerId) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('stripe_customer_id')
-          .eq('id', user.id)
-          .maybeSingle();
-        customerId = prof?.stripe_customer_id;
-      }
-
-      if (!customerId && user.email) {
-        try {
-          const existingCustomers = await stripe.customers.list({ email: user.email, limit: 1 });
-          if (existingCustomers.data && existingCustomers.data.length > 0) {
-            customerId = existingCustomers.data[0].id;
-          }
-        } catch {}
-      }
-
-      let paymentMethodId: string | undefined = assignedCard?.stripePaymentMethodId;
-      if (!paymentMethodId) {
-        const withPm = allCards.find(c => c?.stripePaymentMethodId);
-        if (withPm) paymentMethodId = withPm.stripePaymentMethodId;
-      }
-
-      if (!paymentMethodId && customerId) {
-        try {
-          const cust = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-          const defaultPm = cust.invoice_settings?.default_payment_method;
-          if (defaultPm) {
-            paymentMethodId = typeof defaultPm === 'string' ? defaultPm : defaultPm.id;
-          } else {
-            const pms = await stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 1 });
-            if (pms.data && pms.data.length > 0) {
-              paymentMethodId = pms.data[0].id;
-            }
-          }
-        } catch (pmErr) {
-          console.warn('Could not retrieve payment methods for customer:', pmErr);
-        }
-      }
-
-      if (!customerId || !paymentMethodId) {
-        const creditDetail = currentCredit > 0
-          ? `You have €${currentCredit.toFixed(2)} in account credit, but need €${feeToCharge.toFixed(2)}.`
-          : `You have €0.00 in account credit.`;
-        return {
-          error: `This listing has an upload fee of €${feeToCharge.toFixed(2)}. ${creditDetail} No assigned card was found on your account. Please link a card in your wallet or top up credit to publish this listing.`
-        };
-      }
-
-      // Execute Stripe charge
-      const amountInCents = Math.round(cardAmountToCharge * 100);
-      const stripeChargeCents = Math.max(50, amountInCents); // Stripe EUR minimum is 50c (€0.50)
-      const changeToDeposit = Math.round((stripeChargeCents - amountInCents)) / 100;
-
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
       try {
-        const pi = await stripe.paymentIntents.create({
-          amount: stripeChargeCents,
-          currency: 'eur',
-          customer: customerId,
-          payment_method: paymentMethodId,
-          off_session: true,
-          confirm: true,
-          description: `ListMe Listing Fee: ${formData.title}`,
-          metadata: {
-            type: 'listing_upload_fee',
-            seller_id: user.id,
-            listing_title: formData.title,
-            total_fee: feeToCharge.toFixed(2),
-            credit_deducted: creditToUse.toFixed(2),
-            card_charged: (stripeChargeCents / 100).toFixed(2),
-          },
-        });
-
-        if (pi.status !== 'succeeded') {
-          return {
-            error: `Failed to charge listing fee to assigned card (status: ${pi.status}). Please check your card or top up account credit.`
-          };
-        }
-
-        // Deduct used credit and deposit change if Stripe minimum exceeded the card fee
-        let finalCredit = currentCredit;
-        if (creditToUse > 0) {
-          finalCredit = Math.round((finalCredit - creditToUse) * 100) / 100;
-        }
-        if (changeToDeposit > 0) {
-          finalCredit = Math.round((finalCredit + changeToDeposit) * 100) / 100;
-        }
-
-        if (creditToUse > 0 || changeToDeposit > 0) {
-          await supabase.auth.updateUser({
-            data: { account_credit: finalCredit }
-          });
-          if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-            try {
-              const adminClient = createSupabaseClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.SUPABASE_SERVICE_ROLE_KEY
-              );
-              await adminClient.auth.admin.updateUserById(user.id, {
-                user_metadata: {
-                  ...user.user_metadata,
-                  account_credit: finalCredit,
-                }
-              });
-            } catch {}
+        const adminClient = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+        await adminClient.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...user.user_metadata,
+            account_credit: newCredit,
           }
-        }
-
-        feePaymentResult = {
-          method: creditToUse > 0 ? 'split' : 'linked_card',
-          amountPaid: feeToCharge,
-          creditDeducted: creditToUse,
-          cardCharged: stripeChargeCents / 100,
-          paymentIntentId: pi.id,
-        };
-      } catch (stripeErr: any) {
-        console.error('Error charging card for listing fee:', stripeErr);
-        return {
-          error: `Failed to charge listing fee of €${cardAmountToCharge.toFixed(2)} to assigned card: ${stripeErr.message || 'Payment declined.'}. Your account credit was not deducted.`
-        };
+        });
+      } catch (adminErr) {
+        console.warn('Admin client sync note:', adminErr);
       }
     }
+
+    feePaymentResult = {
+      method: 'account_credit',
+      amountPaid: feeToCharge,
+      creditDeducted: feeToCharge,
+    };
   }
 
   const attempt = await supabase
@@ -387,38 +237,28 @@ export async function createListing(formData: CreateListingInput) {
 
   if (error) {
     console.error('Error creating listing:', error);
-    // Rollback payments if listing insert failed
-    if (feePaymentResult) {
-      if (feePaymentResult.creditDeducted > 0) {
-        const restoredCredit = Math.round((currentCredit) * 100) / 100;
-        await supabase.auth.updateUser({
-          data: { account_credit: restoredCredit }
-        });
-        if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-          try {
-            const adminClient = createSupabaseClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL,
-              process.env.SUPABASE_SERVICE_ROLE_KEY
-            );
-            await adminClient.auth.admin.updateUserById(user.id, {
-              user_metadata: {
-                ...user.user_metadata,
-                account_credit: restoredCredit,
-              }
-            });
-          } catch {}
-        }
-      }
-      if (feePaymentResult.paymentIntentId && process.env.STRIPE_SECRET_KEY) {
+    // Rollback credit deduction if listing insert failed
+    if (feePaymentResult && feePaymentResult.creditDeducted > 0) {
+      const restoredCredit = Math.round(currentCredit * 100) / 100;
+      await supabase.auth.updateUser({
+        data: { account_credit: restoredCredit }
+      });
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
         try {
-          const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-          await stripe.refunds.create({ payment_intent: feePaymentResult.paymentIntentId });
-        } catch (refundErr) {
-          console.error('Failed to refund listing fee payment intent:', refundErr);
-        }
+          const adminClient = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.SUPABASE_SERVICE_ROLE_KEY
+          );
+          await adminClient.auth.admin.updateUserById(user.id, {
+            user_metadata: {
+              ...user.user_metadata,
+              account_credit: restoredCredit,
+            }
+          });
+        } catch {}
       }
     }
-    return { error: 'Failed to create listing. Any charged fee has been refunded. Please try again.' };
+    return { error: 'Failed to create listing. Any deducted credit has been restored. Please try again.' };
   }
 
   revalidatePath('/');
@@ -429,6 +269,6 @@ export async function createListing(formData: CreateListingInput) {
   if (formData.businessPageSlug) {
     revalidatePath(`/page/${formData.businessPageSlug}`);
   }
-  
+
   return { success: true, listingId: data?.id };
 }
