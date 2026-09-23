@@ -1,15 +1,15 @@
 import React from 'react';
 import Link from 'next/link';
-import { 
-  ShieldCheck, 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle2, 
-  Ban, 
-  Scale, 
-  FileText, 
-  MessageSquare, 
-  ArrowRight 
+import {
+  ShieldCheck,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  Ban,
+  Scale,
+  FileText,
+  MessageSquare,
+  ArrowRight
 } from 'lucide-react';
 
 export const revalidate = 60;
@@ -53,12 +53,14 @@ export default function BuyerProtectionPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black py-12 text-gray-800 dark:text-gray-200">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        
+
+
         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-white font-medium">Buyer Protection</span>
         </div>
+
 
         <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-8 sm:p-10 shadow-xs relative overflow-hidden">
           <div className="max-w-2xl">
@@ -72,7 +74,7 @@ export default function BuyerProtectionPage() {
             </h1>
 
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-3 leading-relaxed">
-              When you make a purchase on Listme.ie using Listme Pay, we have your back with Buyer Protection. That means you may be eligible for a refund (up to €5,000, or up to €10,000 for Verified members).
+              When you make a purchase on Listme.ie using ListMe Account Credit, we have your back with Buyer Protection. That means you may be eligible for a refund (up to €5,000, or up to €10,000 for Verified members).
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-bold">
@@ -91,7 +93,7 @@ export default function BuyerProtectionPage() {
             What Is Buyer Protection?
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-            When you make a purchase on Listme.ie using Listme Pay, we have your back with Buyer Protection. That means you may be eligible for a refund (up to €5,000, or up to €10,000 for Verified members) if your purchase:
+            When you make a purchase on Listme.ie using ListMe Account Credit, we have your back with Buyer Protection. That means you may be eligible for a refund (up to €5,000, or up to €10,000 for Verified members) if your purchase:
           </p>
           <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300 pl-2">
             <li className="flex items-center gap-2">
@@ -107,7 +109,7 @@ export default function BuyerProtectionPage() {
               <span>Is not as the seller described</span>
             </li>
           </ul>
-          
+
           <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-300 font-semibold flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
             <span>Purchases made with cash or bank transfers are not covered.</span>
@@ -198,13 +200,13 @@ export default function BuyerProtectionPage() {
             Refund Process
           </h2>
           <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-            If we decide to refund you under Buyer Protection, your money will be returned directly to your bank account via refund.
+            If we decide to refund you under Buyer Protection, your money will be returned directly to your ListMe Account Credit so you can immediately use it for another purchase on Listme.ie.
           </p>
           <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-            If the refund amount is greater than what you originally paid, or if any extra money is owed to you, we will place the additional amount into your Listme Account Credit. This credit can be used for future purchases on Listme.ie.
+            If the refund amount is greater than what you originally paid, or if any extra money is owed to you, we will place the additional amount into your ListMe Account Credit as well.
           </p>
           <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-            If a direct bank refund will not work (for example, because your bank account has closed), we may determine the most appropriate way to get you your money back, including by deposit into your Listme Account Credit. In this case, we may request your help to find the best solution for you.
+            In the rare case that a direct credit refund is not possible, we will work with you to determine the most appropriate alternative. In this case, we may request your help to find the best solution for you.
           </p>
         </section>
 
@@ -302,7 +304,7 @@ export default function BuyerProtectionPage() {
             Seller Responsibility
           </h2>
           <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-            When we have returned your money to you, we will debit the seller&apos;s Listme Pay balance or account. If there is not enough money, we may require the seller to pay us directly. We reserve the right to refer the matter to a debt collector if the seller refuses to pay.
+            When we have returned your money to you, we will debit the seller&apos;s ListMe Account Credit balance or account. If there is not enough money, we may require the seller to pay us directly. We reserve the right to refer the matter to a debt collector if the seller refuses to pay.
           </p>
         </section>
 
