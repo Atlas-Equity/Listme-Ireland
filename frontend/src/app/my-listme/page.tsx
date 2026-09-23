@@ -1,20 +1,20 @@
 import React from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
-import { 
-  User, 
-  Settings, 
+import {
+  User,
+  Settings,
   Heart,
-  Eye, 
-  Package, 
-  LogOut, 
-  CheckCircle2, 
-  Plus, 
-  ArrowRight, 
-  MapPin, 
-  Phone, 
-  Edit, 
-  ShieldCheck, 
+  Eye,
+  Package,
+  LogOut,
+  CheckCircle2,
+  Plus,
+  ArrowRight,
+  MapPin,
+  Phone,
+  Edit,
+  ShieldCheck,
   ExternalLink,
   Tag,
   CreditCard,
@@ -44,7 +44,6 @@ import ProfileSettingsForm from './ProfileSettingsForm';
 import AccountTypeSwitch from './AccountTypeSwitch';
 import CreateWatchlistModal from '@/components/CreateWatchlistModal';
 import MakeOfferButton from '@/components/MakeOfferButton';
-import LinkedCardCard from '@/components/LinkedCardCard';
 import RelistNotificationCard from '@/components/RelistNotificationCard';
 import WelcomeGuideNotification from '@/components/WelcomeGuideNotification';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
@@ -94,7 +93,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const dismissedNotificationIds: string[] = userMetadata.dismissed_notifications || [];
 
   const allUserListings = userListingsRes.data || [];
-  const userListings = allUserListings.filter(l => 
+  const userListings = allUserListings.filter(l =>
     l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
   );
 
@@ -224,229 +223,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
-  let topupNotification: { success: boolean; message: string } | null = null;
-  const topupSessionId = typeof params?.topup_session_id === 'string' ? params.topup_session_id : undefined;
-
-  let currentAccountCredit = typeof userMetadata.account_credit === 'number' ? userMetadata.account_credit : 0.00;
-
-  if (topupSessionId) {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (stripeKey) {
-      try {
-        const stripe = new Stripe(stripeKey);
-        const session = await stripe.checkout.sessions.retrieve(topupSessionId, {
-          expand: ['payment_intent.payment_method', 'customer'],
-        });
-
-        if (session.payment_status === 'paid' && session.metadata?.type === 'account_credit_topup') {
-          const processed: string[] = userMetadata.processed_topup_sessions || [];
-
-          if (!processed.includes(session.id)) {
-            const paidAmount = session.amount_total
-              ? session.amount_total / 100
-              : parseFloat(session.metadata?.amount || '0');
-
-            currentAccountCredit = Math.round((currentAccountCredit + paidAmount) * 100) / 100;
-            const updatedProcessed = [...processed, session.id];
-
-            const sessionCust = session.customer;
-            const resolvedCustomerId = typeof sessionCust === 'string'
-              ? sessionCust
-              : (sessionCust as Stripe.Customer)?.id || userMetadata.stripe_customer_id;
-
-            let updatedLinkedCard = userMetadata.linked_card;
-            const pi = session.payment_intent as Stripe.PaymentIntent | undefined;
-            const pm = (pi?.payment_method as Stripe.PaymentMethod | undefined);
-
-            if (pm && pm.card) {
-              const cardData = pm.card;
-              const brand = (cardData.brand || 'VISA').toUpperCase();
-              const last4 = cardData.last4;
-              const expMonth = String(cardData.exp_month).padStart(2, '0');
-              const expYear = String(cardData.exp_year).slice(-2);
-              const isDebit = cardData.funding === 'debit' || last4 === '0953';
-              const fundingVal = isDebit ? 'debit' : (cardData.funding || 'credit');
-              const cardTypeVal = isDebit ? 'debit' : 'credit';
-
-              updatedLinkedCard = {
-                id: pm.id || `card_${last4}`,
-                cardholderName: pm.billing_details?.name || userMetadata.linked_card?.cardholderName || fullName || 'Cardholder',
-                cardNickname: userMetadata.linked_card?.cardNickname || `${brand} ${isDebit ? 'Debit' : 'Credit'} ending in ${last4}`,
-                cardNumberBlocks: ['••••', '••••', '••••', last4],
-                expiry: `${expMonth}/${expYear}`,
-                cvvMasked: '•••',
-                brand,
-                stripePaymentMethodId: pm.id,
-                isStripeVaulted: true,
-                cardType: cardTypeVal,
-                funding: fundingVal,
-                updatedAt: new Date().toISOString(),
-              };
-
-              // Make this card the default payment method on the customer in Stripe
-              if (resolvedCustomerId) {
-                try {
-                  await stripe.customers.update(resolvedCustomerId, {
-                    invoice_settings: { default_payment_method: pm.id },
-                  });
-                } catch (custErr) {
-                  console.warn('Could not set customer default payment method:', custErr);
-                }
-              }
-            }
-
-            const updateData: any = {
-              account_credit: currentAccountCredit,
-              processed_topup_sessions: updatedProcessed,
-            };
-
-            if (resolvedCustomerId) {
-              updateData.stripe_customer_id = resolvedCustomerId;
-            }
-            if (updatedLinkedCard) {
-              updateData.linked_card = updatedLinkedCard;
-            }
-
-            await supabase.auth.updateUser({
-              data: updateData,
-            });
-
-            if (resolvedCustomerId) {
-              try {
-                await supabase.from('profiles').update({ stripe_customer_id: resolvedCustomerId }).eq('id', user.id);
-              } catch {}
-            }
-
-            userMetadata.account_credit = currentAccountCredit;
-            userMetadata.processed_topup_sessions = updatedProcessed;
-            if (resolvedCustomerId) userMetadata.stripe_customer_id = resolvedCustomerId;
-            if (updatedLinkedCard) userMetadata.linked_card = updatedLinkedCard;
-
-            topupNotification = {
-              success: true,
-              message: `Payment confirmed via Stripe! €${paidAmount.toFixed(2)} has been added to your Listme Account Credit. Your card has been saved for future 1-click top-ups.`,
-            };
-          } else {
-            topupNotification = {
-              success: true,
-              message: 'This top-up payment was confirmed and has already been added to your balance.',
-            };
-          }
-        } else {
-          topupNotification = {
-            success: false,
-            message: 'Stripe top-up checkout session was not marked as completed.',
-          };
-        }
-      } catch (sessionErr: any) {
-        console.error('Error verifying Stripe topup session:', sessionErr);
-        topupNotification = {
-          success: false,
-          message: 'Could not verify Stripe payment: ' + (sessionErr.message || 'Session not found'),
-        };
-      }
-    } else {
-      topupNotification = {
-        success: true,
-        message: 'Top-up session detected. In production, real funds will be verified and credited automatically via Stripe.',
-      };
-    }
-  } else if (params?.topup_success === 'true' && params?.topup_amount) {
-    const rawAmt = Array.isArray(params.topup_amount) ? params.topup_amount[0] : params.topup_amount;
-    const amt = parseFloat(rawAmt || '0');
-    topupNotification = {
-      success: true,
-      message: `Payment confirmed! €${isNaN(amt) ? '0.00' : amt.toFixed(2)} has been credited to your account from your saved card.`,
-    };
-  } else if (params?.topup_status === 'cancelled') {
-    topupNotification = {
-      success: false,
-      message: 'Top-up transaction was cancelled. No money was charged to your card.',
-    };
-  }
-
-  // Stripe Wallet Setup Session Verification (when linking card via Stripe Vault)
-  const setupSessionId = typeof params?.setup_session_id === 'string' ? params.setup_session_id : undefined;
-  if (setupSessionId && process.env.STRIPE_SECRET_KEY) {
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const session = await stripe.checkout.sessions.retrieve(setupSessionId, {
-        expand: ['setup_intent.payment_method'],
-      });
-
-      if (session.status === 'complete' && session.setup_intent) {
-        const setupIntent = session.setup_intent as any;
-        const pm = setupIntent.payment_method;
-
-        if (pm?.card) {
-          const cardData = pm.card;
-          const isDebit = cardData.funding === 'debit' || cardData.last4 === '0953';
-          const fundingVal = isDebit ? 'debit' : (cardData.funding || 'credit');
-          const cardTypeVal = isDebit ? 'debit' : 'credit';
-          const brand = cardData.brand.toUpperCase();
-          const last4 = cardData.last4;
-
-          const updatedCard = {
-            id: pm.id || `card_${last4}`,
-            cardholderName: pm.billing_details?.name || fullName || 'Cardholder',
-            cardNickname: isDebit ? `Visa Debit (•••• ${last4})` : `${brand} Credit (•••• ${last4})`,
-            cardNumberBlocks: ['••••', '••••', '••••', last4],
-            expiry: `${String(cardData.exp_month).padStart(2, '0')}/${String(cardData.exp_year).slice(-2)}`,
-            cvvMasked: '•••',
-            brand,
-            stripePaymentMethodId: pm.id,
-            isStripeVaulted: true,
-            cardType: cardTypeVal,
-            funding: fundingVal,
-            updatedAt: new Date().toISOString(),
-          };
-
-          const existingCards: any[] = Array.isArray(userMetadata.linked_cards)
-            ? [...userMetadata.linked_cards]
-            : userMetadata.linked_card
-              ? [userMetadata.linked_card]
-              : [];
-
-          const existingIdx = existingCards.findIndex(c => c.stripePaymentMethodId === pm.id || c.cardNumberBlocks?.[3] === last4);
-          let newCardsList: any[];
-          if (existingIdx >= 0) {
-            existingCards[existingIdx] = updatedCard;
-            newCardsList = existingCards;
-          } else if (existingCards.length < 2) {
-            newCardsList = [...existingCards, updatedCard];
-          } else {
-            newCardsList = [updatedCard, existingCards[1]];
-          }
-
-          await supabase.auth.updateUser({
-            data: {
-              linked_card: newCardsList[0] || updatedCard,
-              linked_cards: newCardsList,
-              stripe_customer_id: session.customer || undefined,
-            },
-          });
-
-          userMetadata.linked_card = newCardsList[0] || updatedCard;
-          userMetadata.linked_cards = newCardsList;
-
-          if (session.customer) {
-            await stripe.customers.update(session.customer as string, {
-              invoice_settings: { default_payment_method: pm.id },
-            });
-          }
-
-          topupNotification = {
-            success: true,
-            message: isDebit
-              ? `Your Debit Card (${brand} ending in ${last4}) has been linked for wallet top-ups & purchases. (Note: A verified Credit Card is required to sell).`
-              : `Your Credit Card (${brand} ending in ${last4}) has been securely linked! Seller listing privileges are active.`,
-          };
-        }
-      }
-    } catch (setupErr: any) {
-      console.error('Error verifying Stripe wallet setup session:', setupErr);
-    }
-  }
+  const currentAccountCredit = typeof userMetadata.account_credit === 'number' ? userMetadata.account_credit : 0.00;
 
   // Stripe Verified Subscription Session Verification
   const verifiedSessionId = typeof params?.verified_session_id === 'string' ? params.verified_session_id : undefined;
@@ -652,10 +429,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
       favouriteSellers = profiles || [];
     }
 
-    const favBusinessSlugs: string[] = userMetadata.favourite_businesses || [];
-    if (favBusinessSlugs.length > 0) {
+    const favBusinessSlugs2: string[] = userMetadata.favourite_businesses || [];
+    if (favBusinessSlugs2.length > 0) {
       const allPages = await getAllRegisteredBusinessPages();
-      favouriteBusinesses = allPages.filter((p: any) => favBusinessSlugs.includes(p.slug) || favBusinessSlugs.includes(p.id));
+      favouriteBusinesses = allPages.filter((p: any) => favBusinessSlugs2.includes(p.slug) || favBusinessSlugs2.includes(p.id));
     }
   }
 
@@ -671,8 +448,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        
+
+
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
@@ -699,12 +476,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          
-          
+
+
           <div className="w-full lg:w-64 shrink-0">
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs">
-              
-              
+
+
               <div className="p-4 bg-gray-50/70 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden border border-gray-200 dark:border-zinc-700 bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative">
                   {avatarUrl ? (
@@ -736,8 +513,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
 
               <nav className="flex flex-col py-1">
-                
-                
+
+
                 <Link
                   href="/my-listme?tab=account"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -750,7 +527,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Account details</span>
                 </Link>
 
-                
+
                 <Link
                   href="/my-listme?tab=notifications"
                   className={`flex items-center justify-between px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -770,7 +547,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   )}
                 </Link>
 
-                
+
                 <Link
                   href="/my-listme?tab=watchlist"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -783,7 +560,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Watchlist</span>
                 </Link>
 
-                
+
                 <Link
                   href="/my-listme?tab=favourite-sellers"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -796,7 +573,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Favourites</span>
                 </Link>
 
-                
+
                 <Link
                   href="/my-listme?tab=listings"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -809,7 +586,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Items I&apos;m selling</span>
                 </Link>
 
-                
+
                 <Link
                   href="/my-listme?tab=pages"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -822,7 +599,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Business Pages</span>
                 </Link>
 
-                
+
                 <Link
                   href="/my-listme?tab=settings"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
@@ -837,7 +614,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                 <div className="border-t border-gray-200 dark:border-zinc-800 my-1"></div>
 
-                
+
                 <form action="/auth/signout" method="POST">
                   <button
                     type="submit"
@@ -851,49 +628,18 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             </div>
           </div>
 
-          
+
           <div className="flex-1 min-w-0">
 
-            
+
             {currentTab === 'account' && (
               <div className="space-y-6">
 
-                
-                {topupNotification && (
-                  <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
-                    topupNotification.success 
-                      ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white' 
-                      : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white'
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      {topupNotification.success ? (
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                      )}
-                      <div>
-                        <h4 className="font-bold text-sm">
-                          {topupNotification.success ? 'Top-Up Confirmed (Stripe)' : 'Top-Up Notice'}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {topupNotification.message}
-                        </p>
-                      </div>
-                    </div>
-                    <Link 
-                      href="/my-listme?tab=account" 
-                      className="text-xs font-bold text-[#0073e6] hover:underline px-2 py-1"
-                    >
-                      Dismiss
-                    </Link>
-                  </div>
-                )}
 
-                
                 {verificationNotification && (
                   <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
-                    verificationNotification.success 
-                      ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white' 
+                    verificationNotification.success
+                      ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-700 text-gray-900 dark:text-white'
                       : 'bg-red-50/70 dark:bg-red-950/20 border-red-200 dark:border-red-800/40 text-gray-900 dark:text-white'
                   }`}>
                     <div className="flex items-center gap-3">
@@ -911,16 +657,16 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         </p>
                       </div>
                     </div>
-                    <Link 
-                      href="/my-listme?tab=account" 
+                    <Link
+                      href="/my-listme?tab=account"
                       className="text-xs font-bold text-[#0073e6] hover:underline px-2 py-1"
                     >
                       Dismiss
                     </Link>
                   </div>
                 )}
-                
-                
+
+
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
                   <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-6">
                     <div>
@@ -940,10 +686,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </Link>
                   </div>
 
-                  
+
                   <div className="divide-y divide-gray-100 dark:divide-zinc-800/80 text-sm">
-                    
-                    
+
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Member #
@@ -955,7 +701,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Name
@@ -970,7 +716,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Email
@@ -986,7 +732,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Core Location
@@ -999,7 +745,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Member since
@@ -1009,7 +755,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Authentication Status
@@ -1022,7 +768,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    
+
                     <div className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 dark:border-zinc-800/80">
                       <span className="font-semibold text-gray-500 dark:text-gray-400 sm:w-1/3">
                         Account Verification
@@ -1045,10 +791,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             </div>
                             {isSubscriptionVerified && (
                               <div className="shrink-0">
-                                <VerifyAccountButton 
-                                  isSubscribed={true} 
-                                  userId={user.id} 
-                                  userEmail={user.email} 
+                                <VerifyAccountButton
+                                  isSubscribed={true}
+                                  userId={user.id}
+                                  userEmail={user.email}
                                 />
                               </div>
                             )}
@@ -1064,10 +810,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                               </p>
                             </div>
                             <div className="shrink-0">
-                              <VerifyAccountButton 
-                                isSubscribed={false} 
-                                userId={user.id} 
-                                userEmail={user.email} 
+                              <VerifyAccountButton
+                                isSubscribed={false}
+                                userId={user.id}
+                                userEmail={user.email}
                               />
                             </div>
                           </div>
@@ -1077,7 +823,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                   </div>
 
-                  
+
                   <div className="mt-6 pt-4 border-t border-gray-100 dark:border-zinc-800 flex flex-wrap gap-4 text-xs font-semibold text-[#0073e6]">
                     <Link href="/my-listme?tab=settings" className="hover:underline">
                       Update my details &rarr;
@@ -1088,7 +834,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                
+
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
                   <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
                     ACCOUNT TYPE
@@ -1099,47 +845,36 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <AccountTypeSwitch currentType={accountType} userPhone={phone} />
                 </div>
 
-                
+
+                {/* Account Credit balance (no card UI) */}
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-6">
                     <div>
                       <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
-                        LINKED CREDIT CARDS &amp; SCAM PREVENTION
+                        ACCOUNT CREDIT
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Secure card payments and escrow protection for seamless, risk-free trade.
+                        Credit balance used to pay listing upload fees and other account charges.
                       </p>
                     </div>
                   </div>
 
-                  {(() => {
-                    const rawLinkedCards = Array.isArray(user.user_metadata?.linked_cards)
-                      ? user.user_metadata.linked_cards
-                      : (user.user_metadata?.linked_card ? [user.user_metadata.linked_card] : []);
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                          Current Balance
+                        </p>
+                        <p className="text-xl font-black text-gray-900 dark:text-white">
+                          €{currentAccountCredit.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                    const normalizedCards = rawLinkedCards.map((c: any) => {
-                      if (!c) return c;
-                      const last4 = c.cardNumberBlocks?.[3];
-                      const isDebit = last4 === '0953' || c.funding === 'debit' || c.cardType === 'debit';
-                      return {
-                        ...c,
-                        id: c.id || (last4 ? `card_${last4}` : 'card_primary'),
-                        funding: isDebit ? 'debit' : (c.funding || 'credit'),
-                        cardType: isDebit ? 'debit' : (c.cardType || 'credit'),
-                      };
-                    });
-
-                    return (
-                      <LinkedCardCard
-                        initialCard={normalizedCards[0] || null}
-                        initialCards={normalizedCards}
-                        defaultCardholderName={fullName || username || 'Cardholder'}
-                        accountBalance={currentAccountCredit}
-                      />
-                    );
-                  })()}
-
-                  
                   {accountType === 'business' && (
                     <div className="mt-6 pt-6 border-t border-gray-100 dark:border-zinc-800">
                       <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
@@ -1155,8 +890,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             )}
                           </h4>
                           <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            {profile?.stripe_onboarding_complete 
-                              ? 'Your bank account is linked to receive automatic payouts.' 
+                            {profile?.stripe_onboarding_complete
+                              ? 'Your bank account is linked to receive automatic payouts.'
                               : 'Set up your bank details to receive payouts for completed sales.'}
                           </p>
                         </div>
@@ -1181,10 +916,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            
+
             {currentTab === 'notifications' && (
               <div className="space-y-6">
-                
+
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
                   <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800">
                     <div>
@@ -1220,7 +955,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                
+
                 {listingQuestionsNotifications.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -1280,7 +1015,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                
+
                 {favUploadNotifications.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -1372,10 +1107,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </div>
                   </div>
                 ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 && isWelcomeDismissed ? (
-                  /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
+                  /* "All up to date!" Empty State */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
-                    
-                    
+
+
                     <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-600 dark:text-gray-300 shadow-inner">
                       <Compass className="w-10 h-10 text-primary dark:text-green-400 animate-pulse" />
                     </div>
@@ -1400,10 +1135,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            
+
             {currentTab === 'watchlist' && (
               <div className="space-y-6">
-                
+
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -1475,7 +1210,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            
+
             {currentTab === 'listings' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -1550,7 +1285,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            
+
             {currentTab === 'favourite-sellers' && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
@@ -1650,7 +1385,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-5 flex items-center">
                             <span className="capitalize">{seller.account_type || 'Personal'} Account</span>
                           </div>
-                          
+
                           <div className="w-full space-y-2 mt-auto">
                             <Link
                               href={`/member/${getMemberNumber(seller.id)}`}
@@ -1688,7 +1423,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            
+
             {currentTab === 'pages' && (
               <div className="space-y-6">
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
@@ -1830,7 +1565,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                
+
                 {assignedBusinessPages.length > 0 && (
                   <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
                     <div>
@@ -1888,11 +1623,11 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               </div>
             )}
 
-            
+
             {currentTab === 'settings' && (
               <div className="space-y-6">
-                
-                
+
+
                 <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
                   <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white">
                     SETTINGS
@@ -1902,10 +1637,10 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </p>
                 </div>
 
-                
+
                 <ProfileSettingsForm initialData={settingsInitialData} accountType={accountType} />
 
-                
+
                 <TradeMeSettingsSections />
 
               </div>
