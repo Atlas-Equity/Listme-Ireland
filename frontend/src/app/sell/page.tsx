@@ -13,7 +13,6 @@ import {
   X, 
   Loader2, 
   AlertCircle, 
-  Banknote,
   ShoppingBag,
   Briefcase,
   Wrench,
@@ -21,8 +20,6 @@ import {
   Building2,
   Euro,
   FileText,
-  ShieldCheck,
-  CreditCard,
   AlertTriangle,
   User
 } from 'lucide-react';
@@ -65,15 +62,10 @@ export default function SellPage() {
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [isBusiness, setIsBusiness] = useState(false);
-  const [hasCreditCard, setHasCreditCard] = useState(false);
-  const [linkedDebitCard, setLinkedDebitCard] = useState<any>(null);
   const [marketplacePages, setMarketplacePages] = useState<BusinessPageData[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string>('me');
   const [isQuinn, setIsQuinn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accountCredit, setAccountCredit] = useState<number>(0);
-  const [assignedCardLast4, setAssignedCardLast4] = useState<string | null>(null);
-  const [assignedCardBrand, setAssignedCardBrand] = useState<string | null>(null);
 
   const [listingBranch, setListingBranch] = useState<ListingBranch>('item');
 
@@ -97,7 +89,7 @@ export default function SellPage() {
   const [buyNowPrice, setBuyNowPrice] = useState('');
   const [hasReserve, setHasReserve] = useState(false);
   const [reservePrice, setReservePrice] = useState('');
-  const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash', 'stripe']);
+  const [paymentOptions, setPaymentOptions] = useState<string[]>(['cash']);
 
   const [companyName, setCompanyName] = useState('');
   const [jobType, setJobType] = useState(JOB_TYPES[0]);
@@ -127,54 +119,9 @@ export default function SellPage() {
       const isBiz = accountType === 'business';
       setIsBusiness(isBiz);
 
-      const linkedCards: any[] = Array.isArray(userMeta.linked_cards)
-        ? userMeta.linked_cards
-        : (userMeta.linked_card ? [userMeta.linked_card] : []);
-
-      const detectedDebit = linkedCards.find(card => {
-        if (!card) return false;
-        const last4 = card.cardNumberBlocks?.[3];
-        return last4 === '0953' || card.funding === 'debit' || card.cardType === 'debit';
-      });
-
-      const cardValid = linkedCards.some(card => {
-        if (!card) return false;
-        const last4 = card.cardNumberBlocks?.[3];
-        if (last4 === '0953' || card.funding === 'debit' || card.cardType === 'debit') return false;
-        const isCredit = card.funding === 'credit' || card.cardType === 'credit';
-        return isCredit && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
-      });
-
-      const creditBal = typeof userMeta.account_credit === 'number' ? userMeta.account_credit : 0;
-      setAccountCredit(creditBal);
-
-      const targetCard = linkedCards.find((card: any) => {
-        if (!card) return false;
-        const last4 = card.cardNumberBlocks?.[3];
-        if (last4 === '0953' || card.funding === 'debit' || card.cardType === 'debit') return false;
-        return (card.funding === 'credit' || card.cardType === 'credit') && Array.isArray(card.cardNumberBlocks) && card.cardNumberBlocks.length === 4;
-      }) || linkedCards[0];
-
-      if (targetCard?.cardNumberBlocks?.[3]) {
-        setAssignedCardLast4(targetCard.cardNumberBlocks[3]);
-        setAssignedCardBrand(targetCard.brand || 'Card');
-      }
-
       const username = (profile?.username || userMeta.username || '').toLowerCase();
-      const userEmail = (user.email || '').toLowerCase();
-      const isExempt = 
-        username === 'quinn' || 
-        username === 'sahleyis' || 
-        userEmail === 'qrmooney@outlook.com' || 
-        userEmail === 'dahiruhammajam@gmail.com' ||
-        user.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16' ||
-        user.id === '88beddab-0640-4f99-a04a-ff58c03704e4';
-
       const userIsQuinn = isUserQuinn(user, username);
       setIsQuinn(userIsQuinn);
-
-      setHasCreditCard(cardValid || isExempt);
-      setLinkedDebitCard(isExempt ? null : (detectedDebit || null));
 
       const userPages = (userMeta.business_pages || []) as BusinessPageData[];
       const assigned = (userMeta.assigned_business_pages || []) as any[];
@@ -208,53 +155,6 @@ export default function SellPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!hasCreditCard) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 dark:bg-black px-4">
-        <div className="max-w-md w-full bg-white dark:bg-[#181818] rounded-2xl shadow-sm border border-gray-200 dark:border-zinc-800 p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
-            <CreditCard className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Verified Credit Card Required
-          </h2>
-          
-          {linkedDebitCard ? (
-            <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-                <span className="font-bold text-amber-900 dark:text-amber-100 block mb-1">
-                  Debit Card Detected ({linkedDebitCard.brand || 'Visa'} ending in {linkedDebitCard.cardNumberBlocks?.[3] || '••••'})
-                </span>
-                You currently have a Debit Card linked to your wallet. Debit cards can be used for wallet credits and marketplace purchases, but <strong>ListMe scam chargeback protection requires a verified Credit Card to sell listings</strong>.
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed">
-              To prevent fraud, protect Irish buyers, and ensure scam chargeback security, all sellers must have a verified Credit Card linked before listing items, jobs, or services.
-            </p>
-          )}
-
-          <div className="space-y-3">
-            <button 
-              onClick={() => router.push('/my-listme?tab=account')}
-              className="w-full py-3 px-4 bg-primary hover:bg-green-700 text-white font-bold rounded-xl transition-colors text-sm shadow-xs cursor-pointer flex items-center justify-center gap-2"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Link Credit Card in Account Details</span>
-            </button>
-            <button 
-              onClick={() => router.push('/')}
-              className="w-full py-2.5 px-4 bg-transparent hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl transition-colors text-xs cursor-pointer"
-            >
-              Return to Homepage
-            </button>
-          </div>
-        </div>
       </div>
     );
   }
@@ -372,7 +272,7 @@ export default function SellPage() {
         durationDays: duration === '5m' ? 0 : parseInt(duration),
         durationMinutes: duration === '5m' ? 5 : undefined,
         uploadFee: calculatedUploadFee > 0 ? calculatedUploadFee : undefined,
-        paymentOptions: listingBranch === 'item' ? paymentOptions : ['cash', 'stripe'],
+        paymentOptions: listingBranch === 'item' ? paymentOptions : ['cash'],
         images: uploadedUrls,
         listingType: listingBranch,
         businessPageSlug: selectedBusinessSlug || undefined,
@@ -970,22 +870,17 @@ export default function SellPage() {
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-sm font-bold text-gray-900 dark:text-white">Accepted Payment Methods</label>
                       <span className="text-[11px] font-semibold text-gray-500">
-                        {paymentOptions.length === 2
-                          ? 'Both cash & card enabled'
-                          : paymentOptions.includes('cash')
-                          ? 'Euro in hand only'
-                          : paymentOptions.includes('stripe')
-                          ? 'Stripe card escrow only'
+                        {paymentOptions.includes('cash')
+                          ? 'Euro in hand'
                           : 'Opted out (Direct buyer arrangement)'}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mb-2">
-                      Select payment options accepted on this listing. You can choose card escrow, cash on collection, both, or opt out to arrange payment directly.
+                      Select payment options accepted on this listing. Buyers and sellers arrange payment directly.
                     </p>
                     <div className="space-y-2.5">
                       {[
-                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection (No fee)' },
-                        { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)', note: 'Secure digital card payment protected by escrow (1.4% + €0.25 seller fee)' },
+                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection' },
                       ].map(({ id: method, name, note }) => {
                         const isChecked = paymentOptions.includes(method);
 
@@ -1209,29 +1104,9 @@ export default function SellPage() {
                         {listingBranch === 'item' && priceType === 'Auction' && hasReserve && <li>Reserve auction fee: €0.25</li>}
                       </ul>
 
-                      <div className="pt-2 border-t border-emerald-200/80 dark:border-emerald-800/60 text-[11px] space-y-1">
-                        <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200 font-semibold">
-                          <span>Billing Method:</span>
-                          <span>Account credit first, then assigned card</span>
-                        </div>
+                      <div className="pt-2 border-t border-emerald-200/80 dark:border-emerald-800/60 text-[11px]">
                         <div className="text-emerald-700 dark:text-emerald-300">
-                          {accountCredit >= totalFee ? (
-                            <span className="text-emerald-800 dark:text-emerald-200 font-medium">
-                              ✓ Will be deducted from Account Credit (Available: €{accountCredit.toFixed(2)})
-                            </span>
-                          ) : accountCredit > 0 ? (
-                            <span>
-                              €{accountCredit.toFixed(2)} from Account Credit, remainder €{(totalFee - accountCredit).toFixed(2)} charged to assigned card {assignedCardLast4 ? `(•• ${assignedCardLast4})` : ''}
-                            </span>
-                          ) : assignedCardLast4 ? (
-                            <span>
-                              Will be charged to assigned {assignedCardBrand || 'card'} (•••• {assignedCardLast4})
-                            </span>
-                          ) : (
-                            <span className="text-amber-800 dark:text-amber-300 font-medium">
-                              No credit or assigned card on file. Please link a card in your wallet or top up credit.
-                            </span>
-                          )}
+                          Listings with a fee will be billed separately after publishing.
                         </div>
                       </div>
                     </div>
