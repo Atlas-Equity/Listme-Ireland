@@ -2,7 +2,6 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import Stripe from 'stripe';
 
 export async function placeBid(listingId: string, amount: number) {
   const supabase = await createClient();
@@ -13,54 +12,6 @@ export async function placeBid(listingId: string, amount: number) {
   }
 
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (stripeKey) {
-      const stripe = new Stripe(stripeKey);
-      
-      const customers = await stripe.customers.list({ email: user.email, limit: 3 });
-      let hasCardOnFile = false;
-
-      for (const customer of customers.data) {
-        const pms = await stripe.paymentMethods.list({
-          customer: customer.id,
-          type: 'card',
-          limit: 1,
-        });
-        if (pms.data && pms.data.length > 0) {
-          hasCardOnFile = true;
-          break;
-        }
-      }
-
-      if (!hasCardOnFile) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('stripe_account_id, stripe_onboarding_complete')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.stripe_account_id && profile?.stripe_onboarding_complete) {
-          hasCardOnFile = true;
-        }
-      }
-
-      if (!hasCardOnFile) {
-        const linkedCard = user.user_metadata?.linked_card;
-        const credit = user.user_metadata?.account_credit;
-        if ((linkedCard && linkedCard.cardNumberBlocks?.length === 4) || (typeof credit === 'number' && credit > 0)) {
-          hasCardOnFile = true;
-        }
-      }
-
-      if (!hasCardOnFile) {
-        return {
-          success: false,
-          requiresPaymentMethod: true,
-          error: 'Payment method required: Under auction rules, you must link a credit/debit card to your wallet before placing a bid.',
-        };
-      }
-    }
-
     const { data: listing, error: listingError } = await supabase
       .from('listings')
       .select('price, seller_id, ends_at, price_type, description')
@@ -97,7 +48,7 @@ export async function placeBid(listingId: string, amount: number) {
       return { success: false, error: `Bid must be at least €${minRequiredBid.toFixed(2)}` };
     }
 
-    // 4. Absurdly high bid protection (eBay style typo & manipulation guardrail)
+    // Absurdly high bid protection (eBay style typo & manipulation guardrail)
     // A single bid cannot exceed 5x current price or €500 above current, with a €1,000,000 maximum ceiling
     const maxAllowedBid = Math.min(
       Math.max(currentPrice * 5, currentPrice + 500),
@@ -111,7 +62,7 @@ export async function placeBid(listingId: string, amount: number) {
       };
     }
 
-    // 5. Insert bid
+    // Insert bid
     const { error: bidInsertError } = await supabase
       .from('bids')
       .insert({
@@ -122,7 +73,7 @@ export async function placeBid(listingId: string, amount: number) {
 
     if (bidInsertError) throw bidInsertError;
 
-    // 6. Synchronize listing's price with the new highest bid
+    // Synchronize listing's price with the new highest bid
     const updatePayload: Record<string, any> = { price: amount };
 
     // If the bid reaches or exceeds the Buy Now price, remove Buy Now and push it purely to auction
@@ -140,7 +91,7 @@ export async function placeBid(listingId: string, amount: number) {
       .update(updatePayload)
       .eq('id', listingId);
 
-    // 7. Revalidate all relevant pages so listings show identical price
+    // Revalidate all relevant pages so listings show identical price
     revalidatePath(`/listing/${listingId}`);
     revalidatePath('/');
     revalidatePath('/marketplace');
