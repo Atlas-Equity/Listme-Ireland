@@ -81,7 +81,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
-  
+
   const cookieStore = await cookies();
   const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
   const supabase = await createClient();
@@ -130,10 +130,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           if (res.data) reviewsCache.set(listing.seller_id, { data: res.data, expiresAt: Date.now() + 60 * 1000 });
           return res;
         }),
-    isAuction 
+    isAuction
       ? supabase.from('bids').select('amount', { count: 'exact' }).eq('listing_id', id).order('amount', { ascending: false }).limit(1)
       : Promise.resolve({ data: null, count: 0 }),
-    user 
+    user
       ? supabase.from('wishlists').select('id').eq('user_id', user.id).eq('listing_id', id).maybeSingle()
       : Promise.resolve({ data: null }),
     user && !isOwnListing
@@ -179,14 +179,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const reserveMatch = listing.description?.match(/\[Reserve Price:\s*€?([0-9.]+)\]/i);
   const reservePrice: number | null = listing.reserve_price || (reserveMatch ? parseFloat(reserveMatch[1]) : null);
 
-  const cleanDescription = listing.description 
+  const cleanDescription = listing.description
     ? listing.description
         .replace(/\[Buy It Now:\s*€?[0-9.]+\]/gi, '')
         .replace(/\[Reserve Price:\s*€?[0-9.]+\]/gi, '')
         .replace(/\[Business Page:[^\]]+\]/gi, '')
         .replace(/\[Job:[^\]]+\]/gi, '')
         .replace(/\[Service:[^\]]+\]/gi, '')
-        .trim() 
+        .trim()
     : '';
 
   let highestBidAmount = null;
@@ -205,14 +205,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
   const totalReviews = reviews?.length || 0;
   const positiveReviews = reviews?.filter((r: any) => r.rating >= 4).length || 0;
-  const feedbackPercentage = totalReviews > 0 
-    ? Math.round((positiveReviews / totalReviews) * 100) 
+  const feedbackPercentage = totalReviews > 0
+    ? Math.round((positiveReviews / totalReviews) * 100)
     : 0;
 
-  const expirationDate = listing.expires_at 
-    ? new Date(listing.expires_at) 
+  const expirationDate = listing.expires_at
+    ? new Date(listing.expires_at)
     : new Date(new Date(listing.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
-  
+
   const now = new Date();
   const isClosed = expirationDate < now;
   const timeRemaining = isClosed ? 'Closed' : formatDistanceToNow(expirationDate);
@@ -260,8 +260,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
       />
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-        
-        
+
+
         <div className="flex items-center text-xs text-blue-400 mb-6">
           <Link href="/" className="hover:underline">Home</Link>
           <span className="mx-2 text-gray-500">/</span>
@@ -276,30 +276,30 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          
-          
+
+
           <div className="flex-1 w-full max-w-[700px] space-y-8">
-            
-            
+
+
             <ListingCarousel title={listing.title} images={listing.images || []} />
 
-            
+
             <div className="grid grid-cols-[180px_1fr] gap-x-4 gap-y-8 text-sm">
-              
-              
+
+
               <div className="font-semibold text-gray-900 dark:text-white">Details</div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400 mr-2">Condition:</span> 
+                <span className="text-gray-500 dark:text-gray-400 mr-2">Condition:</span>
                 <span className="text-gray-700 dark:text-gray-300 font-medium">{listing.condition}</span>
               </div>
 
-              
+
               <div className="font-semibold text-gray-900 dark:text-white">Description</div>
               <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                 {cleanDescription || listing.description}
               </div>
 
-              
+
               <div className="font-semibold text-gray-900 dark:text-white">Shipping & pick-up options</div>
               <div>
                 <table className="w-full text-left text-sm border-b border-gray-200 dark:border-[#333] mb-4">
@@ -321,16 +321,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 </Link>
               </div>
 
-              
+
               <div className="font-semibold text-gray-900 dark:text-white">Payment Options</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {paymentOptions.includes('stripe') && (
                   <div className="p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40">
                     <div className="font-bold text-gray-900 dark:text-white text-lg tracking-tighter mb-1.5">
-                      <img 
-                        src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
-                        alt="Stripe" 
-                        className="h-5 w-auto object-contain" 
+                      <img
+                        src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg"
+                        alt="Stripe"
+                        className="h-5 w-auto object-contain"
                       />
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Pay with Visa, Mastercard, &amp; Apple Pay.</p>
@@ -351,14 +351,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
                 {!paymentOptions.includes('stripe') && !paymentOptions.includes('cash') && !paymentOptions.includes('euro_in_hand') && (
                   <div className="sm:col-span-2 p-3.5 rounded-lg border border-gray-200 dark:border-[#333] bg-white dark:bg-[#202020]/40 text-xs text-gray-500 dark:text-gray-400">
-                    <strong>Direct Arrangement:</strong> The seller has opted out of integrated card escrow and cash terms for this listing. Please contact the seller directly to agree upon payment and delivery/collection details.
+                    <strong>Direct Arrangement:</strong> The seller has opted out of ListMe Account Credit and cash terms for this listing. Please contact the seller directly to agree upon payment and delivery/collection details.
                   </div>
                 )}
               </div>
 
             </div>
 
-            
+
             <div className="pt-2">
               <ListingQuestionsSection
                 listingId={listing.id}
@@ -371,20 +371,20 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
           </div>
 
-          
+
           <div className="w-full lg:w-[360px] flex-shrink-0 space-y-4">
-            
-            
+
+
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
               {listing.title}
             </h1>
-            
+
             <div className="text-gray-500 dark:text-gray-400 text-sm flex items-center mb-4">
               <MapPin className="w-4 h-4 mr-1" /> {itemLocation}
             </div>
 
             <div className="flex items-center text-sm mb-6">
-              <Clock className={`w-4 h-4 mr-1 ${timeColorClass}`} /> 
+              <Clock className={`w-4 h-4 mr-1 ${timeColorClass}`} />
               {isClosed ? (
                 <span className="text-red-500 font-semibold mr-1">Closed</span>
               ) : (
@@ -413,16 +413,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     Buy It Now Price: <span className="font-semibold text-white">€{buyNowPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                
+
                 {!isClosed ? (
                   isOwnListing ? (
                     <div className="space-y-3">
                       <div className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs flex items-center justify-center">
                         You are the seller of this listing
                       </div>
-                      <DeleteListingButton 
-                        listingId={listing.id} 
-                        listingTitle={listing.title} 
+                      <DeleteListingButton
+                        listingId={listing.id}
+                        listingTitle={listing.title}
                         redirectTo="/my-listme?tab=listings"
                       />
                     </div>
@@ -435,10 +435,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                             Skip bidding &amp; buy instantly:
                           </div>
                           {paymentOptions.includes('stripe') ? (
-                            <CheckoutButton 
-                              listingId={listing.id} 
-                              isAuction={false} 
-                              stripeEnabled={true} 
+                            <CheckoutButton
+                              listingId={listing.id}
+                              isAuction={false}
+                              stripeEnabled={true}
                               listingTitle={listing.title}
                               price={buyNowPrice}
                             />
@@ -454,10 +454,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   ) : (
                     <div className="space-y-3">
                       {paymentOptions.includes('stripe') ? (
-                        <CheckoutButton 
-                          listingId={listing.id} 
-                          isAuction={false} 
-                          stripeEnabled={true} 
+                        <CheckoutButton
+                          listingId={listing.id}
+                          isAuction={false}
+                          stripeEnabled={true}
                           listingTitle={listing.title}
                           price={currentPrice}
                         />
@@ -481,12 +481,12 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   )
                 ) : (
                   <div className="w-full py-3 px-4 bg-zinc-800 text-zinc-300 font-bold rounded-sm cursor-not-allowed text-xs">
-                    {isAuction && reservePrice !== null && !isReserveMet 
+                    {isAuction && reservePrice !== null && !isReserveMet
                       ? 'Auction Closed — Reserve Not Met. Item not sold.'
                       : 'Listing Closed'}
                   </div>
                 )}
-                
+
                 {isAuction && (
                   <div className="mt-4 text-sm text-gray-500 dark:text-gray-400 space-y-1">
                     {reservePrice !== null ? (
@@ -517,21 +517,21 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
               <div className="p-3 text-sm bg-white dark:bg-[#242424] border-t border-gray-100 dark:border-zinc-800">
-                <ServiceFeeModal 
-                  price={currentPrice} 
+                <ServiceFeeModal
+                  price={currentPrice}
                   buyNowPrice={buyNowPrice}
                   isAuction={isAuction}
                 />
               </div>
             </div>
 
-            
+
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-white dark:bg-[#242424] flex gap-4">
               <ShieldCheck className="w-8 h-8 text-[#0073e6] flex-shrink-0" />
               <div>
                 <div className="font-bold text-gray-900 dark:text-white text-sm mb-1">Am I covered by Buyer Protection?</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-1">
-                  When you make a purchase using secure card payments, we are able to protect your trade under our Buyer Protection policy, up to €5,000.
+                  When you make a purchase using ListMe Account Credit, we are able to protect your trade under our Buyer Protection policy, up to €5,000.
                 </div>
                 <Link href="/buyer-protection" className="text-xs text-[#0073e6] hover:underline font-semibold">
                   Learn more about our Buyer Protection.
@@ -539,11 +539,11 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            
+
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-[#f8fafc] dark:bg-[#242424] space-y-3">
               {listingBusinessPage ? (
                 <>
-                  <Link 
+                  <Link
                     href={`/page/${listingBusinessPage.slug}`}
                   className="flex items-center group hover:opacity-90 transition-opacity"
                 >
@@ -592,7 +592,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </>
             ) : (
               <>
-                <Link 
+                <Link
                   href={`/member/${getMemberNumber(listing.seller_id)}`}
                   className="flex items-center group hover:opacity-90 transition-opacity"
                 >
@@ -653,7 +653,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
         </div>
 
-        
+
         <div className="mt-16 pt-8 border-t border-gray-200 dark:border-[#333] flex flex-col items-center pb-20">
           {listingBusinessPage ? (
             <div className="w-full max-w-[600px]">
@@ -708,8 +708,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
 
-              <Link 
-                href={`/page/${listingBusinessPage.slug}`} 
+              <Link
+                href={`/page/${listingBusinessPage.slug}`}
                 className="border-t border-gray-200 dark:border-[#333] py-3.5 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium"
               >
                 <span>Visit Storefront &amp; view all items</span>
@@ -780,7 +780,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
                 </div>
               )}
-              
+
               <div className="text-center pt-3 pb-1 border-t border-gray-100 dark:border-zinc-800/80">
                 <Link href="/safety" className="text-[#0073e6] text-xs hover:underline">Read our safe buying advice</Link>
               </div>
