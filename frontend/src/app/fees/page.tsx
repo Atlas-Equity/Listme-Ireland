@@ -1,11 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
-import { 
-  Coins, 
-  Tag, 
-  ShieldCheck, 
-  AlertTriangle, 
-  CheckCircle2, 
+import {
+  Coins,
+  Tag,
+  ShieldCheck,
+  AlertTriangle,
+  CheckCircle2,
   ArrowRight,
   Clock,
   Banknote,
@@ -30,7 +30,7 @@ export default function MarketplaceFeesPage() {
   ];
 
   const transactionFees = [
-    { method: 'Stripe Escrow (Credit / Debit Card)', availability: 'Seller can choose to offer', fee: '1.4% + €0.25 per transaction' },
+    { method: 'ListMe Account Credit (buyer pays with credit)', availability: 'Seller can choose to offer', fee: '1.4% + €0.25 per transaction' },
     { method: 'Euro in Hand / Cash on Collection', availability: 'Seller can choose to offer', fee: 'No fee' },
     { method: 'No payment method selected', availability: 'Seller can choose to opt out', fee: 'No fee (buyers arrange payment directly)' },
   ];
@@ -63,7 +63,7 @@ export default function MarketplaceFeesPage() {
   const summaryRows = [
     { type: 'Listing fee (general items)', who: 'Seller', cost: 'Free' },
     { type: 'Success fee', who: 'Seller', cost: 'None. You keep 100% of everything you sell' },
-    { type: 'Platform transaction fee (casual sellers)', who: 'Seller', cost: 'Standard Processing Rate' },
+    { type: 'Platform transaction fee (when buyer pays with Account Credit)', who: 'Seller', cost: '1.4% + €0.25 per transaction' },
     { type: 'Service fee (buyers)', who: 'Buyer', cost: 'Scaled % based on purchase price' },
     { type: 'Service fee (Verified buyers)', who: 'Buyer', cost: '50% off standard rate' },
     { type: 'Service fee (Account Credit)', who: 'Buyer', cost: '-€1 off base total (up to €250), -€5 off base total (above €250)' },
@@ -71,7 +71,7 @@ export default function MarketplaceFeesPage() {
     { type: 'Withdrawal fee (Buy Now/classified)', who: 'Seller', cost: 'Free' },
     { type: 'Reserve fee (auction)', who: 'Seller', cost: '€0.25' },
     { type: 'Listing duration (14 or 30 days)', who: 'Seller', cost: '€0.10' },
-    { type: 'Stripe fee', who: 'Seller', cost: '1.4% + €0.25 per transaction' },
+    { type: 'Account Credit processing fee', who: 'Seller', cost: '1.4% + €0.25 per transaction' },
     { type: 'Cash in hand', who: 'Seller', cost: 'Free' },
     { type: 'No payment method selected', who: 'Seller', cost: 'No fee (buyers arrange payment directly)' },
     { type: 'Exceed listing allowance', who: 'Seller', cost: '€0.10 per listing' },
@@ -80,7 +80,7 @@ export default function MarketplaceFeesPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-black py-10 text-gray-800 dark:text-gray-200">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-        
+
         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
@@ -200,7 +200,7 @@ export default function MarketplaceFeesPage() {
               </table>
             </div>
             <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-              <strong>If you do not select Stripe Escrow:</strong> You can still list and sell on Listme.ie. However, you will not have access to our integrated payment system. Buyers will need to arrange payment directly with you (for example, Euro in Hand / Cash on Collection). We strongly recommend offering Stripe Escrow for buyer confidence and Buyer Protection eligibility.
+              <strong>If you do not offer ListMe Account Credit as a payment option:</strong> You can still list and sell on Listme.ie. However, buyers will not be able to pay you using their ListMe Account Credit — they will need to arrange payment directly with you (for example, Euro in Hand / Cash on Collection). We strongly recommend enabling ListMe Account Credit for buyer confidence and Buyer Protection eligibility.
             </div>
           </div>
 
