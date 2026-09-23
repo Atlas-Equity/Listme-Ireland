@@ -3,17 +3,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { 
-  LifeBuoy, 
-  Search, 
-  ShieldCheck, 
-  Package, 
-  Building2, 
-  CreditCard, 
-  Send, 
-  CheckCircle2, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  LifeBuoy,
+  Search,
+  ShieldCheck,
+  Package,
+  Building2,
+  CreditCard,
+  Send,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   ArrowRight,
   ExternalLink,
   MessageSquare,
@@ -60,14 +60,14 @@ const FAQ_DATA = [
     linkLabel: 'View Marketplace Fees'
   },
   {
-    q: 'How does ListMe Buyer Protection (up to €5,000) work?',
-    a: 'Eligible purchases completed using registered ListMe accounts or escrow are covered up to €5,000 against non-delivery, counterfeit goods, or goods substantially different from their description. Claims must be submitted within 30 days.',
+    q: 'How does ListMe Buyer Protection work?',
+    a: 'Eligible purchases completed using your ListMe Account Credit are covered against non-delivery, counterfeit goods, or goods substantially different from their description. Claims must be submitted within the stated claim window.',
     link: '/buyer-protection',
     linkLabel: 'Read Buyer Protection Guide'
   },
   {
     q: 'Why do we use internal support tickets instead of email or phone support?',
-    a: 'Handling support strictly through our verified ticket system guarantees that sensitive account operations, dispute resolutions, and card inquiries are authenticated directly against your account without risky unverified email spoofing or phone scams.',
+    a: 'Handling support strictly through our verified ticket system guarantees that sensitive account operations and dispute resolutions are authenticated directly against your account without risky unverified email spoofing or phone scams.',
     link: '#tickets',
     linkLabel: 'Open a Support Ticket'
   },
@@ -217,11 +217,11 @@ export default function HelpCentrePage() {
   const filteredTickets = displayTickets.filter(t => {
     const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
     const q = ticketSearchQuery.toLowerCase().trim();
-    const matchesQuery = !q || 
-      t.id.toLowerCase().includes(q) || 
-      t.subject.toLowerCase().includes(q) || 
-      t.category.toLowerCase().includes(q) || 
-      (t.userDisplayName && t.userDisplayName.toLowerCase().includes(q)) || 
+    const matchesQuery = !q ||
+      t.id.toLowerCase().includes(q) ||
+      t.subject.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q) ||
+      (t.userDisplayName && t.userDisplayName.toLowerCase().includes(q)) ||
       (t.userEmail && t.userEmail.toLowerCase().includes(q));
     return matchesStatus && matchesQuery;
   });
@@ -421,15 +421,15 @@ export default function HelpCentrePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        
-        
+
+
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-6">
           <Link href="/" className="hover:text-primary transition-colors">Home</Link>
           <span>/</span>
           <span className="text-gray-900 dark:text-gray-200 font-medium">Help Centre &amp; Support</span>
         </div>
 
-        
+
         <div className="mb-10 pb-6 border-b border-gray-200 dark:border-zinc-800">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-xs font-bold mb-3 border border-gray-200 dark:border-zinc-700">
             <LifeBuoy className="w-3.5 h-3.5" />
@@ -448,10 +448,10 @@ export default function HelpCentrePage() {
           </div>
         </div>
 
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          
+
+
           <div className="lg:col-span-4 lg:sticky lg:top-20 space-y-4">
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xs">
               <h2 className="text-xs font-black uppercase tracking-wider text-gray-400 mb-3 px-2">
@@ -460,9 +460,9 @@ export default function HelpCentrePage() {
               <nav className="space-y-1">
                 {[
                   { id: 'tickets', label: '1. Support Tickets (Live Thread)', icon: MessageSquare },
-                  { id: 'protection', label: '2. Buyer Protection & Escrow', icon: ShieldCheck },
+                  { id: 'protection', label: '2. Buyer Protection', icon: ShieldCheck },
                   { id: 'fees', label: '3. Selling & Marketplace Fees', icon: Package },
-                  { id: 'security', label: '4. Account, Cards & PIN Security', icon: CreditCard },
+                  { id: 'security', label: '4. Account & PIN Security', icon: CreditCard },
                   { id: 'storefronts', label: '5. Business Pages & Marketplace', icon: Building2 },
                   { id: 'faqs', label: '6. Frequently Asked Questions', icon: HelpCircle },
                 ].map((item) => {
@@ -474,8 +474,8 @@ export default function HelpCentrePage() {
                       href={`#${item.id}`}
                       onClick={() => setActiveNav(item.id)}
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                        isActive 
-                          ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white' 
+                        isActive
+                          ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/60 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
@@ -498,7 +498,7 @@ export default function HelpCentrePage() {
               </div>
             </div>
 
-            
+
             <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xs">
               <h3 className="text-xs font-bold text-gray-900 dark:text-white mb-2">
                 Quick Marketplace Policies
@@ -532,14 +532,14 @@ export default function HelpCentrePage() {
             </div>
           </div>
 
-          
+
           <div className="lg:col-span-8 space-y-10">
-            
-            
+
+
             <section id="tickets" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs">
-                
-                
+
+
                 <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-zinc-900/40">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-zinc-800 text-white flex items-center justify-center shrink-0">
@@ -607,7 +607,7 @@ export default function HelpCentrePage() {
                   </div>
                 </div>
 
-                
+
                 {displayTickets.length === 0 ? (
                   <div className="p-8 sm:p-12 text-center bg-white dark:bg-[#151515]">
                     <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 flex items-center justify-center mx-auto mb-3">
@@ -619,7 +619,7 @@ export default function HelpCentrePage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-5">
                       {ticketViewScope === 'admin_all'
                         ? 'All user support tickets have been attended to.'
-                        : 'Need help with a purchase, dispute, linked card, or business storefront? Open a support ticket to start a direct, authenticated conversation.'}
+                        : 'Need help with a purchase, dispute, or business storefront? Open a support ticket to start a direct, authenticated conversation.'}
                     </p>
                     {ticketViewScope === 'my' && (
                       <button
@@ -635,13 +635,13 @@ export default function HelpCentrePage() {
                 ) : (
                   /* Two-Pane Ticket Layout: Sidebar (Left) + Active Ticket Thread (Right) */
                   <div className="flex flex-col md:flex-row min-h-[580px]">
-                    
-                    
+
+
                     <div className={`w-full md:w-80 lg:w-80 shrink-0 border-b md:border-b-0 md:border-r border-gray-200 dark:border-zinc-800 flex flex-col bg-gray-50/70 dark:bg-[#151515] ${
                       mobileTicketTab === 'thread' ? 'hidden md:flex' : 'flex'
                     }`}>
-                      
-                      
+
+
                       <div className="p-3 border-b border-gray-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/40">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -652,7 +652,7 @@ export default function HelpCentrePage() {
                           </span>
                         </div>
 
-                        
+
                         <div className="grid grid-cols-5 gap-1 text-center">
                           {[
                             { key: 'All' as const, label: 'All', count: counts.All, color: 'bg-zinc-400 dark:bg-zinc-400' },
@@ -686,7 +686,7 @@ export default function HelpCentrePage() {
                         </div>
                       </div>
 
-                      
+
                       <div className="p-2.5 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
                         <div className="relative">
                           <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
@@ -709,7 +709,7 @@ export default function HelpCentrePage() {
                         </div>
                       </div>
 
-                      
+
                       <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-zinc-800/70 max-h-[500px]">
                         {filteredTickets.length === 0 ? (
                           <div className="p-6 text-center text-xs text-gray-400">
@@ -785,16 +785,17 @@ export default function HelpCentrePage() {
 
                     </div>
 
-                    
+
                     <div className={`flex-1 flex flex-col min-w-0 bg-white dark:bg-[#181818] ${
                       mobileTicketTab === 'sidebar' ? 'hidden md:flex' : 'flex'
                     }`}>
                       {activeTicket ? (
                         <>
-                          
+
+
                           <div className="p-3.5 px-4 bg-gray-50/80 dark:bg-zinc-900/60 border-b border-gray-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              
+
                               <button
                                 type="button"
                                 onClick={() => setMobileTicketTab('sidebar')}
@@ -825,7 +826,7 @@ export default function HelpCentrePage() {
                               )}
                             </div>
 
-                            
+
                             <div className="flex items-center gap-2 shrink-0">
                               {isAdminUser && ticketViewScope === 'admin_all' ? (
                                 <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -881,7 +882,7 @@ export default function HelpCentrePage() {
                             </div>
                           </div>
 
-                          
+
                           <div
                             ref={messagesContainerRef}
                             className="flex-1 p-4 sm:p-6 space-y-4 max-h-[440px] overflow-y-auto bg-white dark:bg-[#151515]"
@@ -895,7 +896,7 @@ export default function HelpCentrePage() {
                                     : ''
                                 }`}
                               >
-                                
+
                                 {msg.sender === 'user' ? (
                                   msg.senderAvatar || userProfile?.avatar_url || currentUser?.user_metadata?.avatar_url ? (
                                     <img
@@ -940,7 +941,7 @@ export default function HelpCentrePage() {
                             ))}
                           </div>
 
-                          
+
                           {activeTicket.status !== 'Resolved' && activeTicket.status !== 'Closed' ? (
                             <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#1a1a1a] flex gap-2">
                               <input
@@ -980,7 +981,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            
+
             <section id="protection" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -988,10 +989,10 @@ export default function HelpCentrePage() {
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Coverage Standards</span>
                 </div>
                 <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-                  2. ListMe Buyer Protection &amp; Escrow Guarantee
+                  2. ListMe Buyer Protection
                 </h2>
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                  Every eligible marketplace transaction finalized through ListMe escrow or linked payment cards is backed up to €5,000 against counterfeit items, non-delivery, and items substantially not as described.
+                  Every eligible marketplace transaction finalized through ListMe Account Credit is backed against counterfeit items, non-delivery, and items substantially not as described.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
@@ -1022,7 +1023,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            
+
             <section id="fees" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -1069,27 +1070,27 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            
+
             <section id="security" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
                   <CreditCard className="w-5 h-5 text-primary" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Vault &amp; PIN Authentication</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Account Security</span>
                 </div>
                 <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-                  4. Account Verification, Linked Cards &amp; PIN Security
+                  4. Account Verification &amp; PIN Security
                 </h2>
                 <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                  ListMe implements Stripe PCI SAQ-A compliant tokenization. Card numbers are vaulted securely with Stripe and never stored in plain text on our servers. Instant bidding and top-ups are safeguarded by your 4-digit security PIN.
+                  ListMe protects your account with authenticated sessions and secure Supabase-managed credentials. Never share your account password or authentication codes with anyone.
                 </p>
 
                 <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 mb-5">
                   <h4 className="font-bold text-xs text-gray-900 dark:text-white mb-1 flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-gray-400" />
-                    How to Manage Linked Cards
+                    Keeping Your Account Safe
                   </h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    Navigate to "My ListMe" &gt; "Wallet &amp; Linked Cards". Once your card is linked, you can replace or unlink it anytime without having to re-link or re-vault.
+                    All sensitive account operations are handled inside your authenticated session. ListMe staff will never ask for your password or authentication codes.
                   </p>
                 </div>
 
@@ -1097,13 +1098,13 @@ export default function HelpCentrePage() {
                   href="/my-listme?tab=account"
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
                 >
-                  <span>Go to My ListMe Wallet &amp; Cards</span>
+                  <span>Go to My ListMe Account</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </section>
 
-            
+
             <section id="storefronts" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
@@ -1136,7 +1137,7 @@ export default function HelpCentrePage() {
               </div>
             </section>
 
-            
+
             <section id="faqs" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-4">
@@ -1153,7 +1154,7 @@ export default function HelpCentrePage() {
                   </span>
                 </div>
 
-                
+
                 <div className="relative mb-5">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
                   <input
@@ -1207,12 +1208,12 @@ export default function HelpCentrePage() {
 
       </div>
 
-      
+
       {showNewTicketModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="relative w-full max-w-lg bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
-            
-            
+
+
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-zinc-800 mb-5">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -1255,7 +1256,7 @@ export default function HelpCentrePage() {
                   options={[
                     { value: 'Buyer Protection Claim', label: 'Buyer Protection Claim (Non-Delivery / Item Dispute)' },
                     { value: 'Seller Support & Fees', label: 'Seller Support & Payouts' },
-                    { value: 'Account & Card Verification', label: 'Account & Card Security / PIN' },
+                    { value: 'Account & Card Verification', label: 'Account Security / Sign-in Help' },
                     { value: 'Business Storefront Inquiry', label: 'Business Page & Storefront Inquiry' },
                     { value: 'Report User or Scam', label: 'Report Suspicious User or Scam Listing' },
                     { value: 'General Technical Issue', label: 'General Technical Issue' },
