@@ -6,7 +6,7 @@ import {
   CheckCircle2, 
   Lock, 
   CreditCard, 
-  Zap, 
+  Clock, 
   Check, 
   ChevronRight,
   Percent,
@@ -396,7 +396,7 @@ export default function VerifiedPage() {
             </div>
 
             <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800">
-              <Zap className="w-5 h-5 text-primary mb-2" />
+              <Clock className="w-5 h-5 text-primary mb-2" />
               <h3 className="font-bold text-sm text-gray-900 dark:text-white">No Long Term Contracts</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                 Rolling monthly subscription. You can cancel at any moment with one click.

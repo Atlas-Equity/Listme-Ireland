@@ -123,41 +123,42 @@ export default function WelcomeGuideNotification({ initialDismissed = false }: W
               </div>
             </div>
 
-            {/* Account Credit Discount Feature */}
+            {/* ListMe Verified Feature */}
             <div className="p-4 rounded-xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-3 flex flex-col justify-between">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">
-                  Save on Every Purchase
+                  Trust &amp; Benefits
                 </span>
                 <h4 className="font-bold text-sm text-gray-900 dark:text-white">
-                  Pay with Account Credit for Service Fee Discounts
+                  Get ListMe Verified for 50% Service Fee Discount
                 </h4>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
-                  We recommend using Account Credit to pay for things on ListMe. When you pay with Account Credit, you get a discount off your Service Fee:
+                  Verified buyers pay half the standard Service Fee on every purchase, enjoy enhanced Buyer Protection up to €10,000, and earn an official trust badge.
                 </p>
                 
                 <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-center">
-                    <span className="font-black text-sm block text-gray-900 dark:text-white">-€1 OFF</span>
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400">purchases up to €250</span>
+                    <span className="font-black text-sm block text-emerald-600 dark:text-emerald-400">50% OFF</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">Buyer Service Fee</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-center">
-                    <span className="font-black text-sm block text-gray-900 dark:text-white">-€5 OFF</span>
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400">purchases above €250</span>
+                    <span className="font-black text-sm block text-gray-900 dark:text-white">€10,000</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">Buyer Protection</span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2">
-                  Using credit is advised for security, refund reasons, and more.
+                  Plans start from €9.99/mo with zero long-term commitment.
                 </p>
               </div>
 
               <div className="pt-2">
                 <Link
-                  href="/my-listme?tab=account"
+                  href="/verified"
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-700 font-bold text-xs transition-colors"
                 >
-                  <span>Top Up Account Credit</span>
+                  <span>Explore Verified Plans</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             </div>
