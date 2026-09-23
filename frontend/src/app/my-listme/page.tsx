@@ -38,13 +38,11 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import Image from 'next/image';
 import WalletLoginButton from '@/components/WalletLoginButton';
-import WalletSetupButton from '@/components/WalletSetupButton';
 import { ListingCard } from '@/components/ListingCard';
 import ProfileSettingsForm from './ProfileSettingsForm';
 import AccountTypeSwitch from './AccountTypeSwitch';
 import CreateWatchlistModal from '@/components/CreateWatchlistModal';
 import MakeOfferButton from '@/components/MakeOfferButton';
-import LinkedCardCard from '@/components/LinkedCardCard';
 import RelistNotificationCard from '@/components/RelistNotificationCard';
 import WelcomeGuideNotification from '@/components/WelcomeGuideNotification';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
@@ -224,229 +222,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
-  let topupNotification: { success: boolean; message: string } | null = null;
-  const topupSessionId = typeof params?.topup_session_id === 'string' ? params.topup_session_id : undefined;
-
-  let currentAccountCredit = typeof userMetadata.account_credit === 'number' ? userMetadata.account_credit : 0.00;
-
-  if (topupSessionId) {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (stripeKey) {
-      try {
-        const stripe = new Stripe(stripeKey);
-        const session = await stripe.checkout.sessions.retrieve(topupSessionId, {
-          expand: ['payment_intent.payment_method', 'customer'],
-        });
-
-        if (session.payment_status === 'paid' && session.metadata?.type === 'account_credit_topup') {
-          const processed: string[] = userMetadata.processed_topup_sessions || [];
-
-          if (!processed.includes(session.id)) {
-            const paidAmount = session.amount_total
-              ? session.amount_total / 100
-              : parseFloat(session.metadata?.amount || '0');
-
-            currentAccountCredit = Math.round((currentAccountCredit + paidAmount) * 100) / 100;
-            const updatedProcessed = [...processed, session.id];
-
-            const sessionCust = session.customer;
-            const resolvedCustomerId = typeof sessionCust === 'string'
-              ? sessionCust
-              : (sessionCust as Stripe.Customer)?.id || userMetadata.stripe_customer_id;
-
-            let updatedLinkedCard = userMetadata.linked_card;
-            const pi = session.payment_intent as Stripe.PaymentIntent | undefined;
-            const pm = (pi?.payment_method as Stripe.PaymentMethod | undefined);
-
-            if (pm && pm.card) {
-              const cardData = pm.card;
-              const brand = (cardData.brand || 'VISA').toUpperCase();
-              const last4 = cardData.last4;
-              const expMonth = String(cardData.exp_month).padStart(2, '0');
-              const expYear = String(cardData.exp_year).slice(-2);
-              const isDebit = cardData.funding === 'debit' || last4 === '0953';
-              const fundingVal = isDebit ? 'debit' : (cardData.funding || 'credit');
-              const cardTypeVal = isDebit ? 'debit' : 'credit';
-
-              updatedLinkedCard = {
-                id: pm.id || `card_${last4}`,
-                cardholderName: pm.billing_details?.name || userMetadata.linked_card?.cardholderName || fullName || 'Cardholder',
-                cardNickname: userMetadata.linked_card?.cardNickname || `${brand} ${isDebit ? 'Debit' : 'Credit'} ending in ${last4}`,
-                cardNumberBlocks: ['••••', '••••', '••••', last4],
-                expiry: `${expMonth}/${expYear}`,
-                cvvMasked: '•••',
-                brand,
-                stripePaymentMethodId: pm.id,
-                isStripeVaulted: true,
-                cardType: cardTypeVal,
-                funding: fundingVal,
-                updatedAt: new Date().toISOString(),
-              };
-
-              // Make this card the default payment method on the customer in Stripe
-              if (resolvedCustomerId) {
-                try {
-                  await stripe.customers.update(resolvedCustomerId, {
-                    invoice_settings: { default_payment_method: pm.id },
-                  });
-                } catch (custErr) {
-                  console.warn('Could not set customer default payment method:', custErr);
-                }
-              }
-            }
-
-            const updateData: any = {
-              account_credit: currentAccountCredit,
-              processed_topup_sessions: updatedProcessed,
-            };
-
-            if (resolvedCustomerId) {
-              updateData.stripe_customer_id = resolvedCustomerId;
-            }
-            if (updatedLinkedCard) {
-              updateData.linked_card = updatedLinkedCard;
-            }
-
-            await supabase.auth.updateUser({
-              data: updateData,
-            });
-
-            if (resolvedCustomerId) {
-              try {
-                await supabase.from('profiles').update({ stripe_customer_id: resolvedCustomerId }).eq('id', user.id);
-              } catch {}
-            }
-
-            userMetadata.account_credit = currentAccountCredit;
-            userMetadata.processed_topup_sessions = updatedProcessed;
-            if (resolvedCustomerId) userMetadata.stripe_customer_id = resolvedCustomerId;
-            if (updatedLinkedCard) userMetadata.linked_card = updatedLinkedCard;
-
-            topupNotification = {
-              success: true,
-              message: `Payment confirmed via Stripe! €${paidAmount.toFixed(2)} has been added to your Listme Account Credit. Your card has been saved for future 1-click top-ups.`,
-            };
-          } else {
-            topupNotification = {
-              success: true,
-              message: 'This top-up payment was confirmed and has already been added to your balance.',
-            };
-          }
-        } else {
-          topupNotification = {
-            success: false,
-            message: 'Stripe top-up checkout session was not marked as completed.',
-          };
-        }
-      } catch (sessionErr: any) {
-        console.error('Error verifying Stripe topup session:', sessionErr);
-        topupNotification = {
-          success: false,
-          message: 'Could not verify Stripe payment: ' + (sessionErr.message || 'Session not found'),
-        };
-      }
-    } else {
-      topupNotification = {
-        success: true,
-        message: 'Top-up session detected. In production, real funds will be verified and credited automatically via Stripe.',
-      };
-    }
-  } else if (params?.topup_success === 'true' && params?.topup_amount) {
-    const rawAmt = Array.isArray(params.topup_amount) ? params.topup_amount[0] : params.topup_amount;
-    const amt = parseFloat(rawAmt || '0');
-    topupNotification = {
-      success: true,
-      message: `Payment confirmed! €${isNaN(amt) ? '0.00' : amt.toFixed(2)} has been credited to your account from your saved card.`,
-    };
-  } else if (params?.topup_status === 'cancelled') {
-    topupNotification = {
-      success: false,
-      message: 'Top-up transaction was cancelled. No money was charged to your card.',
-    };
-  }
-
-  // Stripe Wallet Setup Session Verification (when linking card via Stripe Vault)
-  const setupSessionId = typeof params?.setup_session_id === 'string' ? params.setup_session_id : undefined;
-  if (setupSessionId && process.env.STRIPE_SECRET_KEY) {
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-      const session = await stripe.checkout.sessions.retrieve(setupSessionId, {
-        expand: ['setup_intent.payment_method'],
-      });
-
-      if (session.status === 'complete' && session.setup_intent) {
-        const setupIntent = session.setup_intent as any;
-        const pm = setupIntent.payment_method;
-
-        if (pm?.card) {
-          const cardData = pm.card;
-          const isDebit = cardData.funding === 'debit' || cardData.last4 === '0953';
-          const fundingVal = isDebit ? 'debit' : (cardData.funding || 'credit');
-          const cardTypeVal = isDebit ? 'debit' : 'credit';
-          const brand = cardData.brand.toUpperCase();
-          const last4 = cardData.last4;
-
-          const updatedCard = {
-            id: pm.id || `card_${last4}`,
-            cardholderName: pm.billing_details?.name || fullName || 'Cardholder',
-            cardNickname: isDebit ? `Visa Debit (•••• ${last4})` : `${brand} Credit (•••• ${last4})`,
-            cardNumberBlocks: ['••••', '••••', '••••', last4],
-            expiry: `${String(cardData.exp_month).padStart(2, '0')}/${String(cardData.exp_year).slice(-2)}`,
-            cvvMasked: '•••',
-            brand,
-            stripePaymentMethodId: pm.id,
-            isStripeVaulted: true,
-            cardType: cardTypeVal,
-            funding: fundingVal,
-            updatedAt: new Date().toISOString(),
-          };
-
-          const existingCards: any[] = Array.isArray(userMetadata.linked_cards)
-            ? [...userMetadata.linked_cards]
-            : userMetadata.linked_card
-              ? [userMetadata.linked_card]
-              : [];
-
-          const existingIdx = existingCards.findIndex(c => c.stripePaymentMethodId === pm.id || c.cardNumberBlocks?.[3] === last4);
-          let newCardsList: any[];
-          if (existingIdx >= 0) {
-            existingCards[existingIdx] = updatedCard;
-            newCardsList = existingCards;
-          } else if (existingCards.length < 2) {
-            newCardsList = [...existingCards, updatedCard];
-          } else {
-            newCardsList = [updatedCard, existingCards[1]];
-          }
-
-          await supabase.auth.updateUser({
-            data: {
-              linked_card: newCardsList[0] || updatedCard,
-              linked_cards: newCardsList,
-              stripe_customer_id: session.customer || undefined,
-            },
-          });
-
-          userMetadata.linked_card = newCardsList[0] || updatedCard;
-          userMetadata.linked_cards = newCardsList;
-
-          if (session.customer) {
-            await stripe.customers.update(session.customer as string, {
-              invoice_settings: { default_payment_method: pm.id },
-            });
-          }
-
-          topupNotification = {
-            success: true,
-            message: isDebit
-              ? `Your Debit Card (${brand} ending in ${last4}) has been linked for wallet top-ups & purchases. (Note: A verified Credit Card is required to sell).`
-              : `Your Credit Card (${brand} ending in ${last4}) has been securely linked! Seller listing privileges are active.`,
-          };
-        }
-      }
-    } catch (setupErr: any) {
-      console.error('Error verifying Stripe wallet setup session:', setupErr);
-    }
-  }
+  const currentAccountCredit = typeof userMetadata.account_credit === 'number' ? userMetadata.account_credit : 0.00;
 
   // Stripe Verified Subscription Session Verification
   const verifiedSessionId = typeof params?.verified_session_id === 'string' ? params.verified_session_id : undefined;
@@ -858,36 +634,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             {currentTab === 'account' && (
               <div className="space-y-6">
 
-                
-                {topupNotification && (
-                  <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
-                    topupNotification.success 
-                      ? 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white' 
-                      : 'bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white'
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      {topupNotification.success ? (
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                      )}
-                      <div>
-                        <h4 className="font-bold text-sm">
-                          {topupNotification.success ? 'Top-Up Confirmed (Stripe)' : 'Top-Up Notice'}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {topupNotification.message}
-                        </p>
-                      </div>
-                    </div>
-                    <Link 
-                      href="/my-listme?tab=account" 
-                      className="text-xs font-bold text-[#0073e6] hover:underline px-2 py-1"
-                    >
-                      Dismiss
-                    </Link>
-                  </div>
-                )}
+
 
                 
                 {verificationNotification && (
@@ -1099,84 +846,42 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <AccountTypeSwitch currentType={accountType} userPhone={phone} />
                 </div>
 
-                
-                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-6">
-                    <div>
-                      <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
-                        LINKED CREDIT CARDS &amp; SCAM PREVENTION
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Secure card payments and escrow protection for seamless, risk-free trade.
-                      </p>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const rawLinkedCards = Array.isArray(user.user_metadata?.linked_cards)
-                      ? user.user_metadata.linked_cards
-                      : (user.user_metadata?.linked_card ? [user.user_metadata.linked_card] : []);
-
-                    const normalizedCards = rawLinkedCards.map((c: any) => {
-                      if (!c) return c;
-                      const last4 = c.cardNumberBlocks?.[3];
-                      const isDebit = last4 === '0953' || c.funding === 'debit' || c.cardType === 'debit';
-                      return {
-                        ...c,
-                        id: c.id || (last4 ? `card_${last4}` : 'card_primary'),
-                        funding: isDebit ? 'debit' : (c.funding || 'credit'),
-                        cardType: isDebit ? 'debit' : (c.cardType || 'credit'),
-                      };
-                    });
-
-                    return (
-                      <LinkedCardCard
-                        initialCard={normalizedCards[0] || null}
-                        initialCards={normalizedCards}
-                        defaultCardholderName={fullName || username || 'Cardholder'}
-                        accountBalance={currentAccountCredit}
-                      />
-                    );
-                  })()}
-
-                  
-                  {accountType === 'business' && (
-                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                      <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                            Seller Payouts (Stripe Connect)
-                            {profile?.stripe_onboarding_complete ? (
-                              <span className="text-emerald-600 dark:text-emerald-500 flex items-center text-xs font-semibold">
-                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Linked
-                              </span>
-                            ) : (
-                              <span className="text-amber-500 text-xs font-semibold">Setup Required</span>
-                            )}
-                          </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            {profile?.stripe_onboarding_complete 
-                              ? 'Your bank account is linked to receive automatic payouts.' 
-                              : 'Set up your bank details to receive payouts for completed sales.'}
-                          </p>
-                        </div>
-                        <div className="flex items-center">
-                          {!profile?.stripe_onboarding_complete ? (
-                            <Link
-                              href="/stripe-setup"
-                              className="px-4 py-2 bg-primary hover:bg-green-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
-                            >
-                              Set up Payouts
-                            </Link>
+                {/* Business Seller Stripe Connect Payouts Integration */}
+                {accountType === 'business' && (
+                  <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                          Seller Payouts (Stripe Connect)
+                          {profile?.stripe_onboarding_complete ? (
+                            <span className="text-emerald-600 dark:text-emerald-500 flex items-center text-xs font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Linked
+                            </span>
                           ) : (
-                            <WalletLoginButton />
+                            <span className="text-amber-500 text-xs font-semibold">Setup Required</span>
                           )}
-                        </div>
+                        </h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {profile?.stripe_onboarding_complete 
+                            ? 'Your bank account is linked to receive automatic payouts.' 
+                            : 'Set up your bank details to receive payouts for completed sales.'}
+                        </p>
+                      </div>
+                      <div className="flex items-center">
+                        {!profile?.stripe_onboarding_complete ? (
+                          <Link
+                            href="/stripe-setup"
+                            className="px-4 py-2 bg-primary hover:bg-green-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
+                          >
+                            Set up Payouts
+                          </Link>
+                        ) : (
+                          <WalletLoginButton />
+                        )}
                       </div>
                     </div>
-                  )}
-
-                </div>
+                  </div>
+                )}
 
               </div>
             )}

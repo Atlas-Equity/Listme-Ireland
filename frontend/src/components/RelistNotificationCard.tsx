@@ -45,11 +45,6 @@ export default function RelistNotificationCard({
   const hasEnoughCredit = userCredit >= totalFee;
 
   const handleRelist = async () => {
-    if (totalFee > 0 && !hasEnoughCredit) {
-      setStatusMessage(`Account credit required: Relisting incurs €${totalFee.toFixed(2)}, but your credit balance is €${userCredit.toFixed(2)}. Please top up credit in your wallet.`);
-      return;
-    }
-
     setIsRelisting(true);
     setStatusMessage(null);
     try {
@@ -166,9 +161,8 @@ export default function RelistNotificationCard({
           <button
             type="button"
             onClick={handleRelist}
-            disabled={isRelisting || isDeleting || (totalFee > 0 && !hasEnoughCredit)}
+            disabled={isRelisting || isDeleting}
             className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            title={totalFee > 0 && !hasEnoughCredit ? `Requires €${totalFee.toFixed(2)} account credit` : undefined}
           >
             {isRelisting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -229,21 +223,10 @@ export default function RelistNotificationCard({
           </div>
 
           <div className="text-[11px] flex items-center gap-2">
-            {hasEnoughCredit ? (
+            {userCredit > 0 && (
               <span className="text-emerald-700 dark:text-emerald-400 font-bold">
                 ✓ Available Credit: €{userCredit.toFixed(2)}
               </span>
-            ) : (
-              <div className="flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold">
-                <span>Credit: €{userCredit.toFixed(2)} (Insufficient)</span>
-                <Link 
-                  href="/my-listme?tab=account" 
-                  className="underline hover:text-red-700 dark:hover:text-red-300 inline-flex items-center gap-0.5 ml-1"
-                >
-                  <span>Top up</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </Link>
-              </div>
             )}
           </div>
         </div>

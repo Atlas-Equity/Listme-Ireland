@@ -76,33 +76,24 @@ export async function relistListingAction(
 
   // Enforce account credit requirement for fees (14/30 days, reserve, etc.)
   if (totalFee > 0) {
-    if (currentCredit < totalFee) {
-      const reasonText = feeReasons.join(' + ');
-      return {
-        error: `Account credit required: Relisting with ${reasonText} requires €${totalFee.toFixed(2)} in credit. Your available balance is €${currentCredit.toFixed(2)}. Please top up your account credit in Account Details to relist.`
-      };
-    }
+    const creditToDeduct = Math.min(currentCredit, totalFee);
+    if (creditToDeduct > 0) {
+      const newCredit = Math.round((currentCredit - creditToDeduct) * 100) / 100;
+      await supabase.auth.updateUser({
+        data: { account_credit: newCredit }
+      });
 
-    // Deduct fee from account credit
-    const newCredit = Math.round((currentCredit - totalFee) * 100) / 100;
-    const { error: creditErr } = await supabase.auth.updateUser({
-      data: { account_credit: newCredit }
-    });
-
-    if (creditErr) {
-      return { error: `Failed to deduct €${totalFee.toFixed(2)} from account credit: ${creditErr.message}` };
-    }
-
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      try {
-        const adminClient = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-        await adminClient.auth.admin.updateUserById(user.id, {
-          user_metadata: {
-            ...user.user_metadata,
-            account_credit: newCredit,
-          }
-        });
-      } catch {}
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        try {
+          const adminClient = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+          await adminClient.auth.admin.updateUserById(user.id, {
+            user_metadata: {
+              ...user.user_metadata,
+              account_credit: newCredit,
+            }
+          });
+        } catch {}
+      }
     }
   }
 

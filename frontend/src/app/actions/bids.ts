@@ -2,7 +2,6 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import Stripe from 'stripe';
 
 export async function placeBid(listingId: string, amount: number) {
   const supabase = await createClient();
@@ -13,54 +12,6 @@ export async function placeBid(listingId: string, amount: number) {
   }
 
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (stripeKey) {
-      const stripe = new Stripe(stripeKey);
-      
-      const customers = await stripe.customers.list({ email: user.email, limit: 3 });
-      let hasCardOnFile = false;
-
-      for (const customer of customers.data) {
-        const pms = await stripe.paymentMethods.list({
-          customer: customer.id,
-          type: 'card',
-          limit: 1,
-        });
-        if (pms.data && pms.data.length > 0) {
-          hasCardOnFile = true;
-          break;
-        }
-      }
-
-      if (!hasCardOnFile) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('stripe_account_id, stripe_onboarding_complete')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.stripe_account_id && profile?.stripe_onboarding_complete) {
-          hasCardOnFile = true;
-        }
-      }
-
-      if (!hasCardOnFile) {
-        const linkedCard = user.user_metadata?.linked_card;
-        const credit = user.user_metadata?.account_credit;
-        if ((linkedCard && linkedCard.cardNumberBlocks?.length === 4) || (typeof credit === 'number' && credit > 0)) {
-          hasCardOnFile = true;
-        }
-      }
-
-      if (!hasCardOnFile) {
-        return {
-          success: false,
-          requiresPaymentMethod: true,
-          error: 'Payment method required: Under auction rules, you must link a credit/debit card to your wallet before placing a bid.',
-        };
-      }
-    }
-
     const { data: listing, error: listingError } = await supabase
       .from('listings')
       .select('price, seller_id, ends_at, price_type, description')
