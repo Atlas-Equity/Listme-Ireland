@@ -3,19 +3,19 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Users, 
-  BellRing, 
-  HelpCircle, 
-  BarChart3, 
-  ShieldCheck, 
-  ArrowRight, 
-  CheckCircle2, 
-  Globe2, 
-  TrendingUp, 
-  Building2, 
-  Store, 
-  MapPin, 
+import {
+  Users,
+  BellRing,
+  HelpCircle,
+  BarChart3,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
+  Globe2,
+  TrendingUp,
+  Building2,
+  Store,
+  MapPin,
   ExternalLink,
   ShieldAlert,
   FileText,
@@ -77,7 +77,7 @@ export default function CommunityHubClient({
       date: 'September 2026',
       title: 'Verified Accounts & Scam Chargeback Protection',
       tag: 'Trust & Safety',
-      summary: 'Get verified starting at €9.99/month for individual members or €14.99/month for businesses. All sellers require a linked credit card.',
+      summary: 'Get verified starting at €9.99/month for individual members or €14.99/month for businesses. All sellers use our secure account credit system.',
       link: '/verified',
       linkLabel: 'Verified plans & benefits',
     },
@@ -106,8 +106,8 @@ export default function CommunityHubClient({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#121212] text-gray-800 dark:text-gray-200 py-8 lg:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        
+
+
         <nav className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-6">
           <Link href="/" className="hover:text-[#0073e6] dark:hover:text-[#3894ff] transition-colors">Home</Link>
           <span className="mx-2">/</span>
@@ -116,7 +116,7 @@ export default function CommunityHubClient({
           <span className="text-gray-900 dark:text-white font-medium">Community Hub</span>
         </nav>
 
-        
+
         <div className="mb-10 pb-6 border-b border-gray-200 dark:border-zinc-800">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-zinc-700 text-xs font-semibold uppercase tracking-wider mb-3">
             <Users className="w-3.5 h-3.5 text-primary" />
@@ -141,10 +141,10 @@ export default function CommunityHubClient({
           </div>
         </div>
 
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          
-          
+
+
           <aside className="lg:col-span-4 xl:col-span-3">
             <div className="sticky top-24 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-gray-200 dark:border-zinc-800 shadow-xs">
               <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white mb-3">
@@ -185,10 +185,10 @@ export default function CommunityHubClient({
             </div>
           </aside>
 
-          
+
           <main className="lg:col-span-8 xl:col-span-9 space-y-12">
-            
-            
+
+
             <section id="announcements" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -236,7 +236,7 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            
+
             <section id="featured-stores" className="scroll-mt-28 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <div>
@@ -314,7 +314,7 @@ export default function CommunityHubClient({
               )}
             </section>
 
-            
+
             <section id="trust-safety" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -352,7 +352,7 @@ export default function CommunityHubClient({
                     <span className="text-gray-900 dark:text-white group-hover:text-primary transition-colors">Buyer Protection Policy</span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                    Full purchase price coverage up to €5,000 for qualifying marketplace orders paid via card or Stripe with 3-day dispute resolution.
+                    Full purchase price coverage up to €5,000 for qualifying marketplace orders paid with ListMe Account Credit, with a 3-day dispute resolution window.
                   </p>
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary mt-3 group-hover:underline">
                     Learn about coverage <ArrowRight className="w-3.5 h-3.5" />
@@ -361,7 +361,7 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            
+
             <section id="social-storefront" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -374,7 +374,7 @@ export default function CommunityHubClient({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+
                 <a
                   href="https://www.facebook.com/profile.php?id=61594336620072"
                   target="_blank"
@@ -402,7 +402,7 @@ export default function CommunityHubClient({
                   </span>
                 </a>
 
-                
+
                 <Link
                   href="/page/listme"
                   className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-primary/50 transition-colors group shadow-xs flex flex-col justify-between"
@@ -428,7 +428,7 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            
+
             <section id="help-centre" className="scroll-mt-28">
               <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 shadow-xs">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -463,7 +463,7 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            
+
             <section id="site-stats" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -506,7 +506,7 @@ export default function CommunityHubClient({
                   <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                     100%
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Scams Prevented (Credit Card &amp; Escrow)</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Scams Prevented (Account Credit)</p>
                 </div>
               </div>
             </section>
