@@ -1,14 +1,13 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createPublicClient, getCurrentUser } from '@/utils/supabase/server';
 import { BusinessPageData, getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 
-import { cookies } from 'next/headers';
 import BusinessPageClient from './BusinessPageClient';
 import { isAdmin, isUserQuinn } from '@/utils/admin';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -67,11 +66,7 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
   const { slug } = await params;
   const cleanSlug = slug.toLowerCase().trim();
 
-  const cookieStore = await cookies();
-  const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
-  const supabase = await createClient();
-
-  const user = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null;
+  const user = await getCurrentUser();
   const userIsAdmin = isAdmin(user) || isUserQuinn(user);
 
   let businessPage: BusinessPageData | null = null;
@@ -152,16 +147,17 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     pageListings = [];
   } else if (sellerId) {
     const nowIso = new Date().toISOString();
-    const { data } = await supabase
+    const publicClient = createPublicClient();
+    const { data } = await publicClient
       .from('listings')
       .select('id, title, description, price, price_type, condition, images, created_at, location, expires_at, ends_at')
       .eq('seller_id', sellerId)
       .eq('status', 'active')
       .gt('expires_at', nowIso)
       .limit(50);
-    pageListings = (data || []).filter(l => 
+    pageListings = ((data as any[]) || []).filter((l: any) => 
       l.description?.includes(`[Business Page: ${cleanSlug}`) || 
-      (l as any).business_page_slug === cleanSlug
+      l.business_page_slug === cleanSlug
     );
   }
 

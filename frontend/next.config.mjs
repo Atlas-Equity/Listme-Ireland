@@ -1,4 +1,5 @@
 import dns from 'node:dns';
+import path from 'node:path';
 
 try {
   dns.setDefaultResultOrder('ipv4first');
@@ -55,11 +56,14 @@ const nextConfig = {
       },
     ];
   },
+  turbopack: {
+    root: path.resolve('.'),
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '15mb',
     },
-    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion'],
+    optimizePackageImports: ['lucide-react', 'date-fns', 'framer-motion', 'libphonenumber-js'],
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -120,7 +124,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:all*(png|jpg|jpeg|webp|avif|ico|svg)',
+        source: '/:all*(png|jpg|jpeg|webp|avif|ico|svg|woff|woff2|ttf|otf)',
         headers: [
           {
             key: 'Cache-Control',

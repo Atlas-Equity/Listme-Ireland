@@ -1,5 +1,5 @@
-import React from 'react';
-import { createClient } from '@/utils/supabase/server';
+import React, { cache } from 'react';
+import { createClient, createPublicClient, getCurrentUser } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
 import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote, Store, CheckCircle2, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -25,14 +25,21 @@ import { getSellerMetaMap } from '@/utils/sellerMeta';
 
 export const revalidate = 60;
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: listing } = await supabase
+const getCachedListing = cache(async (id: string): Promise<any | null> => {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
     .from('listings')
-    .select('title, description, price, price_type, images, location, category')
+    .select('*')
     .eq('id', id)
     .maybeSingle();
+
+  if (error || !data) return null;
+  return data;
+});
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const listing = await getCachedListing(id);
 
   if (!listing) {
     return {
@@ -82,22 +89,16 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const resolvedParams = await params;
   const id = resolvedParams.id;
   
-  const cookieStore = await cookies();
-  const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
-  const supabase = await createClient();
-
-  const [userResult, listingResult] = await Promise.all([
-    hasAuthCookie ? supabase.auth.getUser() : Promise.resolve({ data: { user: null } }),
-    supabase.from('listings').select('*').eq('id', id).single()
+  const [user, listing] = await Promise.all([
+    getCurrentUser(),
+    getCachedListing(id)
   ]);
 
-  const user = userResult.data?.user;
-  const listing = listingResult.data;
-
-  if (listingResult.error || !listing) {
-    console.error('Error fetching listing:', listingResult.error);
+  if (!listing) {
     notFound();
   }
+
+  const supabase = await createClient();
 
   const isAuction = listing.price_type?.toLowerCase() === 'auction';
   const isOwnListing = Boolean(user && user.id === listing.seller_id);
@@ -121,13 +122,13 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     cachedSeller && Date.now() < cachedSeller.expiresAt
       ? Promise.resolve({ data: cachedSeller.data })
       : supabase.from('profiles').select('id, username, account_type, updated_at, avatar_url').eq('id', listing.seller_id).maybeSingle().then(res => {
-          if (res.data) sellerCache.set(listing.seller_id, { data: res.data, expiresAt: Date.now() + 60 * 1000 });
+          sellerCache.set(listing.seller_id, { data: res.data || null, expiresAt: Date.now() + 10 * 60 * 1000 });
           return res;
         }),
     cachedReviews && Date.now() < cachedReviews.expiresAt
       ? Promise.resolve({ data: cachedReviews.data })
       : supabase.from('reviews').select('rating').eq('reviewee_id', listing.seller_id).then(res => {
-          if (res.data) reviewsCache.set(listing.seller_id, { data: res.data, expiresAt: Date.now() + 60 * 1000 });
+          reviewsCache.set(listing.seller_id, { data: res.data || [], expiresAt: Date.now() + 10 * 60 * 1000 });
           return res;
         }),
     isAuction 

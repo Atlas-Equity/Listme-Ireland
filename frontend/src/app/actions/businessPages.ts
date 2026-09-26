@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient, createAdminClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { isAdmin, isUserQuinn } from '@/utils/admin';
 
@@ -659,7 +658,7 @@ export async function inviteBusinessTeamMemberAction(pageSlug: string, targetUse
   if (!targetUserId) {
     const { data: usersData } = await adminClient.auth.admin.listUsers({ perPage: 100 });
     const matchedUser = usersData?.users.find(
-      (u) =>
+      (u: any) =>
         u.user_metadata?.username?.toLowerCase() === cleanUser ||
         u.email?.split('@')[0]?.toLowerCase() === cleanUser
     );

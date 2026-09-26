@@ -6,44 +6,55 @@ import { ThemeToggle } from './ThemeToggle';
 import { MobileMenu } from './MobileMenu';
 import { cookies } from 'next/headers';
 import VerifiedBadge from './VerifiedBadge';
-import { createClient } from '@/utils/supabase/server';
-
+import { createClient, getCurrentUser } from '@/utils/supabase/server';
 import HeaderMessagesBadge from './HeaderMessagesBadge';
 import HeaderNotificationsDropdown from './HeaderNotificationsDropdown';
 
-export default async function Header() {
-  const cookieStore = await cookies();
-  const hasAuthCookie = cookieStore.getAll().some(c => c.name.includes('-auth-token'));
+declare global {
+  var __userProfileCache: Map<string, { profile: any; expiresAt: number }> | undefined;
+}
+if (!globalThis.__userProfileCache) {
+  globalThis.__userProfileCache = new Map();
+}
 
+export default async function Header() {
   let user: any = null;
   let username: string | undefined = undefined;
   let isBusiness = false;
   let avatarUrl: string | undefined = undefined;
   let isVerified = false;
 
-  if (hasAuthCookie) {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    user = data?.user || null;
+  user = await getCurrentUser();
 
-    if (user) {
-      username = user.user_metadata?.username;
-      avatarUrl = user.user_metadata?.avatar_url;
-      isBusiness = user.user_metadata?.account_type === 'business';
-      isVerified = Boolean(user.user_metadata?.is_verified);
+  if (user) {
+    username = user.user_metadata?.username;
+    avatarUrl = user.user_metadata?.avatar_url;
+    isBusiness = user.user_metadata?.account_type === 'business';
+    isVerified = Boolean(user.user_metadata?.is_verified);
 
-      const { data: profile } = await supabase
+    const now = Date.now();
+    const profileCache = globalThis.__userProfileCache!;
+    const cached = profileCache.get(user.id);
+
+    let profile = cached && now < cached.expiresAt ? cached.profile : null;
+
+    if (!profile && cached === undefined) {
+      const supabase = await createClient();
+      const { data } = await supabase
         .from('profiles')
         .select('username, account_type, avatar_url, updated_at, is_verified')
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profile) {
-        if (profile.username) username = profile.username;
-        if (profile.avatar_url) avatarUrl = profile.avatar_url;
-        if (profile.account_type) isBusiness = profile.account_type === 'business';
-        isVerified = Boolean(profile.is_verified || user.user_metadata?.is_verified);
-      }
+      profile = data || null;
+      profileCache.set(user.id, { profile, expiresAt: now + 5 * 60 * 1000 });
+    }
+
+    if (profile) {
+      if (profile.username) username = profile.username;
+      if (profile.avatar_url) avatarUrl = profile.avatar_url;
+      if (profile.account_type) isBusiness = profile.account_type === 'business';
+      isVerified = Boolean(profile.is_verified || user.user_metadata?.is_verified);
     }
   }
 
