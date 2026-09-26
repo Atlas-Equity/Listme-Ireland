@@ -32,6 +32,7 @@ import {
   topUpAccountCreditAction,
   LinkedCardData 
 } from '@/app/my-listme/actions';
+import { StripeLogo } from '@/components/StripeLogo';
 
 const stripePromise = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -838,9 +839,12 @@ export default function LinkedCardCard({
         </div>
 
         <div className="p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818]">
-          <div className="flex items-center gap-2 mb-1 text-sm font-bold text-gray-900 dark:text-white">
-            <Lock className="w-4 h-4 text-primary" />
-            <span>Stripe PCI Level 1 Encryption</span>
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+              <Lock className="w-4 h-4 text-emerald-500" />
+              <span>PCI Level 1 Encryption</span>
+            </div>
+            <StripeLogo height={14} variant="blurple" />
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
             Card details are vaulted directly via Stripe. Unmasked card numbers never touch or get stored on ListMe servers.
@@ -1101,9 +1105,10 @@ export default function LinkedCardCard({
                 <div className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 transition-all">
                   <div ref={cardCvcRef} id="stripe-card-cvc-element" />
                 </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1.5">
-                  <Lock className="w-3 h-3 text-primary shrink-0" />
-                  <span>Encrypted by Stripe. ListMe wallet allows 1 Credit Card &amp; 1 Debit Card maximum.</span>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1.5 flex-wrap">
+                  <Lock className="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span className="inline-flex items-center gap-1">Encrypted by <StripeLogo height={11} variant="blurple" />.</span>
+                  <span>ListMe wallet allows 1 Credit Card &amp; 1 Debit Card maximum.</span>
                 </p>
               </div>
 

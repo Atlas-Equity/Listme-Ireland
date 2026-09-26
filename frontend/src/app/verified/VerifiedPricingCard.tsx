@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle2, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
+import { StripeLogo } from '@/components/StripeLogo';
 
 type PlanType = 'account' | 'page' | 'bundle';
 
@@ -334,8 +335,12 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
       </div>
 
       <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2">
-        <ShieldCheck className="w-4 h-4 text-primary" />
-        <span>Secured by Stripe • 256-bit encryption • Cancel anytime in 1 click • Instant badge activation</span>
+        <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+        <span className="inline-flex items-center gap-1.5 flex-wrap justify-center">
+          <span>Secured by</span>
+          <StripeLogo height={13} variant="blurple" />
+          <span>• 256-bit encryption • Cancel anytime in 1 click • Instant badge activation</span>
+        </span>
       </div>
 
       {modalPlan && (

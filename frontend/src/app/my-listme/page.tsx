@@ -48,6 +48,7 @@ import WelcomeGuideNotification from '@/components/WelcomeGuideNotification';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import VerifyAccountButton from './VerifyAccountButton';
+import { StripeLogo } from '@/components/StripeLogo';
 import TradeMeSettingsSections from './TradeMeSettingsSections';
 import DeleteListingButton from '@/components/DeleteListingButton';
 import ClearAllNotificationsButton from '@/components/ClearAllNotificationsButton';
@@ -851,8 +852,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
                     <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
                       <div className="flex-1">
-                        <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
-                          Seller Payouts (Stripe Connect)
+                        <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
+                          <span>Seller Payouts</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-[#635BFF]/10 text-[#635BFF] font-bold">
+                            <StripeLogo height={10} variant="blurple" />
+                            <span>Connect</span>
+                          </span>
                           {profile?.stripe_onboarding_complete ? (
                             <span className="text-emerald-600 dark:text-emerald-500 flex items-center text-xs font-semibold">
                               <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Linked
@@ -864,16 +869,17 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                           {profile?.stripe_onboarding_complete 
                             ? 'Your bank account is linked to receive automatic payouts.' 
-                            : 'Set up your bank details to receive payouts for completed sales.'}
+                            : 'Set up your bank details via Stripe to receive payouts for completed sales.'}
                         </p>
                       </div>
                       <div className="flex items-center">
                         {!profile?.stripe_onboarding_complete ? (
                           <Link
                             href="/stripe-setup"
-                            className="px-4 py-2 bg-primary hover:bg-green-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-xs"
+                            className="px-4 py-2 bg-[#635BFF] hover:bg-[#5433FF] text-white font-semibold text-xs rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                           >
-                            Set up Payouts
+                            <span>Link with</span>
+                            <StripeLogo height={12} variant="white" />
                           </Link>
                         ) : (
                           <WalletLoginButton />

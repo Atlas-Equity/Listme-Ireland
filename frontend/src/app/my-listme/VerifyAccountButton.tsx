@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Settings, ExternalLink, X, Check, Lock } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
+import { StripeLogo } from '@/components/StripeLogo';
 
 interface VerifyAccountButtonProps {
   isSubscribed?: boolean;
@@ -283,9 +284,11 @@ export default function VerifyAccountButton({
             </div>
 
             <div className="px-6 py-3.5 bg-gray-50 dark:bg-zinc-900/60 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
-              <span className="flex items-center gap-1.5">
-                <Lock className="w-3 h-3 text-zinc-400" />
-                Processed securely by Stripe • 256-bit encryption
+              <span className="inline-flex items-center gap-1.5 flex-wrap">
+                <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
+                <span>Processed securely by</span>
+                <StripeLogo height={11} variant="blurple" />
+                <span>• 256-bit encryption</span>
               </span>
               <button
                 type="button"

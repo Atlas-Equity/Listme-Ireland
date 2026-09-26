@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import VerifiedPricingCard from './VerifiedPricingCard';
+import { StripeLogo, StripeBadge } from '@/components/StripeLogo';
 
 export const metadata: Metadata = {
   title: 'ListMe Verified — Trust & Safety | Stand Out with the Verified Badge',
@@ -388,10 +389,16 @@ export default function VerifiedPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-zinc-800">
-              <CreditCard className="w-5 h-5 text-primary mb-2" />
-              <h3 className="font-bold text-sm text-gray-900 dark:text-white">Stripe Security</h3>
+              <div className="flex items-center justify-between mb-2">
+                <CreditCard className="w-5 h-5 text-[#635BFF]" />
+                <StripeBadge variant="pill" size="sm" />
+              </div>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                <StripeLogo height={13} variant="blurple" />
+                <span>Security</span>
+              </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                Processed securely by Stripe. 256 bit encryption for all transactions.
+                Processed securely by Stripe with 256-bit bank-grade encryption for all transactions.
               </p>
             </div>
 
@@ -483,8 +490,10 @@ export default function VerifiedPage() {
           </div>
 
           <div className="pt-4 border-t border-gray-200/80 dark:border-zinc-800 text-center space-y-2 text-xs text-gray-500 dark:text-gray-400">
-            <p className="font-semibold text-gray-700 dark:text-gray-300">
-              Secured by Stripe • Cancel anytime in 1 click • No long term contracts • Instant badge activation
+            <p className="font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-center gap-1.5 flex-wrap">
+              <span>Secured by</span>
+              <StripeLogo height={13} variant="blurple" />
+              <span>• Cancel anytime in 1 click • No long term contracts • Instant badge activation</span>
             </p>
             <p>
               This page forms part of our{' '}

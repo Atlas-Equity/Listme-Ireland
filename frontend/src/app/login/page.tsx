@@ -24,6 +24,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   const [otpTarget, setOtpTarget] = useState('');
+  const [resolvedEmail, setResolvedEmail] = useState('');
+  const [devCodeNotice, setDevCodeNotice] = useState<string | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [otpLength, setOtpLength] = useState<number>(8);
   const [otpStep, setOtpStep] = useState<'input' | 'verify'>('input');
@@ -64,23 +66,27 @@ export default function LoginPage() {
     if (e) e.preventDefault();
     setLoading(true);
     setError(null);
+    setDevCodeNotice(null);
 
     const trimmed = otpTarget.trim();
 
-    if (!trimmed || !trimmed.includes('@')) {
-      setError('Please enter a valid email address.');
+    if (!trimmed) {
+      setError('Please enter your email address or username.');
       setLoading(false);
       return;
     }
 
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-    });
+    const { requestLoginOtpAction } = await import('./actions');
+    const result = await requestLoginOtpAction(trimmed);
 
-    if (otpError) {
-      setError(otpError.message);
+    if (result.error) {
+      setError(result.error);
       setLoading(false);
     } else {
+      setResolvedEmail(result.email || trimmed);
+      if (result.devCode) {
+        setDevCodeNotice(result.devCode);
+      }
       setOtpLength(8);
       setOtpStep('verify');
       setResendCooldown(30);
@@ -98,10 +104,10 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const trimmed = otpTarget.trim();
+    const targetEmail = resolvedEmail || otpTarget.trim();
 
     const { data, error: verifyError } = await supabase.auth.verifyOtp({
-      email: trimmed,
+      email: targetEmail,
       token: code,
       type: 'email',
     });
@@ -293,25 +299,25 @@ export default function LoginPage() {
             {otpStep === 'input' && (
               <form onSubmit={handleSendOtp} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="otpEmail">
-                    Email address
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="otpTarget">
+                    Email address or Username
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                       <Mail className="h-5 w-5" />
                     </div>
                     <input
-                      id="otpEmail"
-                      type="email"
+                      id="otpTarget"
+                      type="text"
                       required
                       value={otpTarget}
                       onChange={(e) => setOtpTarget(e.target.value)}
-                      placeholder="you@example.com"
+                      placeholder="you@example.com or cooluser123"
                       className="block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-colors"
                     />
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    We will send an 8-digit one-time passcode to your inbox.
+                    Enter your email address or username to receive an 8-digit verification code.
                   </p>
                 </div>
 
@@ -339,13 +345,14 @@ export default function LoginPage() {
                     Enter the code sent to
                   </p>
                   <div className="inline-flex items-center gap-2 mt-1 px-3 py-1 bg-gray-100 dark:bg-zinc-800 rounded-full">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{otpTarget}</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{resolvedEmail || otpTarget}</span>
                     <button
                       type="button"
                       onClick={() => {
                         setOtpStep('input');
                         setOtpCode('');
                         setError(null);
+                        setDevCodeNotice(null);
                       }}
                       className="text-xs text-primary hover:underline font-medium"
                     >
@@ -353,6 +360,27 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+
+                {devCodeNotice && (
+                  <div className="p-3.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/90 border border-zinc-300 dark:border-zinc-700 text-xs text-zinc-800 dark:text-zinc-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-zinc-900 dark:text-white">Development Notice</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpCode(devCodeNotice);
+                          handleVerifyOtp(devCodeNotice);
+                        }}
+                        className="text-primary hover:underline font-semibold"
+                      >
+                        Auto-fill & Verify
+                      </button>
+                    </div>
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      Generated OTP code: <span className="font-mono font-bold text-zinc-900 dark:text-white tracking-widest">{devCodeNotice}</span>
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <OtpInput

@@ -15,6 +15,7 @@ import {
   getUserPaymentStateAction, 
   LinkedCardData 
 } from '@/app/my-listme/actions';
+import { StripeLogo, StripeBadge } from '@/components/StripeLogo';
 
 interface CheckoutButtonProps {
   listingId: string;
@@ -177,15 +178,13 @@ export default function CheckoutButton({
               <div className="p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/60 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-primary flex items-center justify-center shrink-0 shadow-2xs">
-                      <CreditCard className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-[#635BFF] flex items-center justify-center shrink-0 shadow-2xs">
+                      <CreditCard className="w-5 h-5 text-[#635BFF]" />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <span>Credit / Debit Card</span>
-                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                          Stripe
-                        </span>
+                        <StripeBadge variant="pill" size="sm" />
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {linkedCard ? `${linkedCard.cardNickname} (Visa •• ${cardLast4}) or any card` : 'Visa, Mastercard, & Apple Pay'}
@@ -195,9 +194,11 @@ export default function CheckoutButton({
 
                   <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
                 </div>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-13">
-                  Processed securely by Stripe. Instant charge from your card with full Buyer Protection.
-                </p>
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 pl-13">
+                  <span>Processed securely by</span>
+                  <StripeLogo height={12} variant="blurple" />
+                  <span>• Instant charge with full Buyer Protection</span>
+                </div>
               </div>
 
               {/* Buyer Protection Guarantee Notice */}
