@@ -92,9 +92,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   const dismissedNotificationIds: string[] = userMetadata.dismissed_notifications || [];
 
   const allUserListings = userListingsRes.data || [];
-  const userListings = allUserListings.filter(l => 
-    l.status === 'active' && (!l.expires_at || new Date(l.expires_at) >= now)
-  );
+  const userListings = allUserListings;
 
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const closedListings = allUserListings.filter(l => {

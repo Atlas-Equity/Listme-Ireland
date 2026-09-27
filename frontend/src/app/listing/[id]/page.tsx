@@ -414,20 +414,28 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     Buy It Now Price: <span className="font-semibold text-white">€{buyNowPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                
-                {!isClosed ? (
-                  isOwnListing ? (
-                    <div className="space-y-3">
-                      <div className="w-full py-3 px-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs flex items-center justify-center">
-                        You are the seller of this listing
-                      </div>
-                      <DeleteListingButton 
-                        listingId={listing.id} 
-                        listingTitle={listing.title} 
-                        redirectTo="/my-listme?tab=listings"
-                      />
+
+                {isOwnListing ? (
+                  <div className="space-y-3">
+                    <div className={`w-full py-3 px-4 ${
+                      isClosed 
+                        ? 'bg-zinc-800 text-zinc-300 font-bold' 
+                        : 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold'
+                    } rounded-xl text-xs flex items-center justify-center text-center`}>
+                      {isClosed 
+                        ? (isAuction && reservePrice !== null && !isReserveMet 
+                            ? 'Auction Closed — Reserve Not Met' 
+                            : 'Listing Closed (You are the seller)') 
+                        : 'You are the seller of this listing'}
                     </div>
-                  ) : isAuction ? (
+                    <DeleteListingButton 
+                      listingId={listing.id} 
+                      listingTitle={listing.title} 
+                      redirectTo="/my-listme?tab=listings"
+                    />
+                  </div>
+                ) : !isClosed ? (
+                  isAuction ? (
                     <div className="space-y-4">
                       <BiddingForm listingId={listing.id} minBid={minNextBid} />
                       {buyNowPrice && (
@@ -440,7 +448,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                               listingId={listing.id} 
                               isAuction={false} 
                               stripeEnabled={true} 
-                              listingTitle={listing.title}
+                              listingTitle={listing.title} 
                               price={buyNowPrice}
                             />
                           ) : (paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) ? (
@@ -459,7 +467,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                           listingId={listing.id} 
                           isAuction={false} 
                           stripeEnabled={true} 
-                          listingTitle={listing.title}
+                          listingTitle={listing.title} 
                           price={currentPrice}
                         />
                       ) : (paymentOptions.includes('cash') || paymentOptions.includes('euro_in_hand')) ? (
