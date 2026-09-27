@@ -2,10 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Phone, Mail } from 'lucide-react';
+import { Camera, Trash2, CheckCircle2, AlertCircle, Loader2, User, MapPin, Mail } from 'lucide-react';
 import { updateProfileSettings, uploadAvatarAction, ProfileData } from './actions';
 import { useRouter } from 'next/navigation';
-import { validatePhoneNumber } from '@/utils/phoneValidation';
 import { COUNTIES, getCoreLocation } from '@/utils/irelandLocations';
 import CustomSelect from '@/components/CustomSelect';
 
@@ -14,7 +13,7 @@ interface ProfileSettingsFormProps {
     username: string;
     fullName: string;
     avatarUrl: string;
-    phone: string;
+    phone?: string;
     location: string;
     email: string;
   };
@@ -28,20 +27,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
   const [username, setUsername] = useState(initialData.username);
   const [fullName, setFullName] = useState(initialData.fullName);
   const [location, setLocation] = useState(getCoreLocation(initialData.location) || 'Dublin');
-  const initialPhoneFormatted = initialData.phone
-    ? (initialData.phone.startsWith('+353 ')
-        ? initialData.phone
-        : initialData.phone.startsWith('+353')
-        ? `+353 ${initialData.phone.replace(/^\+353/, '').trim()}`
-        : `+353 ${initialData.phone.replace(/^\+?\d{1,3}\s?/, '').trim()}`)
-    : '+353 ';
-  const [phone, setPhone] = useState(initialPhoneFormatted);
-
-  const handlePhoneDigitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let digits = e.target.value.replace(/[^0-9\s]/g, '');
-    if (digits.startsWith('0')) digits = digits.slice(1);
-    setPhone(digits ? `+353 ${digits}` : '+353 ');
-  };
   
   // Avatar state
   const [avatarUrl, setAvatarUrl] = useState(initialData.avatarUrl);
@@ -154,14 +139,10 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
       setAvatarUrl(uploadRes.publicUrl);
       setSelectedFile(null);
 
-      const rawDigits = phone.replace(/^\+353\s?/, '').trim();
-      const trimmedPhone = rawDigits ? `+353 ${rawDigits}` : '';
-
       const res = await updateProfileSettings({
         username,
         fullName,
         avatarUrl: uploadRes.publicUrl,
-        phone: trimmedPhone || initialData.phone,
         location,
       });
 
@@ -193,14 +174,10 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
 
     setIsSaving(true);
     try {
-      const rawDigits = phone.replace(/^\+353\s?/, '').trim();
-      const trimmedPhone = rawDigits ? `+353 ${rawDigits}` : '';
-
       const res = await updateProfileSettings({
         username,
         fullName,
         avatarUrl: '',
-        phone: trimmedPhone || initialData.phone,
         location,
       });
 
@@ -218,7 +195,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
     }
   };
 
-  const executeSave = async (phoneToSave: string, finalAvatarUrlParam?: string) => {
+  const executeSave = async (finalAvatarUrlParam?: string) => {
     setIsSaving(true);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -249,7 +226,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
         username,
         fullName,
         avatarUrl: finalAvatarUrl,
-        phone: phoneToSave,
         location,
       };
 
@@ -277,27 +253,7 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const rawDigits = phone.replace(/^\+353\s?/, '').trim();
-    const trimmedPhone = rawDigits ? `+353 ${rawDigits}` : '';
-    const initialRawDigits = (initialData.phone || '').replace(/^\+353\s?/, '').trim();
-    const initialTrimmedPhone = initialRawDigits ? `+353 ${initialRawDigits}` : '';
-
-    // If account is business, phone number is mandatory
-    if (accountType === 'business' && !trimmedPhone) {
-      setErrorMessage('A valid contact phone number is required for business accounts (locked to Ireland +353).');
-      return;
-    }
-
-    // If a phone number is entered, strictly validate format
-    if (trimmedPhone) {
-      const val = validatePhoneNumber(trimmedPhone, 'IE');
-      if (!val.isValid) {
-        setErrorMessage(val.error || 'Please enter a valid Irish phone number (e.g. +353 87 123 4567).');
-        return;
-      }
-    }
-
-    await executeSave(trimmedPhone);
+    await executeSave();
   };
 
   const displayName = fullName || username || initialData.email.split('@')[0] || 'User';
@@ -454,7 +410,6 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
                         username: clean,
                         fullName,
                         avatarUrl,
-                        phone: initialData.phone,
                         location,
                       });
                       if (res.error) {
@@ -481,67 +436,18 @@ export default function ProfileSettingsForm({ initialData, accountType = 'person
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-gray-100 dark:border-zinc-800/80">
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Location / County
-            </label>
-            <CustomSelect
-              value={location}
-              onChange={setLocation}
-              options={COUNTIES.map((c) => ({ value: c, label: c }))}
-            />
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              Locked strictly to Ireland core counties.
-            </p>
-          </div>
-
-          
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Contact Phone {accountType === 'business' ? <span className="text-red-500">*</span> : '(Optional)'}
-              </label>
-              {accountType === 'business' && (
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Required for Business
-                </span>
-              )}
-            </div>
-            <div className="flex rounded-lg shadow-xs overflow-hidden border border-gray-300 dark:border-zinc-700 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent">
-              <span className="inline-flex items-center px-3.5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold text-sm border-r border-gray-300 dark:border-zinc-700 select-none shrink-0">
-                🇮🇪 +353
-              </span>
-              <div className="relative flex-1">
-                <input
-                  type="tel"
-                  required={accountType === 'business'}
-                  value={phone.replace(/^\+353\s?/, '')}
-                  onChange={handlePhoneDigitsChange}
-                  placeholder="87 123 4567"
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white font-mono placeholder-gray-400 focus:outline-none text-sm"
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  {phone.replace(/^\+353\s?/, '').trim() ? (
-                    validatePhoneNumber(phone, 'IE').isValid ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                    )
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-              Prefix +353 is permanently locked to Ireland numbers.
-            </p>
-            {phone.replace(/^\+353\s?/, '').trim() && !validatePhoneNumber(phone, 'IE').isValid && (
-              <p className="text-xs text-red-500 mt-1">
-                {validatePhoneNumber(phone, 'IE').error || 'Please enter a valid Irish phone number (e.g. 87 123 4567).'}
-              </p>
-            )}
-          </div>
+        <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Location / County
+          </label>
+          <CustomSelect
+            value={location}
+            onChange={setLocation}
+            options={COUNTIES.map((c) => ({ value: c, label: c }))}
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            Locked strictly to Ireland core counties.
+          </p>
         </div>
 
         

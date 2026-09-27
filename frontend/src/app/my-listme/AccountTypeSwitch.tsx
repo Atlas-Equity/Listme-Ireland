@@ -3,40 +3,27 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateAccountType } from './actions';
-import BusinessUpgradeModal from '@/components/BusinessUpgradeModal';
-import { Briefcase, User, Loader2, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { Briefcase, User, Loader2, AlertCircle, X } from 'lucide-react';
 
 interface AccountTypeSwitchProps {
   currentType: 'personal' | 'business';
-  userPhone: string;
+  userPhone?: string;
 }
 
-export default function AccountTypeSwitch({ currentType, userPhone }: AccountTypeSwitchProps) {
+export default function AccountTypeSwitch({ currentType }: AccountTypeSwitchProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const router = useRouter();
 
+  const targetType = currentType === 'personal' ? 'business' : 'personal';
+
   const handleSwitchClick = () => {
     setError(null);
-
-    if (currentType === 'business') {
-      setIsConfirmModalOpen(true);
-      return;
-    }
-
-    const trimmedPhone = userPhone?.trim() || '';
-    const digitsOnly = trimmedPhone.replace(/\D/g, '');
-    if (!trimmedPhone || digitsOnly.length < 7) {
-      setIsUpgradeModalOpen(true);
-      return;
-    }
-
-    executeSwitch('business');
+    setIsConfirmModalOpen(true);
   };
 
-  const executeSwitch = async (targetType: 'personal' | 'business') => {
+  const executeSwitch = async () => {
     setError(null);
     setLoading(true);
 
@@ -44,12 +31,7 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
       const result = await updateAccountType(targetType);
 
       if (result?.error) {
-        if (result.requiresPhone) {
-          setIsConfirmModalOpen(false);
-          setIsUpgradeModalOpen(true);
-        } else {
-          setError(result.error);
-        }
+        setError(result.error);
         setLoading(false);
       } else {
         setIsConfirmModalOpen(false);
@@ -82,7 +64,7 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             {currentType === 'personal'
-              ? 'Upgrade to a business account to unlock bulk listing tools, verified business badge, and lower seller fees. (Requires a verified phone number).'
+              ? 'Upgrade to a business account to unlock bulk listing tools, verified business badge, and lower seller fees.'
               : 'Switch back to a personal account if you are no longer selling as a commercial or trade seller.'}
           </p>
           {error && (
@@ -111,13 +93,12 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
         </div>
       </div>
 
-      
       {isConfirmModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Are you sure?
+                {targetType === 'business' ? 'Switch to Business Account?' : 'Switch to Personal Account?'}
               </h3>
               <button
                 type="button"
@@ -129,11 +110,13 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
             </div>
 
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              Switching to a Personal account will remove commercial seller badges and tools from your profile.
+              {targetType === 'business'
+                ? 'Upgrading to a Business account will unlock commercial seller badges, bulk tools, and trade features.'
+                : 'Switching to a Personal account will remove commercial seller badges and tools from your profile.'}
             </p>
 
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-              This is not a permanent choice — you can switch back to a Business account at any time.
+              This is not a permanent choice — you can switch back at any time.
             </p>
 
             {error && (
@@ -154,7 +137,7 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
               </button>
               <button
                 type="button"
-                onClick={() => executeSwitch('personal')}
+                onClick={executeSwitch}
                 disabled={loading}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-green-700 text-white transition-colors flex items-center gap-1.5 shadow-xs"
               >
@@ -164,23 +147,13 @@ export default function AccountTypeSwitch({ currentType, userPhone }: AccountTyp
                     <span>Switching...</span>
                   </>
                 ) : (
-                  <span>Switch to Personal</span>
+                  <span>Switch to {targetType === 'business' ? 'Business' : 'Personal'}</span>
                 )}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      
-      <BusinessUpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        initialPhone={userPhone}
-        onSuccess={() => {
-          router.refresh();
-        }}
-      />
     </>
   );
 }

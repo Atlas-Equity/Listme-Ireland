@@ -450,7 +450,7 @@ export default async function MemberProfilePage({ params, searchParams }: Member
                         <span>Verified Safe Trader</span>
                       </>
                     ) : (
-                      <span>Phone &amp; Email Protected</span>
+                      <span>Email Protected Account</span>
                     )}
                   </div>
                 </div>

@@ -76,12 +76,6 @@ const FAQ_DATA = [
     a: 'If you are the owner of a verified business storefront, go to "My ListMe" > "Business Pages" or navigate directly to your page URL (/page/your-slug). You will find direct "Edit Page" and "Delete Page" controls in the owner action bar.',
     link: '/my-listme?tab=business-pages',
     linkLabel: 'Manage Business Pages'
-  },
-  {
-    q: 'Why are phone numbers locked to +353 Ireland numbers?',
-    a: 'ListMe is dedicated exclusively to residents and legitimate traders across Ireland. Enforcing standard Irish telephone prefixes safeguards all 32 counties from international robo-callers and overseas fraud networks.',
-    link: '/privacy',
-    linkLabel: 'Read Privacy & Verification'
   }
 ];
 

@@ -9,7 +9,6 @@ import {
   Ban, 
   HelpCircle, 
   CheckCircle2, 
-  PhoneCall, 
   MessageSquare, 
   Globe2, 
   FileText, 
@@ -60,9 +59,9 @@ export default function SafetyPage() {
       icon: Lock,
     },
     {
-      title: 'Get a Verified Phone Number',
-      text: 'If you are the winning bidder on a higher value item, ask the seller for a contact phone number in case you need to call or verify collection details.',
-      icon: PhoneCall,
+      title: 'Verify Seller Reputation & Reviews',
+      text: 'Check seller feedback scores, account verification badges, and listing history before placing high-value bids or making payments.',
+      icon: ShieldCheck,
     },
     {
       title: 'Keep All Payment Details & Messages',

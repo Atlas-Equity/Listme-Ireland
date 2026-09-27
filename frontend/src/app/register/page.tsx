@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import OtpInput from '@/components/OtpInput';
+import { checkRegistrationAvailability } from './actions';
 import { 
   Mail, 
   Lock, 
@@ -51,24 +52,40 @@ export default function RegisterPage() {
     setError(null);
     setSuccess(null);
 
+    const cleanEmail = email.trim();
+    const cleanUsername = username.trim();
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
 
-    if (username.length < 3) {
+    if (cleanUsername.length < 3) {
       setError("Username must be at least 3 characters");
       setLoading(false);
       return;
     }
 
+    // 1. Pre-validate that neither the email nor username is already taken
+    const availability = await checkRegistrationAvailability({
+      email: cleanEmail,
+      username: cleanUsername,
+    });
+
+    if (!availability.available) {
+      setError(availability.error || 'That email or username is already taken.');
+      setLoading(false);
+      return;
+    }
+
+    // 2. Perform registration
     const { error, data } = await supabase.auth.signUp({
-      email,
+      email: cleanEmail,
       password,
       options: {
         data: {
-          username: username,
+          username: cleanUsername,
           account_type: accountType,
           tos_updates_notify: notifyTosUpdates,
           has_password: true,
@@ -76,9 +93,20 @@ export default function RegisterPage() {
       }
     });
 
+    // 3. Supabase empty identities check: signals an existing registered account
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setError("An account with this email address already exists. Please log in instead.");
+      setLoading(false);
+      return;
+    }
+
     if (error) {
-      if (error.message.includes('unique constraint')) {
-        setError("That username is already taken. Please choose another.");
+      if (
+        error.message.includes('unique constraint') ||
+        error.message.toLowerCase().includes('already registered') ||
+        error.message.toLowerCase().includes('already in use')
+      ) {
+        setError("An account with this email address already exists. Please log in instead.");
       } else {
         setError(error.message);
       }
@@ -207,9 +235,21 @@ export default function RegisterPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-4 rounded-md flex items-start">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-2 shrink-0" />
-                <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-4 rounded-md flex items-start justify-between">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-500 mr-2 shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                </div>
+                {(error.toLowerCase().includes('already exists') || 
+                  error.toLowerCase().includes('already registered') || 
+                  error.toLowerCase().includes('log in')) && (
+                  <Link
+                    href="/login"
+                    className="ml-3 shrink-0 inline-flex items-center justify-center px-3.5 py-1.5 rounded-md text-xs font-semibold text-white bg-primary hover:bg-green-700 shadow-sm transition-colors cursor-pointer"
+                  >
+                    Log in
+                  </Link>
+                )}
               </div>
             )}
 

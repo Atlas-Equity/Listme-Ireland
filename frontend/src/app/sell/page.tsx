@@ -144,7 +144,6 @@ export default function SellPage() {
             tagline: '',
             category: 'Storefront',
             county: 'Ireland',
-            phone: '',
             email: '',
           });
         }

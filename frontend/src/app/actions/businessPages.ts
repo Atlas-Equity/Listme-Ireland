@@ -21,7 +21,7 @@ export interface BusinessPageData {
   announcement?: string;
   category: string;
   county: string;
-  phone: string;
+  phone?: string;
   email: string;
   website?: string;
   facebook?: string;
@@ -174,11 +174,6 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     }
   }
 
-  let formattedPhone = (data.phone || '').trim();
-  if (formattedPhone && !formattedPhone.startsWith('+353')) {
-    formattedPhone = `+353 ${formattedPhone.replace(/^\+?353\s?|^0/, '')}`.trim();
-  }
-
   const cleanAnnouncement = (data.announcement || '').trim().slice(0, 250);
 
   let safeAvatarUrl = (data.avatarUrl || '').trim();
@@ -199,7 +194,7 @@ export async function createOrUpdateBusinessPage(data: BusinessPageData) {
     announcement: cleanAnnouncement,
     category: data.category || (data.business_type === 'marketplace' ? 'Retail & Local Storefront' : 'Services & Trades'),
     county: data.county || 'Dublin',
-    phone: formattedPhone,
+    phone: '',
     email: data.email.trim(),
     website: data.website?.trim() || '',
     facebook: data.facebook?.trim() || OFFICIAL_FACEBOOK_URL,

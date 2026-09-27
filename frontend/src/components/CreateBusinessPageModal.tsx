@@ -9,7 +9,6 @@ import {
   Store,
   Briefcase,
   Globe, 
-  Phone, 
   Mail, 
   MapPin, 
   ShieldCheck, 
@@ -108,11 +107,6 @@ export default function CreateBusinessPageModal({
   const [category, setCategory] = useState(initialData?.category || 'Retail & Local Storefront');
   const [county, setCounty] = useState(initialData?.county || 'Dublin');
   
-  const initialPhone = initialData?.phone 
-    ? (initialData.phone.startsWith('+353 ') ? initialData.phone : `+353 ${initialData.phone.replace(/^\+?353\s?|^0/, '')}`)
-    : '+353 ';
-  const [phone, setPhone] = useState(initialPhone);
-
   const [email, setEmail] = useState(initialData?.email || '');
   const [openingHours, setOpeningHours] = useState(
     initialData?.opening_hours || OPENING_HOURS_PRESETS[0]
@@ -141,10 +135,6 @@ export default function CreateBusinessPageModal({
       setTagline(initialData.tagline || '');
       setCategory(initialData.category || 'Retail & Local Storefront');
       setCounty(initialData.county || 'Dublin');
-      const p = initialData.phone 
-        ? (initialData.phone.startsWith('+353 ') ? initialData.phone : `+353 ${initialData.phone.replace(/^\+?353\s?|^0/, '')}`)
-        : '+353 ';
-      setPhone(p);
       setEmail(initialData.email || '');
       setOpeningHours(initialData.opening_hours || OPENING_HOURS_PRESETS[0]);
       setCustomHours(initialData.opening_hours && !OPENING_HOURS_PRESETS.includes(initialData.opening_hours) ? initialData.opening_hours : '');
@@ -159,14 +149,6 @@ export default function CreateBusinessPageModal({
       setErrorMessage(null);
     }
   }, [initialData, isOpen]);
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value;
-    if (!val.startsWith('+353 ')) {
-      val = '+353 ' + val.replace(/^\+?353\s?/, '');
-    }
-    setPhone(val);
-  };
 
   const compressAvatar = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -331,9 +313,6 @@ export default function CreateBusinessPageModal({
       return;
     }
 
-    const rawNumber = phone.replace('+353 ', '').trim();
-    const formattedPhone = rawNumber ? phone : '';
-
     setIsSubmitting(true);
     try {
       const payload: BusinessPageData = {
@@ -347,7 +326,7 @@ export default function CreateBusinessPageModal({
         avatarUrl: avatarUrl.trim(),
         category,
         county,
-        phone: formattedPhone,
+        phone: '',
         email: email.trim(),
         website: website.trim(),
         facebook: facebook.trim(),
@@ -414,7 +393,7 @@ export default function CreateBusinessPageModal({
                     {isEditing ? 'Edit Business Page' : 'Create a Business Page'}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Declare your business model, opening hours, Irish phone number, and announcement.
+                    Declare your business model, opening hours, and announcement.
                   </p>
                 </div>
               </div>
@@ -705,33 +684,15 @@ export default function CreateBusinessPageModal({
               </div>
 
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-zinc-800">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Contact Phone (Locked to Ireland +353) <span className="text-gray-400 font-normal">(Recommended)</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    placeholder="+353 87 123 4567"
-                    className="w-full px-3.5 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-primary outline-none"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    Recommended for direct customer calls. Prefix +353 is locked.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                    Primary County Location
-                  </label>
-                  <CustomSelect
-                    value={county}
-                    onChange={setCounty}
-                    options={COUNTIES.map((c) => ({ value: c, label: c }))}
-                  />
-                </div>
+              <div className="pt-2 border-t border-gray-100 dark:border-zinc-800">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Primary County Location
+                </label>
+                <CustomSelect
+                  value={county}
+                  onChange={setCounty}
+                  options={COUNTIES.map((c) => ({ value: c, label: c }))}
+                />
               </div>
 
               

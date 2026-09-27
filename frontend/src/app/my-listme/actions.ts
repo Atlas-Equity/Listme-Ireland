@@ -3,7 +3,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
-import { validatePhoneNumber } from '@/utils/phoneValidation';
 import { calculateServiceFee } from '@/utils/serviceFee';
 import { getMemberNumber } from '@/utils/irelandLocations';
 import Stripe from 'stripe';
@@ -15,23 +14,6 @@ export async function updateAccountType(newType: 'personal' | 'business') {
 
     if (!user) {
       return { error: 'Not authenticated' };
-    }
-
-    if (newType === 'business') {
-      const userPhone = user.user_metadata?.phone || user.phone;
-      if (!userPhone || !userPhone.trim()) {
-        return { 
-          error: 'A phone number is required before switching to a Business account.',
-          requiresPhone: true 
-        };
-      }
-      const phoneVal = validatePhoneNumber(userPhone);
-      if (!phoneVal.isValid) {
-        return {
-          error: 'A valid phone number format is required before switching to a Business account.',
-          requiresPhone: true
-        };
-      }
     }
 
     let updateError: string | null = null;
@@ -91,67 +73,8 @@ export async function updateAccountType(newType: 'personal' | 'business') {
   }
 }
 
-export async function upgradeToBusinessWithPhone(phone: string) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const phoneValidation = validatePhoneNumber(phone);
-    if (!phoneValidation.isValid) {
-      return { error: phoneValidation.error || 'Please enter a valid phone number format.' };
-    }
-
-    const normalizedPhone = phoneValidation.e164 || phone.trim();
-
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const adminClient = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { persistSession: false, autoRefreshToken: false } }
-      );
-
-      await Promise.all([
-        adminClient.from('profiles').update({ 
-          account_type: 'business',
-          updated_at: new Date().toISOString() 
-        }).eq('id', user.id),
-        adminClient.auth.admin.updateUserById(user.id, {
-          user_metadata: {
-            ...(user.user_metadata || {}),
-            phone: normalizedPhone,
-            account_type: 'business',
-          }
-        })
-      ]);
-    } else {
-      await supabase.auth.updateUser({
-        data: {
-          phone: normalizedPhone,
-          account_type: 'business',
-        }
-      });
-      await supabase
-        .from('profiles')
-        .update({ 
-          account_type: 'business',
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', user.id);
-    }
-
-    revalidatePath('/my-listme');
-    revalidatePath(`/member/${getMemberNumber(user.id)}`);
-    revalidatePath(`/member/${user.id}`);
-
-    return { success: true };
-  } catch (err: any) {
-    console.error('upgradeToBusinessWithPhone failure:', err);
-    return { error: err.message || 'Failed to upgrade to business account.' };
-  }
+export async function upgradeToBusinessWithPhone() {
+  return updateAccountType('business');
 }
 
 export interface ProfileData {
@@ -172,38 +95,8 @@ export async function updateProfileSettings(data: ProfileData) {
 
   const trimmedUsername = data.username?.trim();
   const trimmedFullName = data.fullName?.trim();
-  const trimmedPhone = data.phone?.trim();
   const trimmedLocation = data.location?.trim();
   const avatarUrl = data.avatarUrl?.trim() || '';
-
-  // Validate phone format if provided
-  let normalizedPhoneToSave = trimmedPhone;
-  if (trimmedPhone) {
-    const phoneValidation = validatePhoneNumber(trimmedPhone);
-    if (!phoneValidation.isValid) {
-      return { error: phoneValidation.error || 'Please enter a valid phone number format.' };
-    }
-    normalizedPhoneToSave = phoneValidation.e164 || trimmedPhone;
-  }
-
-  // Check if current user is a business account
-  const { data: currentProfile } = await supabase
-    .from('profiles')
-    .select('id, account_type')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (currentProfile?.account_type === 'business') {
-    const existingPhone = user.user_metadata?.phone || user.phone;
-    const finalPhone = normalizedPhoneToSave !== undefined ? normalizedPhoneToSave : existingPhone;
-    if (!finalPhone) {
-      return { error: 'A valid phone number is required for business accounts and cannot be removed.' };
-    }
-    const phoneValidation = validatePhoneNumber(finalPhone);
-    if (!phoneValidation.isValid) {
-      return { error: 'A valid phone number format is required for business accounts.' };
-    }
-  }
 
   // 1. If username is being changed, verify it is unique
   if (trimmedUsername) {
@@ -225,7 +118,6 @@ export async function updateProfileSettings(data: ProfileData) {
       username: trimmedUsername || undefined,
       full_name: trimmedFullName || undefined,
       avatar_url: avatarUrl || undefined,
-      phone: normalizedPhoneToSave !== undefined ? normalizedPhoneToSave : undefined,
       location: trimmedLocation !== undefined ? trimmedLocation : undefined,
     }
   });

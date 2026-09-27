@@ -105,7 +105,6 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
       category: 'Retail & Local Storefront',
       business_type: 'marketplace',
       county: 'Dublin',
-      phone: '',
       email: 'support@listme.ie',
       website: 'https://listme.ie',
       facebook: 'https://www.facebook.com/profile.php?id=61594336620072',
@@ -169,7 +168,6 @@ export default async function BusinessPublicPage({ params }: BusinessPageViewPro
     description: businessPage.tagline || businessPage.announcement || businessPage.name,
     image: businessPage.avatarUrl || `${siteUrl}/clover-logo.png`,
     url: `${siteUrl}/page/${cleanSlug}`,
-    telephone: businessPage.phone || undefined,
     address: {
       '@type': 'PostalAddress',
       addressLocality: businessPage.county || 'Ireland',

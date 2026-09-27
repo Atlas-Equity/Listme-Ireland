@@ -34,6 +34,23 @@ export async function GET(request: Request) {
       const hasPassword = isEmailUser || Boolean(user.user_metadata?.has_password);
 
       if (!profile) {
+        if (user.email) {
+          const { data: existingProfileByEmail } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .ilike('email', user.email.trim())
+            .maybeSingle();
+
+          if (existingProfileByEmail && existingProfileByEmail.id !== user.id) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(
+              `${redirectBase}/login?error=${encodeURIComponent(
+                'An account with this email address already exists. Please log in using your original method.'
+              )}`
+            );
+          }
+        }
+
         // Ensure profile row exists
         await supabase.from('profiles').insert({
           id: user.id,

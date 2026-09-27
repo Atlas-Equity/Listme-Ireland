@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   MapPin, 
-  Phone, 
   Mail, 
   Globe, 
   CheckCircle2, 
@@ -403,14 +402,6 @@ export default function BusinessPageClient({
                   <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
                   <span>Based in <strong>{businessPage.county}, Ireland</strong></span>
                 </div>
-
-                
-                {businessPage.phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span className="font-mono font-semibold">{businessPage.phone}</span>
-                  </div>
-                )}
 
                 
                 {businessPage.email && (

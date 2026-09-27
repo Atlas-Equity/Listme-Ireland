@@ -12,7 +12,6 @@ import {
   Plus, 
   ArrowRight, 
   MapPin, 
-  Phone, 
   Edit, 
   ShieldCheck, 
   ExternalLink,
@@ -440,7 +439,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     username,
     fullName,
     avatarUrl,
-    phone,
     location: coreLocation,
     email: user.email || '',
   };
@@ -765,7 +763,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       <div className="sm:w-2/3 flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4 text-emerald-500" />
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                          Protected Member (Phone &amp; Email Verified)
+                          Protected Member (Email Verified)
                         </span>
                       </div>
                     </div>
@@ -844,7 +842,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
                     Switch between Personal and Business accounts to unlock commercial selling tools and verified business status.
                   </p>
-                  <AccountTypeSwitch currentType={accountType} userPhone={phone} />
+                  <AccountTypeSwitch currentType={accountType} />
                 </div>
 
                 {/* Business Seller Stripe Connect Payouts Integration */}
@@ -1410,7 +1408,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         Business Pages &amp; Storefronts
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        Subsidiary service hubs and retail pages with custom URLs, Irish phone locking, and opening hours.
+                        Subsidiary service hubs and retail pages with custom URLs and opening hours.
                       </p>
                     </div>
 
@@ -1475,7 +1473,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
 
                           {page.announcement && (
                             <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 font-medium line-clamp-2 mb-3">
-                              📢 {page.announcement}
+                              {page.announcement}
                             </div>
                           )}
 
@@ -1489,11 +1487,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5" />
                               {page.county}, Ireland
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1 font-mono">
-                              <Phone className="w-3.5 h-3.5" />
-                              {page.phone}
                             </span>
                             {page.opening_hours && (
                               <>
