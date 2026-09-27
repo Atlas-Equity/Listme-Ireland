@@ -134,29 +134,193 @@ export async function requestLoginOtpAction(identifier: string) {
 
     const otpCode = genRes.data.properties.email_otp;
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'ListMe <auth@listme.ie>';
+    const recipientName =
+      existingUser.user_metadata?.full_name ||
+      existingUser.user_metadata?.username ||
+      email.split('@')[0];
 
     try {
+      const templateId = process.env.RESEND_TEMPLATE_ID || '585471a8-8cc2-4390-b106-0d55ae655b7a';
+      const emailPayload: Record<string, any> = {
+        from: fromEmail,
+        to: [email],
+        subject: `${otpCode} is your ListMe.ie verification code`,
+      };
+
+      if (templateId) {
+        emailPayload.template = {
+          id: templateId,
+          variables: {
+            pin: otpCode,
+            name: recipientName,
+            code: otpCode,
+            otpCode: otpCode,
+            otp: otpCode,
+          },
+        };
+      } else {
+        emailPayload.html = `
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta content="width=device-width" name="viewport" />
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+    <meta content="telephone=no,address=no,email=no,date=no,url=no" name="format-detection" />
+    <title>Your ListMe.ie verification code</title>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        li::marker { color: #c4c4c4; }
+      }
+      a { color: #22c55e; }
+      a:hover { color: #16a34a; }
+    </style>
+  </head>
+  <body
+    dir="ltr"
+    lang="en"
+    style="background-color:#f8fafc;margin:0;padding-top:40px;padding-bottom:40px;padding-right:16px;padding-left:16px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;font-size:1em;line-height:155%;"
+  >
+    <div
+      style="display:none;font-size:1px;color:#f8fafc;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;"
+    >
+      Enter this code to verify your email. Expires in 10 minutes.
+    </div>
+
+    <table border="0" width="100%" cellpadding="0" cellspacing="0" role="presentation" align="center">
+      <tbody>
+        <tr>
+          <td align="center" style="padding-left:0;padding-right:0;">
+            <table
+              align="center"
+              width="100%"
+              border="0"
+              cellpadding="0"
+              cellspacing="0"
+              role="presentation"
+              style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;line-height:155%;"
+            >
+              <tbody>
+                <tr style="width:100%">
+                  <td style="padding-top:32px;padding-right:24px;padding-bottom:0;padding-left:24px;">
+                    <p style="margin:0;padding:0;font-size:18px;font-weight:bold;color:#18181b;letter-spacing:-0.2px;">
+                      ListMe.ie
+                    </p>
+                    <p style="margin:4px 0 0 0;padding:0;font-size:12px;color:#71717a;">
+                      Irish Owned. Irish Operated. Community First.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr style="width:100%">
+                  <td
+                    style="padding-top:24px;padding-right:24px;padding-bottom:32px;padding-left:24px;font-size:15px;line-height:1.6;color:#3f3f46;"
+                  >
+                    <h1
+                      style="margin:0 0 16px 0;padding:0;font-size:22px;font-weight:bold;color:#18181b;letter-spacing:-0.3px;"
+                    >
+                      Verify your email
+                    </h1>
+
+                    <p style="margin:0 0 16px 0;padding:0;">Hi ${recipientName},</p>
+
+                    <p style="margin:0 0 24px 0;padding:0;">
+                      Use the code below to finish setting up your ListMe.ie account.
+                    </p>
+
+                    <table
+                      border="0"
+                      cellpadding="0"
+                      cellspacing="0"
+                      role="presentation"
+                      align="center"
+                      style="margin:0 auto 24px auto;width:100%;"
+                    >
+                      <tbody>
+                        <tr>
+                          <td
+                            align="center"
+                            style="padding:24px 16px;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;font-size:36px;font-weight:bold;letter-spacing:8px;color:#166534;font-family:'SF Mono', Monaco, 'Courier New', monospace;"
+                          >
+                            ${otpCode}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <p style="margin:0 0 16px 0;padding:0;text-align:center;font-size:13px;color:#71717a;">
+                      This code expires in 10 minutes.
+                    </p>
+
+                    <p style="margin:0 0 16px 0;padding:0;">
+                      Enter this code on the verification screen to activate your account.
+                    </p>
+
+                    <p style="margin:0 0 16px 0;padding:0;">
+                      If you didn't create a ListMe.ie account, you can safely ignore this email. Your email address
+                      will not be added to any list.
+                    </p>
+
+                    <p style="margin:0;padding:0;">
+                      Slán,
+                      <br />
+                      The ListMe.ie Team
+                    </p>
+                  </td>
+                </tr>
+
+                <tr style="width:100%">
+                  <td style="padding-top:0;padding-right:24px;padding-bottom:0;padding-left:24px;">
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
+                  </td>
+                </tr>
+
+                <tr style="width:100%">
+                  <td
+                    style="padding-top:24px;padding-right:24px;padding-bottom:32px;padding-left:24px;font-size:12px;line-height:1.6;color:#71717a;"
+                  >
+                    <p style="margin:0 0 8px 0;padding:0;">
+                      Need help? Create a support ticket at
+                      <a href="https://www.listme.ie/help" style="color:#22c55e;text-decoration:none;font-weight:600;">
+                        listme.ie/help
+                      </a>
+                    </p>
+                    <p style="margin:0 0 16px 0;padding:0;">Every ticket is handled by a real human. No AI, no bots.</p>
+
+                    <p style="margin:0 0 12px 0;padding:0;">
+                      <a href="https://www.listme.ie/about" style="color:#71717a;text-decoration:underline;">About Us</a>
+                      &nbsp;·&nbsp;
+                      <a href="https://www.listme.ie/terms" style="color:#71717a;text-decoration:underline;">Terms of Service</a>
+                      &nbsp;·&nbsp;
+                      <a href="https://www.listme.ie/privacy" style="color:#71717a;text-decoration:underline;">Privacy Policy</a>
+                      &nbsp;·&nbsp;
+                      <a href="https://www.listme.ie/buyer-protection" style="color:#71717a;text-decoration:underline;">Buyer Protection</a>
+                    </p>
+
+                    <p style="margin:0;padding:0;font-size:11px;color:#a1a1aa;">
+                      ListMe.ie · Ireland · Irish Owned. Irish Operated. Community First.
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>
+        `;
+      }
+
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendApiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [email],
-          subject: `${otpCode} is your ListMe login code`,
-          html: `
-            <div style="font-family: Arial, Helvetica, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background-color: #121212; color: #f4f4f5; border-radius: 12px; border: 1px solid #27272a;">
-              <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #ffffff;">Log in to ListMe</h2>
-              <p style="font-size: 14px; color: #a1a1aa; margin-bottom: 24px;">Use the verification code below to sign in to your ListMe account. This code expires in 10 minutes.</p>
-              <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 18px; text-align: center; margin-bottom: 24px;">
-                <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #22c55e;">${otpCode}</span>
-              </div>
-              <p style="font-size: 12px; color: #71717a; margin-bottom: 0;">If you did not request this code, you can safely ignore this email.</p>
-            </div>
-          `,
-        }),
+        body: JSON.stringify(emailPayload),
       });
 
       if (!resendRes.ok) {
