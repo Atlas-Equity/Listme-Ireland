@@ -5,7 +5,11 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import OtpInput from '@/components/OtpInput';
-import { checkRegistrationAvailability } from './actions';
+import { 
+  checkRegistrationAvailability, 
+  checkUsernameAvailability, 
+  syncRegisteredUserProfile 
+} from './actions';
 import { 
   Mail, 
   Lock, 
@@ -14,7 +18,8 @@ import {
   ShieldCheck, 
   RotateCcw, 
   ArrowLeft, 
-  Loader2 
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -26,6 +31,12 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [accountType, setAccountType] = useState<'personal' | 'business'>('personal');
   const [notifyTosUpdates, setNotifyTosUpdates] = useState(true);
+
+  const [usernameStatus, setUsernameStatus] = useState<{
+    checking: boolean;
+    error: string | null;
+    available: boolean;
+  }>({ checking: false, error: null, available: false });
 
   const [otpCode, setOtpCode] = useState('');
   const [otpLength, setOtpLength] = useState<number>(8);
@@ -45,6 +56,21 @@ export default function RegisterPage() {
     }
     return () => clearTimeout(timer);
   }, [resendCooldown]);
+
+  const handleUsernameBlur = async () => {
+    const clean = username.trim();
+    if (clean.length < 3) {
+      setUsernameStatus({ checking: false, error: null, available: false });
+      return;
+    }
+    setUsernameStatus({ checking: true, error: null, available: false });
+    const check = await checkUsernameAvailability(clean);
+    if (!check.available) {
+      setUsernameStatus({ checking: false, error: check.error || 'That username is already taken.', available: false });
+    } else {
+      setUsernameStatus({ checking: false, error: null, available: true });
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,6 +182,16 @@ export default function RegisterPage() {
         return;
       }
 
+      const user = verifyRes.data?.user || verifyRes.data?.session?.user;
+      if (user) {
+        await syncRegisteredUserProfile({
+          userId: user.id,
+          email: email.trim(),
+          username: username.trim(),
+          accountType,
+        });
+      }
+
       if (verifyRes.data?.session) {
         router.push('/');
         router.refresh();
@@ -169,6 +205,14 @@ export default function RegisterPage() {
         });
 
         if (signInRes.data?.session) {
+          if (signInRes.data.user) {
+            await syncRegisteredUserProfile({
+              userId: signInRes.data.user.id,
+              email: email.trim(),
+              username: username.trim(),
+              accountType,
+            });
+          }
           router.push('/');
           router.refresh();
           return;
@@ -343,11 +387,42 @@ export default function RegisterPage() {
                       type="text"
                       required
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="block w-full pl-10 px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-colors"
+                      onBlur={handleUsernameBlur}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (usernameStatus.error || usernameStatus.available) {
+                          setUsernameStatus({ checking: false, error: null, available: false });
+                        }
+                      }}
+                      className={`block w-full pl-10 pr-10 px-3 py-2 border ${
+                        usernameStatus.error
+                          ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                          : usernameStatus.available
+                          ? 'border-emerald-500 focus:ring-emerald-500 focus:border-emerald-500'
+                          : 'border-gray-300 dark:border-zinc-700 focus:ring-primary focus:border-primary'
+                      } rounded-md shadow-sm bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:outline-none sm:text-sm transition-colors`}
                       placeholder="cooluser123"
                     />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      {usernameStatus.checking && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+                      {!usernameStatus.checking && usernameStatus.available && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      )}
+                      {!usernameStatus.checking && usernameStatus.error && (
+                        <AlertCircle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
                   </div>
+                  {usernameStatus.error && (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
+                      {usernameStatus.error}
+                    </p>
+                  )}
+                  {usernameStatus.available && (
+                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                      Username is available
+                    </p>
+                  )}
                 </div>
 
                 <div>
