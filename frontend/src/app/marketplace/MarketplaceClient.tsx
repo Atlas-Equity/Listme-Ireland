@@ -3,11 +3,8 @@
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, Tag, Plus, Clock } from 'lucide-react';
+import { Tag, Clock, Plus } from 'lucide-react';
 import { ListingCard } from '@/components/ListingCard';
-import { COUNTIES } from '@/utils/irelandLocations';
-import CustomSelect from '@/components/CustomSelect';
-import { MARKETPLACE_CATEGORIES, CATEGORY_NAMES } from '@/constants/marketplaceCategories';
 
 interface MarketplaceClientProps {
   initialStores?: any[];
@@ -21,32 +18,12 @@ function MarketplaceClientContent({
 }: MarketplaceClientProps) {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [selectedCounty, setSelectedCounty] = useState('All');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedSubcategory, setSelectedSubcategory] = useState('All');
-  const [buyingFormat, setBuyingFormat] = useState(defaultFormat || 'All');
+  const buyingFormat = defaultFormat || 'All';
 
   useEffect(() => {
     const q = searchParams.get('q');
-    if (q !== null) {
-      setSearchQuery(q);
-    }
+    setSearchQuery(q || '');
   }, [searchParams]);
-
-  const subcategoryOptions = useMemo(() => {
-    if (selectedCategory === 'All' || !MARKETPLACE_CATEGORIES[selectedCategory]) {
-      return [{ value: 'All', label: 'All Subcategories' }];
-    }
-    return [
-      { value: 'All', label: 'All Subcategories' },
-      ...MARKETPLACE_CATEGORIES[selectedCategory].map((sub) => ({ value: sub, label: sub })),
-    ];
-  }, [selectedCategory]);
-
-  const handleCategoryChange = (cat: string) => {
-    setSelectedCategory(cat);
-    setSelectedSubcategory('All');
-  };
 
   const closingSoonListings = useMemo(() => {
     const nowMs = Date.now();
@@ -61,8 +38,6 @@ function MarketplaceClientContent({
   const filteredListings = useMemo(() => {
     const nowMs = Date.now();
     return initialListings.filter((item) => {
-      const matchesCounty = selectedCounty === 'All' || item.location?.toLowerCase().includes(selectedCounty.toLowerCase());
-      
       const end = item.expires_at || item.ends_at;
       const isClosingSoon = Boolean(end) && (new Date(end).getTime() - nowMs > 0) &&
         (new Date(end).getTime() - nowMs <= 24 * 60 * 60 * 1000);
@@ -72,103 +47,22 @@ function MarketplaceClientContent({
         (buyingFormat === 'Buy Now' && item.price_type?.toLowerCase() !== 'auction') ||
         (buyingFormat === 'Closing Soon' && isClosingSoon);
 
-      const matchesCategory = selectedCategory === 'All' ||
-        item.category?.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-        item.description?.toLowerCase().includes(selectedCategory.toLowerCase());
-
-      const matchesSubcategory = selectedSubcategory === 'All' ||
-        item.description?.toLowerCase().includes(`[subcategory: ${selectedSubcategory.toLowerCase()}]`) ||
-        item.description?.toLowerCase().includes(selectedSubcategory.toLowerCase()) ||
-        (item as any).subcategory?.toLowerCase() === selectedSubcategory.toLowerCase() ||
-        item.title?.toLowerCase().includes(selectedSubcategory.toLowerCase());
-
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch = !q ||
         item.title?.toLowerCase().includes(q) ||
-        item.description?.toLowerCase().includes(q);
+        item.description?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q) ||
+        item.location?.toLowerCase().includes(q);
 
-      return matchesCounty && matchesFormat && matchesCategory && matchesSubcategory && matchesSearch;
+      return matchesFormat && matchesSearch;
     });
-  }, [initialListings, searchQuery, selectedCounty, buyingFormat, selectedCategory, selectedSubcategory]);
+  }, [initialListings, searchQuery, buyingFormat]);
 
   const [visibleListingsCount, setVisibleListingsCount] = useState(40);
   const displayedListings = filteredListings.slice(0, visibleListingsCount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-              Marketplace
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Buy and sell new and used items, electronics, collectibles, and more across Ireland.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/sell"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-green-700 text-white font-bold text-xs transition-colors shadow-xs"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Sell an Item</span>
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-[#f8fafc] dark:bg-[#181818] p-3 rounded-2xl border border-gray-200/90 dark:border-zinc-800 shadow-xs">
-          <div className="sm:col-span-2 lg:col-span-2 relative flex items-center">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search marketplace items..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div>
-            <CustomSelect
-              value={selectedCategory}
-              onChange={handleCategoryChange}
-              options={[{ value: 'All', label: 'All Categories' }, ...CATEGORY_NAMES.map((c) => ({ value: c, label: c }))]}
-            />
-          </div>
-
-          <div>
-            <CustomSelect
-              value={selectedSubcategory}
-              onChange={setSelectedSubcategory}
-              disabled={selectedCategory === 'All'}
-              options={subcategoryOptions}
-            />
-          </div>
-
-          <div>
-            <CustomSelect
-              value={selectedCounty}
-              onChange={setSelectedCounty}
-              options={[{ value: 'All', label: 'All Counties' }, ...COUNTIES.map((c) => ({ value: c, label: c }))]}
-            />
-          </div>
-
-          <div>
-            <CustomSelect
-              value={buyingFormat}
-              onChange={setBuyingFormat}
-              options={[
-                { value: 'All', label: 'All Formats' },
-                { value: 'Buy Now', label: 'Buy Now / Fixed Price' },
-                { value: 'Auction', label: 'Live Auctions' },
-                { value: 'Closing Soon', label: 'Closing Soon (1 Day or Less)' },
-              ]}
-            />
-          </div>
-        </div>
-      </div>
 
       {closingSoonListings.length > 0 && (
         <section className="mb-12">

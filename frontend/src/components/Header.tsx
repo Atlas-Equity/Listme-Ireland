@@ -82,7 +82,7 @@ export default async function Header() {
             </div>
 
             {/* Nav Bar Search Bar */}
-            <div className="flex-1 max-w-md mx-2 sm:mx-4 hidden md:block">
+            <div className="flex-1 max-w-md mx-2 sm:mx-4 flex">
               <NavbarSearchBar />
             </div>
             
