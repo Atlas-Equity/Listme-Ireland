@@ -9,6 +9,8 @@ import VerifiedBadge from './VerifiedBadge';
 import { createClient, getCurrentUser } from '@/utils/supabase/server';
 import HeaderMessagesBadge from './HeaderMessagesBadge';
 import HeaderNotificationsDropdown from './HeaderNotificationsDropdown';
+import NavbarSearchBar from './NavbarSearchBar';
+import UnverifiedEmailWarning from './UnverifiedEmailWarning';
 
 declare global {
   var __userProfileCache: Map<string, { profile: any; expiresAt: number }> | undefined;
@@ -58,13 +60,16 @@ export default async function Header() {
     }
   }
 
+  const isEmailUnverified = Boolean(user && !user.email_confirmed_at);
+
   return (
     <header className="sticky top-0 z-50 w-full flex flex-col">
-      
+      {isEmailUnverified && (
+        <UnverifiedEmailWarning email={user.email} variant="banner" />
+      )}
       <div className="w-full bg-white dark:bg-[#202020] text-gray-800 dark:text-white border-b border-gray-200 dark:border-zinc-800 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-[72px]">
-            
+          <div className="flex justify-between items-center h-[72px] gap-4">
             
             <div className="flex-shrink-0 flex items-center gap-3">
               <MobileMenu user={user} isBusiness={isBusiness} avatarUrl={avatarUrl} isVerified={isVerified} username={username} />
@@ -76,6 +81,10 @@ export default async function Header() {
               </Link>
             </div>
 
+            {/* Nav Bar Search Bar */}
+            <div className="flex-1 max-w-md mx-2 sm:mx-4 hidden md:block">
+              <NavbarSearchBar />
+            </div>
             
             <nav className="hidden lg:flex items-center space-x-6 text-sm font-medium text-gray-600 dark:text-gray-300">
               <HeaderNotificationsDropdown currentUserId={user?.id} />
@@ -97,12 +106,10 @@ export default async function Header() {
               
               {user ? (
                 <>
-                  {isBusiness && (
-                    <Link href="/sell" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
-                      <Edit3 className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
-                      <span>Sell</span>
-                    </Link>
-                  )}
+                  <Link href="/sell" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
+                    <Edit3 className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
+                    <span>Sell</span>
+                  </Link>
                   <Link href="/my-listme" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
                     {avatarUrl ? (
                       <div className="w-5 h-5 mb-1 rounded-full overflow-hidden relative border border-primary/40 shrink-0">
@@ -123,6 +130,9 @@ export default async function Header() {
                       {isVerified && <VerifiedBadge size="xs" />}
                     </span>
                   </Link>
+                  {isEmailUnverified && (
+                    <UnverifiedEmailWarning email={user.email} variant="nav" />
+                  )}
                   <form action="/auth/signout" method="POST" className="flex flex-col items-center">
                     <button type="submit" className="flex flex-col items-center hover:text-primary dark:hover:text-white transition-colors group">
                       <LogOut className="w-5 h-5 mb-1 group-hover:text-primary transition-colors" />
@@ -147,20 +157,6 @@ export default async function Header() {
               </div>
             </nav>
           </div>
-        </div>
-      </div>
-
-      
-      <div className="w-full bg-gray-50 dark:bg-[#151515] text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-zinc-800 hidden md:block transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center space-x-8 h-11 text-sm font-medium">
-            <Link href="/marketplace" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
-              <ShoppingBag className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Marketplace
-            </Link>
-            <Link href="/community" className="group flex items-center text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-white transition-colors">
-              <Users className="w-4 h-4 mr-2 text-gray-400 group-hover:text-primary dark:group-hover:text-white transition-colors" /> Community
-            </Link>
-          </nav>
         </div>
       </div>
     </header>

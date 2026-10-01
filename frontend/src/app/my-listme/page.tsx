@@ -39,17 +39,17 @@ import Image from 'next/image';
 import WalletLoginButton from '@/components/WalletLoginButton';
 import { ListingCard } from '@/components/ListingCard';
 import ProfileSettingsForm from './ProfileSettingsForm';
-import AccountTypeSwitch from './AccountTypeSwitch';
+import LinkedCardCard from '@/components/LinkedCardCard';
 import CreateWatchlistModal from '@/components/CreateWatchlistModal';
 import MakeOfferButton from '@/components/MakeOfferButton';
 import RelistNotificationCard from '@/components/RelistNotificationCard';
-import WelcomeGuideNotification from '@/components/WelcomeGuideNotification';
 import CreateBusinessPageModal from '@/components/CreateBusinessPageModal';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import VerifyAccountButton from './VerifyAccountButton';
 import { StripeLogo } from '@/components/StripeLogo';
 import TradeMeSettingsSections from './TradeMeSettingsSections';
 import DeleteListingButton from '@/components/DeleteListingButton';
+import MarkAsSoldButton from '@/components/MarkAsSoldButton';
 import ClearAllNotificationsButton from '@/components/ClearAllNotificationsButton';
 import FavouriteSellerButton from '@/components/FavouriteSellerButton';
 import FavouriteBusinessButton from '@/components/FavouriteBusinessButton';
@@ -214,13 +214,17 @@ export default async function MyListMePage({ searchParams }: PageProps) {
     }
   }
 
-  const isWelcomeDismissed = dismissedNotificationIds.includes('welcome_guide');
   const pendingQuestionsCount = listingQuestionsNotifications.length;
-  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount + favUploadNotifications.length + (!isWelcomeDismissed ? 1 : 0);
+  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount + favUploadNotifications.length;
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
   const currentAccountCredit = typeof userMetadata.account_credit === 'number' ? userMetadata.account_credit : 0.00;
+  const linkedCards = Array.isArray(userMetadata.linked_cards) && userMetadata.linked_cards.length > 0
+    ? userMetadata.linked_cards
+    : userMetadata.linked_card
+      ? [userMetadata.linked_card]
+      : [];
 
   // Stripe Verified Subscription Session Verification
   const verifiedSessionId = typeof params?.verified_session_id === 'string' ? params.verified_session_id : undefined;
@@ -466,7 +470,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 shadow-xs">
-              {accountType === 'business' ? 'Business Account' : 'Personal Account'}
+              {isVerified ? 'Verified Member' : 'Member Account'}
             </span>
           </div>
         </div>
@@ -582,17 +586,17 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   <span>Items I&apos;m selling</span>
                 </Link>
 
-                
+                {/* Linked Cards & Balance */}
                 <Link
-                  href="/my-listme?tab=pages"
+                  href="/my-listme?tab=card"
                   className={`flex items-center gap-3 px-4 py-3 border-l-4 text-xs font-semibold transition-colors ${
-                    currentTab === 'pages'
+                    currentTab === 'card'
                       ? 'bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white border-primary'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/50 hover:text-gray-900 dark:hover:text-white border-transparent'
                   }`}
                 >
-                  <Building2 className="w-4 h-4 text-primary" />
-                  <span>Business Pages</span>
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  <span>Linked Cards &amp; Credit</span>
                 </Link>
 
                 
@@ -833,19 +837,8 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                 </div>
 
                 
-                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
-                  <h3 className="text-base font-extrabold uppercase text-gray-900 dark:text-white mb-1">
-                    ACCOUNT TYPE
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
-                    Switch between Personal and Business accounts to unlock commercial selling tools and verified business status.
-                  </p>
-                  <AccountTypeSwitch currentType={accountType} />
-                </div>
-
-                {/* Business Seller Stripe Connect Payouts Integration */}
-                {accountType === 'business' && (
-                  <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
+                {/* Seller Stripe Connect Payouts Integration */}
+                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xs">
                     <div className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-900/50">
                       <div className="flex-1">
                         <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
@@ -883,7 +876,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       </div>
                     </div>
                   </div>
-                )}
 
               </div>
             )}
@@ -910,8 +902,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                     </div>
                   </div>
                 </div>
-
-                <WelcomeGuideNotification initialDismissed={isWelcomeDismissed} />
 
                 {pendingBusinessInvites.length > 0 && (
                   <div className="space-y-3">
@@ -1078,7 +1068,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       ))}
                     </div>
                   </div>
-                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 && isWelcomeDismissed ? (
+                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 ? (
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     
@@ -1243,7 +1233,12 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                           sellerVerified={Boolean(user?.user_metadata?.is_verified || user?.user_metadata?.verification_type === 'paid')}
                           sellerId={user.id}
                         />
-                        <div className="flex items-center justify-end">
+                        <div className="flex items-center justify-end gap-2">
+                          <MarkAsSoldButton
+                            listingId={listing.id}
+                            listingTitle={listing.title}
+                            isCashOnly={Array.isArray(listing.payment_options) && listing.payment_options.includes('cash') && !listing.payment_options.includes('stripe')}
+                          />
                           <DeleteListingButton
                             listingId={listing.id}
                             listingTitle={listing.title}
@@ -1396,199 +1391,17 @@ export default async function MyListMePage({ searchParams }: PageProps) {
             )}
 
             
-            {currentTab === 'pages' && (
+            {currentTab === 'card' && (
               <div className="space-y-6">
-                <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-zinc-800">
-                    <div>
-                      <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                        <Building2 className="w-6 h-6 text-primary" />
-                        Business Pages &amp; Storefronts
-                      </h2>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        Subsidiary service hubs and retail pages with custom URLs and opening hours.
-                      </p>
-                    </div>
-
-                    <CreateBusinessPageModal />
-                  </div>
-                </div>
-
-                {userBusinessPages.length === 0 ? (
-                  <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
-                      <Building2 className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                      No Business Pages created yet
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6 leading-relaxed">
-                      Create dedicated Facebook-style business pages for your services, trades, or retail stores. Showcase opening hours, official announcements, and direct messaging.
-                    </p>
-                    <CreateBusinessPageModal />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {userBusinessPages.map((page: any) => (
-                      <div
-                        key={page.id || page.slug}
-                        className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-3 mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-200 font-black text-lg flex items-center justify-center overflow-hidden relative border border-gray-200 dark:border-zinc-700">
-                                {page.avatarUrl ? (
-                                  <Image
-                                    src={page.avatarUrl}
-                                    alt={page.name}
-                                    fill
-                                    sizes="48px"
-                                    className="object-cover"
-                                    unoptimized
-                                  />
-                                ) : (
-                                  page.name.substring(0, 2).toUpperCase()
-                                )}
-                              </div>
-                              <div>
-                                <h4 className="font-extrabold text-base text-gray-900 dark:text-white flex items-center gap-1.5">
-                                  {page.name}
-                                  {(page.is_verified || page.slug === 'listme') && (
-                                    <Check className="w-3.5 h-3.5 text-zinc-300" />
-                                  )}
-                                </h4>
-                                <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                  /page/{page.slug}
-                                </p>
-                              </div>
-                            </div>
-
-                            <span className="text-[10px] uppercase font-semibold text-gray-700 dark:text-gray-300 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
-                              Marketplace Store
-                            </span>
-                          </div>
-
-                          {page.announcement && (
-                            <div className="p-2.5 rounded-lg bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-gray-300 font-medium line-clamp-2 mb-3">
-                              {page.announcement}
-                            </div>
-                          )}
-
-                          {page.tagline && (
-                            <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
-                              {page.tagline}
-                            </p>
-                          )}
-
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-gray-500 mb-4">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
-                              {page.county}, Ireland
-                            </span>
-                            {page.opening_hours && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-gray-400" />
-                                  {page.opening_hours}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between mt-auto">
-                          <Link
-                            href={`/page/${page.slug}`}
-                            className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                          >
-                            <span>View Public Page</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Link>
-
-                          <div className="flex items-center gap-2">
-                            <CreateBusinessPageModal
-                              initialData={page}
-                              triggerButton={
-                                <button
-                                  type="button"
-                                  className="p-2 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-300 text-xs font-semibold cursor-pointer"
-                                  title="Edit page"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                              }
-                            />
-                            <DeleteBusinessPageButton
-                              slug={page.slug}
-                              pageName={page.name}
-                              variant="icon"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                
-                {assignedBusinessPages.length > 0 && (
-                  <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-zinc-800">
-                    <div>
-                      <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-gray-400" />
-                        <span>Team &amp; Staff Business Pages</span>
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Business pages where you are an authorized staff team member.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {assignedBusinessPages.map((ap: any) => (
-                        <div
-                          key={ap.slug}
-                          className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs flex flex-col justify-between"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 font-black flex items-center justify-center">
-                                <Building2 className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <h4 className="font-bold text-sm text-gray-900 dark:text-white">
-                                  {ap.name}
-                                </h4>
-                                <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                  /page/{ap.slug}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="text-[10px] uppercase font-bold text-gray-700 dark:text-zinc-300 px-2.5 py-0.5 rounded-md bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700">
-                              Staff Member
-                            </span>
-                          </div>
-
-                          <div className="pt-4 mt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                            <span className="text-[11px] text-gray-400">
-                              Joined {ap.joined_at ? format(new Date(ap.joined_at), 'dd MMM yyyy') : 'Recently'}
-                            </span>
-                            <Link
-                              href={`/page/${ap.slug}`}
-                              className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-                            >
-                              <span>Open Business Page</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </Link>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <LinkedCardCard
+                  initialCards={linkedCards}
+                  defaultCardholderName={fullName || username || 'Cardholder'}
+                  accountBalance={currentAccountCredit}
+                />
               </div>
             )}
+
+
 
             
             {currentTab === 'settings' && (

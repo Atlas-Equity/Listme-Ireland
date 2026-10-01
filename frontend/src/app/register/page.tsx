@@ -344,35 +344,6 @@ export default function RegisterPage() {
               </div>
 
               <form className="space-y-4" onSubmit={handleRegister}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Account Type
-                  </label>
-                  <div className="flex rounded-md shadow-sm" role="group">
-                    <button
-                      type="button"
-                      onClick={() => setAccountType('personal')}
-                      className={`flex-1 py-2 px-4 text-sm font-medium rounded-l-lg border ${
-                        accountType === 'personal'
-                          ? 'bg-primary text-white border-primary z-10'
-                          : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                      } transition-colors cursor-pointer`}
-                    >
-                      Personal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAccountType('business')}
-                      className={`flex-1 py-2 px-4 text-sm font-medium rounded-r-lg border-t border-b border-r ${
-                        accountType === 'business'
-                          ? 'bg-primary text-white border-primary z-10'
-                          : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                      } transition-colors cursor-pointer`}
-                    >
-                      Business
-                    </button>
-                  </div>
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="username">

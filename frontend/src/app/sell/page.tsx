@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Package, 
   Camera, 
@@ -32,7 +33,7 @@ import { IRELAND_LOCATIONS, COUNTIES } from '@/utils/irelandLocations';
 import { BusinessPageData } from '@/app/actions/businessPages';
 import Image from 'next/image';
 import CustomSelect from '@/components/CustomSelect';
-import { isUserQuinn } from '@/utils/admin';
+import { isUserQuinn, isSuperAdmin } from '@/utils/admin';
 
 type ListingBranch = 'item' | 'job' | 'service';
 
@@ -68,6 +69,7 @@ export default function SellPage() {
   const [marketplacePages, setMarketplacePages] = useState<BusinessPageData[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string>('me');
   const [isQuinn, setIsQuinn] = useState(false);
+  const [isSuperUser, setIsSuperUser] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accountCredit, setAccountCredit] = useState<number>(0);
   const [assignedCardLast4, setAssignedCardLast4] = useState<string | null>(null);
@@ -132,6 +134,8 @@ export default function SellPage() {
       const userEmail = (user.email || '').toLowerCase();
       const userIsQuinn = isUserQuinn(user, username);
       setIsQuinn(userIsQuinn);
+      const userIsSuper = isSuperAdmin(user, username);
+      setIsSuperUser(userIsSuper);
 
       const userPages = (userMeta.business_pages || []) as BusinessPageData[];
       const assigned = (userMeta.assigned_business_pages || []) as any[];
@@ -199,11 +203,22 @@ export default function SellPage() {
       return;
     }
     if (step === 3 && listingBranch === 'item') {
+      if (!isSuperUser && accountCredit < 1.00) {
+        setError('A minimum account balance of €1.00 is required to post a listing. Please top up your balance in My ListMe > Linked Cards & Credit.');
+        return;
+      }
       if (priceType === 'Auction') {
         const numPrice = parseFloat(price);
         if (isNaN(numPrice) || numPrice < 1.00) {
           setError('Starting bid for auctions must be at least €1.00.');
           return;
+        }
+        if (buyNowPrice) {
+          const numBuyNow = parseFloat(buyNowPrice);
+          if (!isNaN(numBuyNow) && numBuyNow <= numPrice) {
+            setError(`Buy It Now price (€${numBuyNow.toFixed(2)}) must be strictly higher than the starting bid (€${numPrice.toFixed(2)}).`);
+            return;
+          }
         }
         if (hasReserve) {
           const numReserve = parseFloat(reservePrice);
@@ -211,6 +226,10 @@ export default function SellPage() {
             setError('Reserve price must be greater than or equal to the starting bid.');
             return;
           }
+        }
+        if (paymentOptions.includes('cash') && !paymentOptions.includes('stripe')) {
+          setError('Cash on collection is only available for Fixed Price listings. Auctions require Stripe card escrow.');
+          return;
         }
       } else {
         const numPrice = parseFloat(price);
@@ -230,6 +249,10 @@ export default function SellPage() {
   };
 
   const handleSubmit = async () => {
+    if (!isSuperUser && accountCredit < 1.00) {
+      setError('A minimum account balance of €1.00 is required to post a listing. Please top up your credit in My ListMe > Linked Cards & Credit.');
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
 
@@ -334,97 +357,22 @@ export default function SellPage() {
             </span>
           </div>
           
-          
-          {marketplacePages.length > 0 && (
-            <div className="mt-4 p-4 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#181818] space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-900 dark:text-white block">
-                  Who is selling this item?
-                </label>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  Customise whether this listing is published under your personal name or on a business storefront.
-                </p>
+          {!isSuperUser && accountCredit < 1.00 && (
+            <div className="mt-4 p-4 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <h4 className="text-xs font-bold">Minimum €1.00 Account Balance Required</h4>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                
-                <button
-                  type="button"
-                  onClick={() => setSelectedBusinessSlug('')}
-                  className={`p-3 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
-                    !selectedBusinessSlug
-                      ? 'border-primary bg-primary/5 text-primary ring-1 ring-primary'
-                      : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-700 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
-                    !selectedBusinessSlug ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-400'
-                  }`}>
-                    {currentUsername.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold block text-gray-900 dark:text-white">
-                      Sell as Myself (@{currentUsername})
-                    </span>
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400 block">
-                      Personal listing (does not show on store page)
-                    </span>
-                  </div>
-                </button>
-
-                
-                <div className={`p-3 rounded-xl border transition-all ${
-                  selectedBusinessSlug
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-700'
-                }`}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!selectedBusinessSlug && marketplacePages.length > 0) {
-                        setSelectedBusinessSlug(marketplacePages[0].slug);
-                      }
-                    }}
-                    className="w-full text-left flex items-center gap-3 cursor-pointer"
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      selectedBusinessSlug ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-gray-400'
-                    }`}>
-                      <Store className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-xs font-bold block text-gray-900 dark:text-white">
-                        Sell on Business Storefront
-                      </span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 block">
-                        Shows store branding &amp; appears in store catalog
-                      </span>
-                    </div>
-                  </button>
-
-                  {selectedBusinessSlug && marketplacePages.length > 1 && (
-                    <div className="mt-2">
-                      <CustomSelect
-                        value={selectedBusinessSlug}
-                        onChange={setSelectedBusinessSlug}
-                        options={marketplacePages.map((page) => ({
-                          value: page.slug,
-                          label: `${page.name} (/page/${page.slug})`,
-                        }))}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {selectedBusinessSlug && (
-                <p className="text-[11px] text-primary font-medium flex items-center gap-1.5 pt-0.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>
-                    Storefront Active: Buyers will see the <strong>{selectedPageObj?.name}</strong> storefront and location on this listing.
-                  </span>
-                </p>
-              )}
+              <p className="text-[11px] leading-relaxed">
+                You must have a minimum balance of €1.00 in your ListMe account to post a listing. Your current balance is €{accountCredit.toFixed(2)}.
+              </p>
+              <Link
+                href="/my-listme?tab=card"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-xs"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Top up in Linked Cards &amp; Credit &rarr;</span>
+              </Link>
             </div>
           )}
 
@@ -758,7 +706,12 @@ export default function SellPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setPriceType('Auction')}
+                        onClick={() => {
+                          setPriceType('Auction');
+                          if (!paymentOptions.includes('stripe')) {
+                            setPaymentOptions([...paymentOptions, 'stripe']);
+                          }
+                        }}
                         className={`p-4 rounded-xl border-2 text-center transition-colors cursor-pointer ${
                           priceType === 'Auction'
                             ? 'border-primary bg-primary/5 dark:bg-primary/10 text-primary font-bold'
@@ -893,7 +846,7 @@ export default function SellPage() {
                     </p>
                     <div className="space-y-2.5">
                       {[
-                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection (No fee)' },
+                        { id: 'cash', name: 'Euro in Hand / Cash on Collection', note: 'Buyer pays directly upon in-person collection (Fixed price only. €0.50 platform fee on sale)' },
                         { id: 'stripe', name: 'Stripe Escrow (Credit / Debit Card)', note: 'Secure digital card payment protected by escrow (1.4% + €0.25 seller fee)' },
                       ].map(({ id: method, name, note }) => {
                         const isChecked = paymentOptions.includes(method);
@@ -911,10 +864,15 @@ export default function SellPage() {
                               type="checkbox"
                               checked={isChecked}
                               onChange={(e) => {
+                                let updated: string[];
                                 if (e.target.checked) {
-                                  setPaymentOptions([...paymentOptions, method]);
+                                  updated = [...paymentOptions, method];
                                 } else {
-                                  setPaymentOptions(paymentOptions.filter(m => m !== method));
+                                  updated = paymentOptions.filter(m => m !== method);
+                                }
+                                setPaymentOptions(updated);
+                                if (updated.includes('cash') && !updated.includes('stripe')) {
+                                  setPriceType('Fixed Price');
                                 }
                               }}
                               className="mt-0.5 w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary cursor-pointer"

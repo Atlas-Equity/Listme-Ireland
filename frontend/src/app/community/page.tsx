@@ -1,6 +1,5 @@
 import React from 'react';
 import { createClient as createStatelessClient } from '@supabase/supabase-js';
-import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 import CommunityHubClient from './CommunityHubClient';
 
 import { Metadata } from 'next';
@@ -8,14 +7,14 @@ import { Metadata } from 'next';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'Community Hub & Verified Irish Businesses',
-  description: 'ListMe Ireland Community Hub: Discover verified local business storefronts, platform announcements, safety guidelines, and live marketplace stats.',
+  title: 'Community Hub | Platform Updates & Community',
+  description: 'ListMe Ireland Community Hub: Discover platform announcements, safety guidelines, and live marketplace stats.',
   alternates: {
     canonical: '/community',
   },
   openGraph: {
-    title: 'Community Hub & Irish Businesses | ListMe',
-    description: 'Discover verified local business storefronts, platform announcements, and community updates.',
+    title: 'Community Hub | ListMe',
+    description: 'Discover platform announcements, safety guidelines, and live marketplace stats.',
     url: '/community',
     siteName: 'ListMe Ireland',
     locale: 'en_IE',
@@ -29,10 +28,9 @@ const publicSupabase = createStatelessClient(
 );
 
 export default async function CommunityPage() {
-  const [listingsCountRes, profilesCountRes, businessPages] = await Promise.all([
+  const [listingsCountRes, profilesCountRes] = await Promise.all([
     publicSupabase.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     publicSupabase.from('profiles').select('id', { count: 'exact', head: true }),
-    getAllRegisteredBusinessPages(),
   ]);
 
   const activeListingsCount = listingsCountRes.count ?? 0;
@@ -42,7 +40,6 @@ export default async function CommunityPage() {
     <CommunityHubClient
       activeListingsCount={activeListingsCount}
       memberCount={memberCount}
-      businessPages={businessPages}
     />
   );
 }

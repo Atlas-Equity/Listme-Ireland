@@ -65,6 +65,14 @@ export default function LoginPage() {
 
     if (result.error) {
       setError(result.error);
+      if ((result as any).suggestOtp) {
+        setAuthMode('otp');
+        if ((result as any).email) {
+          setOtpTarget((result as any).email);
+        } else if (identifier) {
+          setOtpTarget(identifier);
+        }
+      }
       setLoading(false);
     } else {
       router.push('/');

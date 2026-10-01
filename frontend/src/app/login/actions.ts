@@ -58,6 +58,20 @@ export async function loginWithUsernameOrEmail(identifier: string, password: str
   });
 
   if (error) {
+    const msg = (error.message || '').toLowerCase();
+    if (
+      msg.includes('email not confirmed') ||
+      msg.includes('not confirmed') ||
+      msg.includes('not verified') ||
+      msg.includes('email_not_confirmed') ||
+      msg.includes('confirm your email')
+    ) {
+      return {
+        error: 'Your email is not verified yet. Please sign in using "Sign in with Code (OTP)" below to access your account.',
+        suggestOtp: true,
+        email,
+      };
+    }
     return { error: error.message };
   }
 

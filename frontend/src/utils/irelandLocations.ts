@@ -254,7 +254,7 @@ export const IRELAND_LOCATIONS: Record<string, string[]> = {
     'Portadown',
     'Other / All Armagh',
   ],
-  'Derry / Londonderry': [
+  'Derry': [
     'Derry City',
     'Coleraine',
     'Limavady',

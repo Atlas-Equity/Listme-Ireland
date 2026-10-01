@@ -175,8 +175,8 @@ export async function GET(req: NextRequest) {
       }
     } catch {}
 
-    const hasWelcomeGuide = !dismissedIds.includes('welcome_guide');
-    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length + favUploadsCount + (hasWelcomeGuide ? 1 : 0);
+    const hasWelcomeGuide = false;
+    const totalNotifications = pendingInvites.length + questionAlerts.length + activeClosedListings.length + favUploadsCount;
 
     return NextResponse.json({
       unreadCount,

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { isUserQuinn } from '@/utils/admin';
+import { isUserQuinn, isSuperAdmin } from '@/utils/admin';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export interface CreateListingInput {
@@ -52,17 +52,31 @@ export async function createListing(formData: CreateListingInput) {
     .single();
 
   const username = (profile?.username || user.user_metadata?.username || '').toLowerCase();
-  const userEmail = (user.email || '').toLowerCase();
-  const isExempt = 
-    username === 'quinn' || 
-    username === 'sahleyis' || 
-    userEmail === 'qrmooney@outlook.com' || 
-    userEmail === 'dahiruhammajam@gmail.com' ||
-    user.id === '387eb6d6-e83c-4414-b0e3-831d60cd1c16' ||
-    user.id === '88beddab-0640-4f99-a04a-ff58c03704e4';
+  const isSuper = isSuperAdmin(user, username);
 
-  if (!isExempt && (!profile?.stripe_onboarding_complete || !profile?.stripe_account_id)) {
-    return { error: 'You must complete Stripe onboarding before creating a listing. Go to your profile to set up payments.' };
+  // Minimum €1.00 in account credit to post (except super admins: me n you)
+  const userCredit = typeof user.user_metadata?.account_credit === 'number'
+    ? user.user_metadata.account_credit
+    : 0;
+
+  if (!isSuper && userCredit < 1.00) {
+    return {
+      error: 'A minimum balance of €1.00 in your ListMe account is required to post a listing. Please top up your credit in My ListMe > Linked Cards & Credit.',
+    };
+  }
+
+  // Cash on collection rules: Fixed price only, no Stripe onboarding required
+  const requiresStripe = formData.paymentOptions.includes('stripe');
+  const isCashOnly = formData.paymentOptions.includes('cash') && !requiresStripe;
+
+  if (isCashOnly) {
+    if (formData.priceType === 'Auction') {
+      return { error: 'Cash on collection / Euro in hand is only available for Fixed Price listings. Auctions require Stripe card escrow.' };
+    }
+  }
+
+  if (requiresStripe && !isSuper && (!profile?.stripe_onboarding_complete || !profile?.stripe_account_id)) {
+    return { error: 'You must complete Stripe onboarding before creating a listing that accepts Stripe card payments. Go to your profile to set up payments, or choose Cash on Collection only.' };
   }
 
   const userIsQuinn = isUserQuinn(user, username);
@@ -82,6 +96,13 @@ export async function createListing(formData: CreateListingInput) {
 
   if (formData.priceType === 'Auction' && (isNaN(formData.price) || formData.price < 1.00)) {
     return { error: 'Starting bid for auctions must be at least €1.00.' };
+  }
+
+  // Buy It Now price must be strictly higher than starting bid
+  if (formData.priceType === 'Auction' && formData.buyNowPrice && formData.buyNowPrice > 0) {
+    if (formData.buyNowPrice <= formData.price) {
+      return { error: 'Buy It Now price must be strictly higher than the starting bid.' };
+    }
   }
 
   if (formData.priceType === 'Auction' && formData.reservePrice && formData.reservePrice < formData.price) {
@@ -300,4 +321,57 @@ export async function createListing(formData: CreateListingInput) {
   }
   
   return { success: true, listingId: data?.id };
+}
+
+export async function markListingAsSoldAction(listingId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const { data: listing, error: listErr } = await supabase
+    .from('listings')
+    .select('id, seller_id, payment_options, title')
+    .eq('id', listingId)
+    .single();
+
+  if (listErr || !listing) {
+    return { success: false, error: 'Listing not found.' };
+  }
+
+  if (listing.seller_id !== user.id) {
+    return { success: false, error: 'Only the seller can mark this listing as sold.' };
+  }
+
+  const paymentOptions: string[] = listing.payment_options || [];
+  const isCashOnly = paymentOptions.includes('cash') && !paymentOptions.includes('stripe');
+
+  const username = (user.user_metadata?.username || '').toLowerCase();
+  const isSuper = isSuperAdmin(user, username);
+
+  // If cash/Euro only sale, take €0.50 platform fee from seller credit
+  if (isCashOnly && !isSuper) {
+    const currentCredit = typeof user.user_metadata?.account_credit === 'number'
+      ? user.user_metadata.account_credit
+      : 0;
+    const newCredit = Number((currentCredit - 0.50).toFixed(2));
+    await supabase.auth.updateUser({
+      data: {
+        account_credit: newCredit,
+      },
+    });
+  }
+
+  await supabase
+    .from('listings')
+    .update({ status: 'closed' })
+    .eq('id', listingId);
+
+  revalidatePath('/my-listme');
+  revalidatePath(`/listing/${listingId}`);
+  revalidatePath('/marketplace');
+
+  return { success: true };
 }

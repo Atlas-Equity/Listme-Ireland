@@ -206,7 +206,7 @@ export function MobileMenu({ user, isBusiness, avatarUrl: propAvatarUrl, isVerif
                       </Link>
                     </div>
 
-                    {isBusiness && (
+                    {user && (
                       <Link
                         href="/sell"
                         onClick={() => setIsOpen(false)}

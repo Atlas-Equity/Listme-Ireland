@@ -1,7 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { createPublicClient } from '@/utils/supabase/server';
-import { getAllRegisteredBusinessPages } from '@/app/actions/businessPages';
 import { enrichListingsWithSellers } from '@/utils/sellerMeta';
 import MarketplaceClient from './MarketplaceClient';
 
@@ -33,21 +32,17 @@ export default async function MarketplacePage({
 
   const supabase = createPublicClient();
 
-  const [businessPages, listingsResult] = await Promise.all([
-    getAllRegisteredBusinessPages(),
-    supabase
-      .from('listings')
-      .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, description, category, seller_id')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(120),
-  ]);
+  const listingsResult = await supabase
+    .from('listings')
+    .select('id, title, price, price_type, condition, images, created_at, location, expires_at, ends_at, description, category, seller_id')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(120);
 
   const enrichedListings = await enrichListingsWithSellers(listingsResult.data || []);
 
   return (
     <MarketplaceClient
-      initialStores={businessPages}
       initialListings={enrichedListings}
       defaultFormat={defaultFormat}
     />

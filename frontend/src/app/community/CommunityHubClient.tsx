@@ -21,18 +21,16 @@ import {
   FileText,
   Clock
 } from 'lucide-react';
-import { BusinessPageData } from '@/app/actions/businessPages';
 
 interface CommunityHubClientProps {
   activeListingsCount: number;
   memberCount: number;
-  businessPages: BusinessPageData[];
+  businessPages?: any[];
 }
 
 export default function CommunityHubClient({
   activeListingsCount,
   memberCount,
-  businessPages,
 }: CommunityHubClientProps) {
   const [activeSection, setActiveSection] = useState('announcements');
 
@@ -66,9 +64,9 @@ export default function CommunityHubClient({
     {
       id: 'ann-3',
       date: 'September 2026',
-      title: 'ListMe Branching & Business Storefronts',
+      title: 'ListMe Marketplace Features',
       tag: 'Feature Release',
-      summary: 'Choose between Item, Job, and Service when listing. Commercial accounts can associate listings directly with their storefront page.',
+      summary: 'Choose between Item, Job, and Service when listing across all 32 counties in Ireland.',
       link: '/sell',
       linkLabel: 'Explore listing flow',
     },
@@ -83,24 +81,11 @@ export default function CommunityHubClient({
     },
   ];
 
-  const featuredStores = [...businessPages]
-    .filter((p) => p.business_type === 'marketplace' || p.category?.toLowerCase().includes('retail'))
-    .sort((a, b) => {
-      const isA = a.slug?.toLowerCase() === 'listme' || a.name?.toLowerCase() === 'listme';
-      const isB = b.slug?.toLowerCase() === 'listme' || b.name?.toLowerCase() === 'listme';
-      if (isA && !isB) return -1;
-      if (!isA && isB) return 1;
-      return 0;
-    })
-    .slice(0, 3);
-
   const SECTIONS = [
     { id: 'announcements', number: 1, title: 'Announcements & Updates' },
-    { id: 'featured-stores', number: 2, title: 'Featured Marketplace Stores' },
-    { id: 'trust-safety', number: 3, title: 'Trust & Safety Advisories' },
-    { id: 'social-storefront', number: 4, title: 'Official Social & Storefront' },
-    { id: 'help-centre', number: 5, title: 'Support & Help Centre' },
-    { id: 'site-stats', number: 6, title: 'Live Platform Statistics' },
+    { id: 'trust-safety', number: 2, title: 'Trust & Safety Advisories' },
+    { id: 'help-centre', number: 3, title: 'Support & Help Centre' },
+    { id: 'site-stats', number: 4, title: 'Live Platform Statistics' },
   ];
 
   return (
@@ -126,7 +111,7 @@ export default function CommunityHubClient({
             Listme.ie Community Hub
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 max-w-3xl leading-relaxed">
-            Platform announcements, featured verified storefronts, safe buying guidelines, and real-time marketplace metrics across Ireland.
+            Platform announcements, safe buying guidelines, and real-time marketplace metrics across Ireland.
           </p>
           <div className="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-zinc-800/80 text-xs text-gray-500">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -237,89 +222,11 @@ export default function CommunityHubClient({
             </section>
 
             
-            <section id="featured-stores" className="scroll-mt-28 space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-zinc-800 pb-3">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Store className="w-5 h-5 text-primary" />
-                    <span>2. Featured Marketplace Stores</span>
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Commercial storefronts and retail stores selling inventory directly on ListMe.
-                  </p>
-                </div>
-                <Link href="/marketplace" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                  View All Stores <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              {featuredStores.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {featuredStores.map((store) => (
-                    <Link
-                      key={store.slug}
-                      href={`/page/${store.slug}`}
-                      className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 overflow-hidden relative shrink-0 flex items-center justify-center">
-                            {store.avatarUrl ? (
-                              <Image src={store.avatarUrl} alt={store.name} fill className="object-cover" unoptimized />
-                            ) : (
-                              <Store className="w-5 h-5 text-primary" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                              {store.name}
-                            </h3>
-                            <span className="text-[10px] font-semibold">
-                              {store.slug === 'listme' ? (
-                                <span className="text-primary font-bold">Official Platform</span>
-                              ) : store.is_verified ? (
-                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Storefront</span>
-                              ) : (
-                                <span className="text-gray-500">Storefront</span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed mb-3">
-                          {store.announcement || store.tagline || 'Official storefront on ListMe.'}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-[11px]">
-                        <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span>{store.county || 'Dublin'}</span>
-                        </span>
-                        <span className="font-bold text-primary flex items-center gap-1 group-hover:underline">
-                          Open Store <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Explore all verified stores and retail inventory on our dedicated Marketplace portal.
-                  </p>
-                  <Link href="/marketplace" className="mt-3 inline-block text-xs font-bold text-primary hover:underline">
-                    Browse Marketplace Storefronts →
-                  </Link>
-                </div>
-              )}
-            </section>
-
-            
             <section id="trust-safety" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-primary" />
-                  <span>3. Trust &amp; Safety Advisories</span>
+                  <span>2. Trust &amp; Safety Advisories</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Guidelines and protections designed to keep every Irish buyer and seller safe.
@@ -361,74 +268,6 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            
-            <section id="social-storefront" className="scroll-mt-28 space-y-4">
-              <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Globe2 className="w-5 h-5 text-primary" />
-                  <span>4. Official Social Channels &amp; Storefront</span>
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Connect with our official verified Facebook community and our central platform storefront.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                <a
-                  href="https://www.facebook.com/profile.php?id=61594336620072"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-primary/50 transition-colors group shadow-xs flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-primary group-hover:text-white group-hover:bg-primary transition-colors shrink-0">
-                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm text-gray-900 dark:text-white">Facebook</h3>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400">Official Facebook Page</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
-                      Irish community stories, marketplace highlights, platform notices, and member discussions.
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:underline">
-                    Visit Facebook <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </a>
-
-                
-                <Link
-                  href="/page/listme"
-                  className="p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-primary/50 transition-colors group shadow-xs flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-primary group-hover:text-white group-hover:bg-primary transition-colors shrink-0 font-black text-lg">
-                        ☘
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm text-gray-900 dark:text-white">ListMe Storefront</h3>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400">Official Business Page</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
-                      Our official Irish marketplace storefront on ListMe with verified updates and announcements.
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold text-primary flex items-center gap-1 group-hover:underline">
-                    Open Business Page <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </Link>
-              </div>
-            </section>
-
-            
             <section id="help-centre" className="scroll-mt-28">
               <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 shadow-xs">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -438,7 +277,7 @@ export default function CommunityHubClient({
                       <span>Support &amp; Inquiries</span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                      5. Need Assistance? Visit the Help Centre
+                      3. Need Assistance? Visit the Help Centre
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                       Browse FAQs about buying, selling, and marketplace fees, learn about Buyer Protection coverage, or submit a support ticket directly to our Dublin team.
@@ -463,12 +302,11 @@ export default function CommunityHubClient({
               </div>
             </section>
 
-            
             <section id="site-stats" className="scroll-mt-28 space-y-4">
               <div className="border-b border-gray-200 dark:border-zinc-800 pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  <span>6. Live Platform Statistics</span>
+                  <span>4. Live Platform Statistics</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Verified platform metrics queried live from our production database.

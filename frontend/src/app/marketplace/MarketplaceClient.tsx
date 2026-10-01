@@ -1,32 +1,37 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Search, MapPin, Store, ExternalLink, Tag, Plus, Clock, Check } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Search, Tag, Plus, Clock } from 'lucide-react';
 import { ListingCard } from '@/components/ListingCard';
-import { BusinessPageData } from '@/app/actions/businessPages';
 import { COUNTIES } from '@/utils/irelandLocations';
 import CustomSelect from '@/components/CustomSelect';
-import VerifiedBadge from '@/components/VerifiedBadge';
 import { MARKETPLACE_CATEGORIES, CATEGORY_NAMES } from '@/constants/marketplaceCategories';
 
 interface MarketplaceClientProps {
-  initialStores: BusinessPageData[];
+  initialStores?: any[];
   initialListings: any[];
   defaultFormat?: string;
 }
 
-export default function MarketplaceClient({
-  initialStores,
+function MarketplaceClientContent({
   initialListings,
   defaultFormat,
 }: MarketplaceClientProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedCounty, setSelectedCounty] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedSubcategory, setSelectedSubcategory] = useState('All');
   const [buyingFormat, setBuyingFormat] = useState(defaultFormat || 'All');
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q !== null) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
 
   const subcategoryOptions = useMemo(() => {
     if (selectedCategory === 'All' || !MARKETPLACE_CATEGORIES[selectedCategory]) {
@@ -52,30 +57,6 @@ export default function MarketplaceClient({
       return diff > 0 && diff <= 24 * 60 * 60 * 1000;
     });
   }, [initialListings]);
-
-  const filteredStores = useMemo(() => {
-    const list = initialStores.filter((store) => {
-      const isMarketplace = store.business_type === 'marketplace' || !store.business_type;
-      const matchesCounty = selectedCounty === 'All' || store.county?.toLowerCase() === selectedCounty.toLowerCase();
-      const matchesCategory = selectedCategory === 'All' ||
-        (store.category && store.category.toLowerCase().includes(selectedCategory.toLowerCase()));
-      const q = searchQuery.toLowerCase().trim();
-      const matchesSearch = !q ||
-        store.name.toLowerCase().includes(q) ||
-        (store.tagline && store.tagline.toLowerCase().includes(q)) ||
-        (store.category && store.category.toLowerCase().includes(q));
-
-      return isMarketplace && matchesCounty && matchesCategory && matchesSearch;
-    });
-
-    return list.sort((a, b) => {
-      const isA = a.slug?.toLowerCase() === 'listme' || a.name?.toLowerCase() === 'listme';
-      const isB = b.slug?.toLowerCase() === 'listme' || b.name?.toLowerCase() === 'listme';
-      if (isA && !isB) return -1;
-      if (!isA && isB) return 1;
-      return 0;
-    });
-  }, [initialStores, searchQuery, selectedCounty, selectedCategory]);
 
   const filteredListings = useMemo(() => {
     const nowMs = Date.now();
@@ -110,10 +91,7 @@ export default function MarketplaceClient({
     });
   }, [initialListings, searchQuery, selectedCounty, buyingFormat, selectedCategory, selectedSubcategory]);
 
-  const [showAllStores, setShowAllStores] = useState(false);
   const [visibleListingsCount, setVisibleListingsCount] = useState(40);
-
-  const displayedStores = showAllStores ? filteredStores : filteredStores.slice(0, 6);
   const displayedListings = filteredListings.slice(0, visibleListingsCount);
 
   return (
@@ -125,7 +103,7 @@ export default function MarketplaceClient({
               Marketplace
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Buy and sell new and used items, electronics, collectibles, and commercial storefront inventory.
+              Buy and sell new and used items, electronics, collectibles, and more across Ireland.
             </p>
           </div>
 
@@ -147,7 +125,7 @@ export default function MarketplaceClient({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search marketplace items and verified seller storefronts..."
+              placeholder="Search marketplace items..."
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
@@ -191,110 +169,6 @@ export default function MarketplaceClient({
           </div>
         </div>
       </div>
-
-      <section className="mb-12">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Store className="w-5 h-5 text-primary" />
-              <span>Marketplace Stores & Commercial Storefronts</span>
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Verified retail storefronts and high-volume sellers on ListMe.
-            </p>
-          </div>
-          <span className="text-xs font-mono font-medium text-gray-500 dark:text-gray-400">
-            {filteredStores.length} {filteredStores.length === 1 ? 'storefront' : 'storefronts'}
-          </span>
-        </div>
-
-        {filteredStores.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {displayedStores.map((store) => (
-                <Link
-                  key={store.slug}
-                  href={`/page/${store.slug}`}
-                  className="p-5 rounded-2xl bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 hover:border-primary/50 transition-all group shadow-xs flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start gap-3.5 mb-3.5">
-                      <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 overflow-hidden relative shrink-0 flex items-center justify-center">
-                        {store.avatarUrl ? (
-                          <Image
-                            src={store.avatarUrl}
-                            alt={store.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <Store className="w-6 h-6 text-primary" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-primary transition-colors truncate">
-                            {store.name}
-                          </h3>
-                          {(store.is_verified || store.slug === 'listme') && (
-                            <VerifiedBadge size="xs" />
-                          )}
-                          <span className="text-[11px] font-semibold">
-                            {store.slug === 'listme' ? (
-                              <span className="text-primary font-bold">Official Platform</span>
-                            ) : store.is_verified ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified Storefront</span>
-                            ) : (
-                              <span className="text-gray-500">Storefront</span>
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                          {store.category || 'Retail & Local Storefront'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed mb-4">
-                      {store.announcement || store.tagline || 'Official storefront on ListMe Ireland.'}
-                    </p>
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 flex items-center justify-between text-xs">
-                    <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{store.county || 'Ireland'}</span>
-                    </span>
-                    <span className="font-bold text-primary flex items-center gap-1 group-hover:underline">
-                      Visit Storefront <ExternalLink className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {filteredStores.length > 6 && (
-              <div className="mt-6 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setShowAllStores(!showAllStores)}
-                  className="px-5 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-800 dark:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                >
-                  {showAllStores ? 'Show Fewer Storefronts' : `View All Storefronts (${filteredStores.length})`}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="p-8 rounded-2xl bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 text-center">
-            <Store className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
-              No marketplace storefronts found matching filters.
-            </p>
-          </div>
-        )}
-      </section>
 
       {closingSoonListings.length > 0 && (
         <section className="mb-12">
@@ -409,5 +283,25 @@ export default function MarketplaceClient({
         )}
       </section>
     </div>
+  );
+}
+
+export default function MarketplaceClient(props: MarketplaceClientProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full animate-pulse">
+          <div className="h-10 bg-gray-200 dark:bg-zinc-800 rounded-xl w-48 mb-6"></div>
+          <div className="h-16 bg-gray-100 dark:bg-zinc-900 rounded-2xl mb-8"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="aspect-square bg-gray-100 dark:bg-zinc-900 rounded-2xl"></div>
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <MarketplaceClientContent {...props} />
+    </Suspense>
   );
 }
