@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Loader2, 
   CreditCard, 
@@ -37,6 +38,8 @@ export default function CheckoutButton({
   const [loadingInitial, setLoadingInitial] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [canFallbackStripe, setCanFallbackStripe] = useState(false);
+  const [useLinkedCard, setUseLinkedCard] = useState(true);
 
   const [linkedCard, setLinkedCard] = useState<LinkedCardData | null>(null);
 
@@ -70,26 +73,38 @@ export default function CheckoutButton({
     }
   };
 
-  const handleConfirmPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmPayment = async (e?: React.FormEvent, forceStripeCheckout: boolean = false) => {
+    if (e) e.preventDefault();
     setErrorMessage(null);
+    setCanFallbackStripe(false);
     setSubmitting(true);
 
+    const chargeSavedCard = !forceStripeCheckout && useLinkedCard && Boolean(linkedCard);
+
     try {
-      // Real card payment processed by Stripe Gateway
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId }),
+        body: JSON.stringify({ 
+          listingId,
+          useLinkedCard: chargeSavedCard,
+        }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || 'Failed to initialize Stripe checkout session.');
+      if (!res.ok) {
+        if (data.requiresCardRelink) {
+          setCanFallbackStripe(true);
+        }
+        throw new Error(data.error || 'Failed to process payment.');
       }
 
-      // Redirect to Stripe's secure payment page to charge card
-      window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      throw new Error('Unable to complete payment transaction.');
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred during payment.');
       setSubmitting(false);
@@ -140,9 +155,29 @@ export default function CheckoutButton({
 
             {/* Error Message */}
             {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                <span>{errorMessage}</span>
+              <div className="mb-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-xs text-red-800 dark:text-red-200 space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 mt-1.5"></span>
+                  <span className="leading-relaxed">{errorMessage}</span>
+                </div>
+                {canFallbackStripe && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-red-200/60 dark:border-red-900/40">
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => handleConfirmPayment(undefined, true)}
+                      className="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-colors cursor-pointer"
+                    >
+                      Pay via Stripe Checkout
+                    </button>
+                    <Link
+                      href="/my-listme?tab=account"
+                      className="text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                    >
+                      Re-link Card in My Listme
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -169,37 +204,119 @@ export default function CheckoutButton({
             </div>
 
             {/* Payment Method Details */}
-            <form onSubmit={handleConfirmPayment} className="space-y-4">
+            <form onSubmit={(e) => handleConfirmPayment(e, !useLinkedCard)} className="space-y-4">
               <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                 Payment Method
               </label>
 
-              {/* Stripe Payment Method Card */}
-              <div className="p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/60 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-[#635BFF] flex items-center justify-center shrink-0 shadow-2xs">
-                      <CreditCard className="w-5 h-5 text-[#635BFF]" />
+              {linkedCard ? (
+                <div className="space-y-2.5">
+                  {/* Option 1: Saved Linked Card */}
+                  <div
+                    onClick={() => { setUseLinkedCard(true); setErrorMessage(null); setCanFallbackStripe(false); }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 ${
+                      useLinkedCard
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs'
+                        : 'border-gray-200 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-900/40 hover:border-gray-300 dark:hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-[#635BFF] flex items-center justify-center shrink-0 shadow-2xs">
+                          <CreditCard className="w-5 h-5 text-[#635BFF]" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span>{linkedCard.cardNickname || 'Linked Card'}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                              1-Click Instant
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Visa ending in {cardLast4}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        useLinkedCard
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+                      }`}>
+                        {useLinkedCard && <CheckCircle2 className="w-4 h-4 text-white" />}
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <span>Credit / Debit Card</span>
-                        <StripeBadge variant="pill" size="sm" />
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {linkedCard ? `${linkedCard.cardNickname} (Visa •• ${cardLast4}) or any card` : 'Visa, Mastercard, & Apple Pay'}
-                      </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 pl-13">
+                      <span>Instant charge to your saved card • No external checkout redirect</span>
                     </div>
                   </div>
 
-                  <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                  {/* Option 2: Pay with Other Card / Apple Pay */}
+                  <div
+                    onClick={() => { setUseLinkedCard(false); setErrorMessage(null); setCanFallbackStripe(false); }}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-2 ${
+                      !useLinkedCard
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs'
+                        : 'border-gray-200 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-900/40 hover:border-gray-300 dark:hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300 flex items-center justify-center shrink-0 shadow-2xs">
+                          <CreditCard className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span>Other Card / Apple Pay</span>
+                            <StripeBadge variant="pill" size="sm" />
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            Visa, Mastercard, &amp; Apple Pay via Stripe
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        !useLinkedCard
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+                      }`}>
+                        {!useLinkedCard && <CheckCircle2 className="w-4 h-4 text-white" />}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 pl-13">
+                      <span>Processed securely by</span>
+                      <StripeLogo height={12} variant="blurple" />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 pl-13">
-                  <span>Processed securely by</span>
-                  <StripeLogo height={12} variant="blurple" />
-                  <span>• Instant charge with full Buyer Protection</span>
+              ) : (
+                <div className="p-4 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-gray-50/80 dark:bg-zinc-900/60 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-[#635BFF] flex items-center justify-center shrink-0 shadow-2xs">
+                        <CreditCard className="w-5 h-5 text-[#635BFF]" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                          <span>Credit / Debit Card</span>
+                          <StripeBadge variant="pill" size="sm" />
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          Visa, Mastercard, &amp; Apple Pay
+                        </div>
+                      </div>
+                    </div>
+
+                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400 pl-13">
+                    <span>Processed securely by</span>
+                    <StripeLogo height={12} variant="blurple" />
+                    <span>• Full Buyer Protection</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Buyer Protection Guarantee Notice */}
               <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2.5">
@@ -226,7 +343,7 @@ export default function CheckoutButton({
                 >
                   {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>
-                    Pay €{totalAmount.toFixed(2)} Now
+                    {useLinkedCard && linkedCard ? `Pay €${totalAmount.toFixed(2)} with Linked Card` : `Pay €${totalAmount.toFixed(2)} Now`}
                   </span>
                 </button>
               </div>

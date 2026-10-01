@@ -8,10 +8,11 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 export default async function PaymentSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string; listing_id?: string }>;
+  searchParams: Promise<{ session_id?: string; listing_id?: string; payment_intent_id?: string }>;
 }) {
   const resolvedParams = await searchParams;
   const sessionId = resolvedParams.session_id;
+  const paymentIntentId = resolvedParams.payment_intent_id;
   let listingId = resolvedParams.listing_id;
 
   const supabase = await createClient();
@@ -44,6 +45,27 @@ export default async function PaymentSuccessPage({
         }
       } catch (err) {
         console.error('Error verifying Stripe session on success page:', err);
+      }
+    } else {
+      stripeVerified = true;
+    }
+  } else if (paymentIntentId) {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (stripeKey) {
+      try {
+        const stripe = new Stripe(stripeKey);
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (pi.status === 'succeeded') {
+          stripeVerified = true;
+          totalPaid = pi.amount ? pi.amount / 100 : null;
+          if (pi.metadata?.listing_id && !listingId) {
+            listingId = pi.metadata.listing_id;
+          }
+          paymentMethodDesc = 'Linked Card (Instant 1-Click Payment)';
+        }
+      } catch (err) {
+        console.error('Error verifying Stripe payment intent on success page:', err);
       }
     } else {
       stripeVerified = true;
