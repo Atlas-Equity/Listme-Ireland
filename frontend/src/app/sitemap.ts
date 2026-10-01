@@ -118,9 +118,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // Dynamic Marketplace Listings & Business Pages
+  // Dynamic Marketplace Listings
   let listingRoutes: MetadataRoute.Sitemap = [];
-  let businessRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -145,25 +144,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           priority: 0.7,
         }));
       }
-
-      // 2. Business Pages
-      const { data: pages } = await supabase
-        .from('business_pages')
-        .select('slug, updated_at, created_at')
-        .limit(500);
-
-      if (pages && pages.length > 0) {
-        businessRoutes = pages.map((page) => ({
-          url: `${baseUrl}/page/${page.slug}`,
-          lastModified: new Date(page.updated_at || page.created_at || now),
-          changeFrequency: 'weekly',
-          priority: 0.8,
-        }));
-      }
     }
   } catch (error) {
     console.error('Error generating dynamic sitemap URLs:', error);
   }
 
-  return [...staticRoutes, ...categoryRoutes, ...businessRoutes, ...listingRoutes];
+  return [...staticRoutes, ...categoryRoutes, ...listingRoutes];
 }

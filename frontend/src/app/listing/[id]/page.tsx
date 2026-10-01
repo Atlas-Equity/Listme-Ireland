@@ -1,9 +1,8 @@
 import React, { cache } from 'react';
 import { createClient, createPublicClient, getCurrentUser } from '@/utils/supabase/server';
 import { notFound } from 'next/navigation';
-import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote, Store, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, ShieldCheck, Info, ChevronRight, Banknote, CheckCircle2, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
-import { getAllRegisteredBusinessPages, BusinessPageData } from '@/app/actions/businessPages';
 import Link from 'next/link';
 import Image from 'next/image';
 import CheckoutButton from '@/components/CheckoutButton';
@@ -166,14 +165,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const isSellerStaff = Boolean(sellerMeta?.is_staff);
   const isSellerBusiness = Boolean(sellerMeta?.account_type === 'business' || seller?.account_type === 'business');
 
-  const bizMatch = listing.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
-  const businessSlug = (listing as any).business_page_slug || (bizMatch ? bizMatch[1].trim().toLowerCase() : null);
-
-  let listingBusinessPage: BusinessPageData | null = null;
-  if (businessSlug) {
-    const allBiz = await getAllRegisteredBusinessPages();
-    listingBusinessPage = allBiz.find(b => b.slug?.toLowerCase() === businessSlug.toLowerCase()) || null;
-  }
 
   const buyNowMatch = listing.description?.match(/\[Buy It Now:\s*€?([0-9.]+)\]/i);
   const rawBuyNowPrice: number | null = listing.buy_now_price || (buyNowMatch ? parseFloat(buyNowMatch[1]) : null);
@@ -550,113 +541,60 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
             
             <div className="border border-gray-200 dark:border-[#333] rounded-sm p-4 bg-[#f8fafc] dark:bg-[#242424] space-y-3">
-              {listingBusinessPage ? (
-                <>
-                  <Link 
-                    href={`/page/${listingBusinessPage.slug}`}
-                  className="flex items-center group hover:opacity-90 transition-opacity"
-                >
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
-                    {listingBusinessPage.avatarUrl ? (
-                      <Image
-                        src={listingBusinessPage.avatarUrl}
-                        alt={listingBusinessPage.name}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <Store className="w-6 h-6 text-zinc-500 dark:text-zinc-400" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1 group-hover:text-primary transition-colors">
-                      <span className="truncate">{listingBusinessPage.name}</span>
-                      {listingBusinessPage.is_verified && <VerifiedBadge size="xs" />}
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                    </div>
-                    <div className="text-xs text-primary font-semibold mt-0.5">
-                      Verified Storefront
-                    </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      Store located in {listingBusinessPage.county || itemLocation}
-                    </div>
-                  </div>
-                </Link>
-                {!isOwnListing && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80">
-                    <ContactSellerButton
-                      listingId={listing.id}
-                      sellerId={listing.seller_id}
-                      sellerUsername={listingBusinessPage.name}
-                      listingTitle={listing.title}
-                      listingPrice={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : Number(listing.price)}
-                      listingImage={listing.images?.[0] || ''}
-                      currentUserId={user?.id || null}
-                      variant="seller-card"
+              <Link 
+                href={`/member/${getMemberNumber(listing.seller_id)}`}
+                className="flex items-center group hover:opacity-90 transition-opacity"
+              >
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
+                  {sellerAvatarUrl ? (
+                    <Image
+                      src={sellerAvatarUrl}
+                      alt={sellerDisplayName}
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                      unoptimized
                     />
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <Link 
-                  href={`/member/${getMemberNumber(listing.seller_id)}`}
-                  className="flex items-center group hover:opacity-90 transition-opacity"
-                >
-                  <div className="w-12 h-12 rounded-full overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mr-4 group-hover:scale-105 transition-transform">
-                    {sellerAvatarUrl ? (
-                      <Image
-                        src={sellerAvatarUrl}
-                        alt={sellerDisplayName}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <span className="text-xl font-bold text-zinc-700 dark:text-zinc-200">{sellerInitial}</span>
+                  ) : (
+                    <span className="text-xl font-bold text-zinc-700 dark:text-zinc-200">{sellerInitial}</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-gray-900 dark:text-white flex items-center flex-wrap gap-1.5 group-hover:text-primary transition-colors">
+                    <span className="truncate">{sellerDisplayName}</span>
+                    {isSellerVerified && <VerifiedBadge size="xs" />}
+                    {isSellerStaff && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                        ListMe Staff
+                      </span>
                     )}
+                    {isSellerBusiness && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
+                        Business Account
+                      </span>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-bold text-gray-900 dark:text-white flex items-center flex-wrap gap-1.5 group-hover:text-primary transition-colors">
-                      <span className="truncate">{sellerDisplayName}</span>
-                      {isSellerVerified && <VerifiedBadge size="xs" />}
-                      {isSellerStaff && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                          ListMe Staff
-                        </span>
-                      )}
-                      {isSellerBusiness && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
-                          Business Account
-                        </span>
-                      )}
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Seller located in {itemLocation}
-                    </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Seller located in {itemLocation}
                   </div>
-                </Link>
-                {!isOwnListing && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80">
-                    <ContactSellerButton
-                      listingId={listing.id}
-                      sellerId={listing.seller_id}
-                      sellerUsername={sellerDisplayName}
-                      listingTitle={listing.title}
-                      listingPrice={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : Number(listing.price)}
-                      listingImage={listing.images?.[0] || ''}
-                      currentUserId={user?.id || null}
-                      variant="seller-card"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                </div>
+              </Link>
+              {!isOwnListing && (
+                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-zinc-800/80">
+                  <ContactSellerButton
+                    listingId={listing.id}
+                    sellerId={listing.seller_id}
+                    sellerUsername={sellerDisplayName}
+                    listingTitle={listing.title}
+                    listingPrice={typeof listing.price === 'string' ? parseFloat(listing.price.replace(/[^0-9.]/g, '')) : Number(listing.price)}
+                    listingImage={listing.images?.[0] || ''}
+                    currentUserId={user?.id || null}
+                    variant="seller-card"
+                  />
+                </div>
+              )}
+            </div>
 
           </div>
 
@@ -664,137 +602,70 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
         
         <div className="mt-16 pt-8 border-t border-gray-200 dark:border-[#333] flex flex-col items-center pb-20">
-          {listingBusinessPage ? (
-            <div className="w-full max-w-[600px]">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center sm:text-left">
-                About the storefront
-              </h2>
-              <div className="flex flex-col items-center mb-6">
-                <Link href={`/page/${listingBusinessPage.slug}`} className="group flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
-                    {listingBusinessPage.avatarUrl ? (
-                      <Image
-                        src={listingBusinessPage.avatarUrl}
-                        alt={listingBusinessPage.name}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <Store className="w-8 h-8 text-zinc-500 dark:text-zinc-400" />
-                    )}
-                  </div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center gap-1.5">
-                    <span>{listingBusinessPage.name}</span>
-                    {listingBusinessPage.is_verified && <VerifiedBadge size="sm" />}
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </Link>
-                {listingBusinessPage.tagline && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center max-w-md mt-1 leading-relaxed">
-                    {listingBusinessPage.tagline}
-                  </p>
-                )}
-              </div>
-
-              <div className="border-t border-gray-200 dark:border-[#333] pt-4 pb-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Store Location</span>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">{listingBusinessPage.county || itemLocation}, Ireland</span>
+          <div className="w-full max-w-[600px]">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center sm:text-left">
+              About the seller
+            </h2>
+            <div className="flex flex-col items-center mb-6">
+              <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="group flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
+                  {sellerAvatarUrl ? (
+                    <Image
+                      src={sellerAvatarUrl}
+                      alt={sellerDisplayName}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
+                  )}
                 </div>
-                {listingBusinessPage.opening_hours && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Opening Hours</span>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">{listingBusinessPage.opening_hours}</span>
-                  </div>
-                )}
-                {listingBusinessPage.category && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">Business Category</span>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">{listingBusinessPage.category}</span>
-                  </div>
-                )}
-              </div>
-
-              <Link 
-                href={`/page/${listingBusinessPage.slug}`} 
-                className="border-t border-gray-200 dark:border-[#333] py-3.5 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium"
-              >
-                <span>Visit Storefront &amp; view all items</span>
-                <ChevronRight className="w-4 h-4" />
+                <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center flex-wrap gap-1.5">
+                  <span>{sellerDisplayName}</span>
+                  {isSellerVerified && <VerifiedBadge size="sm" />}
+                  {isSellerStaff && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                      ListMe Staff
+                    </span>
+                  )}
+                  {isSellerBusiness && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
+                      Business Account
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                </div>
               </Link>
+            </div>
 
-              <div className="text-center pt-3 pb-1 border-t border-gray-100 dark:border-zinc-800/80">
-                <Link href="/safety" className="text-[#0073e6] text-xs hover:underline">Read our safe buying advice</Link>
+            <div className="border-t border-gray-200 dark:border-[#333] pt-4 pb-4 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 dark:text-gray-400">Location</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{itemLocation}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 dark:text-gray-400">Member since</span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">{memberSinceText}</span>
               </div>
             </div>
-          ) : (
-            <div className="w-full max-w-[600px]">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 text-center sm:text-left">
-                About the seller
-              </h2>
-              <div className="flex flex-col items-center mb-6">
-                <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="group flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 bg-primary/20 flex items-center justify-center shrink-0 relative mb-3 group-hover:scale-105 transition-transform">
-                    {sellerAvatarUrl ? (
-                      <Image
-                        src={sellerAvatarUrl}
-                        alt={sellerDisplayName}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <span className="text-2xl font-bold text-primary">{sellerInitial}</span>
-                    )}
-                  </div>
-                  <div className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-primary transition-colors flex items-center flex-wrap gap-1.5">
-                    <span>{sellerDisplayName}</span>
-                    {isSellerVerified && <VerifiedBadge size="sm" />}
-                    {isSellerStaff && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                        ListMe Staff
-                      </span>
-                    )}
-                    {isSellerBusiness && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30">
-                        Business Account
-                      </span>
-                    )}
-                    <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
-                  </div>
-                </Link>
-              </div>
 
-              <div className="border-t border-gray-200 dark:border-[#333] pt-4 pb-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Location</span>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">{itemLocation}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Member since</span>
-                  <span className="text-gray-700 dark:text-gray-300 font-medium">{memberSinceText}</span>
-                </div>
-              </div>
+            <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="border-t border-gray-200 dark:border-[#333] py-3.5 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
+              View seller&apos;s other listings
+              <ChevronRight className="w-4 h-4" />
+            </Link>
 
-              <Link href={`/member/${getMemberNumber(listing.seller_id)}`} className="border-t border-gray-200 dark:border-[#333] py-3.5 flex justify-between items-center text-[#0073e6] hover:underline text-sm font-medium">
-                View seller&apos;s other listings
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-
-              {!isOwnListing && (
-                <div className="py-2.5 my-1">
-                  <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
-                </div>
-              )}
-              
-              <div className="text-center pt-3 pb-1 border-t border-gray-100 dark:border-zinc-800/80">
-                <Link href="/safety" className="text-[#0073e6] text-xs hover:underline">Read our safe buying advice</Link>
+            {!isOwnListing && (
+              <div className="py-2.5 my-1">
+                <FavouriteSellerButton sellerId={listing.seller_id} initialIsFavourite={isSellerFavourited} />
               </div>
+            )}
+            
+            <div className="text-center pt-3 pb-1 border-t border-gray-100 dark:border-zinc-800/80">
+              <Link href="/safety" className="text-[#0073e6] text-xs hover:underline">Read our safe buying advice</Link>
             </div>
-          )}
+          </div>
         </div>
 
       </div>

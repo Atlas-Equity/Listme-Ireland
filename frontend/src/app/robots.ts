@@ -18,6 +18,8 @@ export default function robots(): MetadataRoute.Robots {
         '/messages/',
         '/payment-success',
         '/leave-review/',
+        '/page/',
+        '/page',
       ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,

@@ -430,11 +430,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
       favouriteSellers = profiles || [];
     }
 
-    const favBusinessSlugs: string[] = userMetadata.favourite_businesses || [];
-    if (favBusinessSlugs.length > 0) {
-      const allPages = await getAllRegisteredBusinessPages();
-      favouriteBusinesses = allPages.filter((p: any) => favBusinessSlugs.includes(p.slug) || favBusinessSlugs.includes(p.id));
-    }
+    favouriteBusinesses = [];
   }
 
   const settingsInitialData = {
@@ -1262,62 +1258,11 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                         FAVOURITES
                       </h2>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {favouriteBusinesses.length} {favouriteBusinesses.length === 1 ? 'business' : 'businesses'}, {favouriteSellers.length} {favouriteSellers.length === 1 ? 'seller' : 'sellers'} saved
+                        {favouriteSellers.length} {favouriteSellers.length === 1 ? 'seller' : 'sellers'} saved
                       </p>
                     </div>
                   </div>
                 </div>
-
-                {favouriteBusinesses.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white flex items-center gap-2">
-                      <Store className="w-4 h-4 text-primary" />
-                      <span>Saved Business Storefronts ({favouriteBusinesses.length})</span>
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {favouriteBusinesses.map((biz: any) => (
-                        <div
-                          key={biz.id || biz.slug}
-                          className="border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-[#181818] shadow-xs flex flex-col items-center text-center"
-                        >
-                          <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-white mb-3 border border-gray-200 dark:border-zinc-700 overflow-hidden relative">
-                            {biz.avatarUrl ? (
-                              <Image
-                                src={biz.avatarUrl}
-                                alt={biz.name}
-                                fill
-                                sizes="64px"
-                                className="object-cover"
-                                unoptimized
-                              />
-                            ) : (
-                              biz.name ? biz.name.substring(0, 2).toUpperCase() : 'BZ'
-                            )}
-                          </div>
-                          <div className="text-base font-bold text-gray-900 dark:text-white mb-0.5">
-                            {biz.name}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-5 flex items-center gap-1">
-                            <span>@{biz.slug}</span>
-                            <span>•</span>
-                            <span>{biz.county || 'Ireland'}</span>
-                          </div>
-
-                          <div className="w-full space-y-2 mt-auto">
-                            <Link
-                              href={`/page/${biz.slug}`}
-                              className="block w-full py-2 px-3 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white font-bold text-xs rounded-xl transition-colors"
-                            >
-                              View Storefront
-                            </Link>
-                            <FavouriteBusinessButton businessSlug={biz.slug} initialIsFavourite={true} className="w-full" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {favouriteSellers.length > 0 && (
                   <div className="space-y-4">
@@ -1368,16 +1313,16 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 )}
 
-                {favouriteBusinesses.length === 0 && favouriteSellers.length === 0 && (
+                {favouriteSellers.length === 0 && (
                   <div className="text-center py-16 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-gray-500 flex items-center justify-center">
                       <Heart className="w-7 h-7 text-primary" />
                     </div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                      You haven&apos;t saved any sellers or businesses yet
+                      You haven&apos;t saved any sellers yet
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-5">
-                      Save your favourite traders, storefronts, and verified members to keep track of their latest listings.
+                      Save your favourite sellers and verified members to keep track of their latest listings.
                     </p>
                     <Link
                       href="/marketplace"

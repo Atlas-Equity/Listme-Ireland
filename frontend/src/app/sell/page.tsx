@@ -325,11 +325,7 @@ export default function SellPage() {
         setError(result.error);
         setIsSubmitting(false);
       } else {
-        if (selectedBusinessSlug) {
-          router.push(`/page/${selectedBusinessSlug}`);
-        } else {
-          router.push('/marketplace');
-        }
+        router.push('/marketplace');
         router.refresh();
       }
     } catch (err) {

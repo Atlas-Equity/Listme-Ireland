@@ -71,12 +71,6 @@ const FAQ_DATA = [
     link: '#tickets',
     linkLabel: 'Open a Support Ticket'
   },
-  {
-    q: 'How do I edit or delete my subsidiary business page?',
-    a: 'If you are the owner of a verified business storefront, go to "My ListMe" > "Business Pages" or navigate directly to your page URL (/page/your-slug). You will find direct "Edit Page" and "Delete Page" controls in the owner action bar.',
-    link: '/my-listme?tab=business-pages',
-    linkLabel: 'Manage Business Pages'
-  }
 ];
 
 export default function HelpCentrePage() {
