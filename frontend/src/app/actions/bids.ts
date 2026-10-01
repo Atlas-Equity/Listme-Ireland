@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
 export async function placeBid(listingId: string, amount: number) {
@@ -86,7 +87,12 @@ export async function placeBid(listingId: string, amount: number) {
       }
     }
 
-    await supabase
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const adminDb = (serviceRoleKey && process.env.NEXT_PUBLIC_SUPABASE_URL)
+      ? createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL, serviceRoleKey)
+      : supabase;
+
+    await adminDb
       .from('listings')
       .update(updatePayload)
       .eq('id', listingId);

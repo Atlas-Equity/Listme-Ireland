@@ -18,7 +18,7 @@ import { StripeLogo, StripeBadge } from '@/components/StripeLogo';
 
 export const metadata: Metadata = {
   title: 'ListMe Verified — Trust & Safety | Stand Out with the Verified Badge',
-  description: 'Gain immediate buyer trust across Ireland with the ListMe Verified Badge. Choose between Verified Account (€9.99/mo), Verified Page (€14.99/mo), or the Bundle (€19.99/mo).',
+  description: 'Gain immediate buyer trust across Ireland with the ListMe Verified Badge for €9.99/mo. Unlock priority search ranking, fraud protection, and 50% off buyer fees.',
 };
 
 export const revalidate = 300;
@@ -58,51 +58,43 @@ export default function VerifiedPage() {
   const planComparison = [
     {
       feature: 'Official Verified Badge',
-      account: 'Profile and Listings',
-      page: 'Business Page',
-      bundle: 'Both',
+      standard: 'None',
+      verified: 'Profile & All Listings',
     },
     {
       feature: 'Priority Search Ranking',
-      account: 'Yes',
-      page: 'Yes',
-      bundle: 'Yes',
+      standard: 'Standard',
+      verified: 'Top of Search & Category Feeds',
     },
     {
       feature: 'Priority Support Escalation',
-      account: 'Yes',
-      page: 'Yes',
-      bundle: 'Yes',
+      standard: 'Standard',
+      verified: 'Fast-Track Dedicated Queue',
     },
     {
       feature: 'Extra Layer of Safety',
-      account: 'Yes',
-      page: 'Yes',
-      bundle: 'Yes',
+      standard: 'Standard',
+      verified: 'Checked, Verified & Trusted',
     },
     {
       feature: 'Buyer Protection',
-      account: 'Up to €10,000',
-      page: 'N/A (business cannot buy)',
-      bundle: 'Up to €10,000 (personal)',
+      standard: 'Up to €5,000',
+      verified: 'Up to €10,000',
     },
     {
       feature: '50% Off Buyer Service Fees',
-      account: 'Yes',
-      page: 'N/A',
-      bundle: 'Yes (personal)',
+      standard: 'Standard Fees',
+      verified: '50% Off Every Purchase',
     },
     {
       feature: 'Monthly Price',
-      account: '€9.99',
-      page: '€14.99',
-      bundle: '€19.99',
+      standard: 'Free',
+      verified: '€9.99 / month',
     },
     {
       feature: 'Cancel Anytime',
-      account: 'Yes',
-      page: 'Yes',
-      bundle: 'Yes',
+      standard: 'N/A',
+      verified: 'Yes (1-Click in Settings)',
     },
   ];
 
@@ -224,13 +216,13 @@ export default function VerifiedPage() {
             <div className="text-center max-w-2xl mx-auto space-y-2">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-extrabold uppercase tracking-wider">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Choose Your Verification Plan</span>
+                <span>ListMe Verified</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                Select the Ideal Tier for You
+                Get Verified on ListMe
               </h2>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                Personal account, Business Page storefront, or the all-inclusive bundle. Cancel anytime with one click in your account settings.
+                Build immediate buyer trust, get priority search ranking, and save 50% on all buyer service fees. Cancel anytime with one click in your account settings.
               </p>
             </div>
 
@@ -241,10 +233,10 @@ export default function VerifiedPage() {
         <section className="bg-[#fafbfc] dark:bg-[#181818] border border-gray-200/90 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-gray-200/80 dark:border-zinc-800 pb-4">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
-              What You Get With Every Plan
+              Standard Member vs Verified Account
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Compare features across Verified Account, Verified Page, and the complete Bundle.
+              Compare features and benefits unlocked with ListMe Verified.
             </p>
           </div>
 
@@ -253,9 +245,8 @@ export default function VerifiedPage() {
               <thead className="border-b border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-white bg-gray-50/80 dark:bg-zinc-900/60 font-bold">
                 <tr>
                   <th className="py-3.5 px-4 rounded-l-xl">Feature</th>
-                  <th className="py-3.5 px-4 text-center">Verified Account</th>
-                  <th className="py-3.5 px-4 text-center">Verified Page</th>
-                  <th className="py-3.5 px-4 text-center rounded-r-xl">Bundle</th>
+                  <th className="py-3.5 px-4 text-center">Standard Account</th>
+                  <th className="py-3.5 px-4 text-center rounded-r-xl text-primary font-bold">Verified Account</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 font-medium">
@@ -264,14 +255,11 @@ export default function VerifiedPage() {
                     <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
                       {row.feature}
                     </td>
-                    <td className="py-3.5 px-4 text-center text-gray-700 dark:text-gray-300">
-                      {row.account}
-                    </td>
-                    <td className="py-3.5 px-4 text-center text-gray-700 dark:text-gray-300">
-                      {row.page}
+                    <td className="py-3.5 px-4 text-center text-gray-500 dark:text-gray-400">
+                      {row.standard}
                     </td>
                     <td className="py-3.5 px-4 text-center text-primary font-bold">
-                      {row.bundle}
+                      {row.verified}
                     </td>
                   </tr>
                 ))}
@@ -443,44 +431,14 @@ export default function VerifiedPage() {
               <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 font-medium">
                 <tr className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                   <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">Verified Account</td>
-                  <td className="py-3.5 px-4 font-mono text-gray-700 dark:text-gray-300">€9.99/month</td>
-                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">Personal buyers and sellers</td>
-                  <td className="py-3.5 px-4 text-right">
-                    <a
-                      href="#plans"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs hover:bg-black dark:hover:bg-zinc-100 transition-colors shadow-xs"
-                    >
-                      <span>Get Verified Account</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </a>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">Verified Page</td>
-                  <td className="py-3.5 px-4 font-mono text-gray-700 dark:text-gray-300">€14.99/month</td>
-                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">Business sellers only</td>
-                  <td className="py-3.5 px-4 text-right">
-                    <a
-                      href="#plans"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs hover:bg-black dark:hover:bg-zinc-100 transition-colors shadow-xs"
-                    >
-                      <span>Get Verified Page</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </a>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/30 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
-                    Verified Account + Page Bundle
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-primary font-bold">€19.99/month</td>
-                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">Personal and Business together (best value)</td>
+                  <td className="py-3.5 px-4 font-mono font-bold text-primary">€9.99/month</td>
+                  <td className="py-3.5 px-4 text-gray-600 dark:text-gray-400">All buyers and sellers across Ireland</td>
                   <td className="py-3.5 px-4 text-right">
                     <a
                       href="#plans"
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-green-700 transition-colors shadow-xs"
                     >
-                      <span>Get the Bundle</span>
+                      <span>Get Verified Account</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </a>
                   </td>

@@ -3,12 +3,8 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Loader2, CheckCircle2, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
-import VerifiedBadge from '@/components/VerifiedBadge';
-import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
+import { Loader2, CheckCircle2, Lock, ShieldCheck } from 'lucide-react';
 import { StripeLogo } from '@/components/StripeLogo';
-
-type PlanType = 'account' | 'page' | 'bundle';
 
 interface VerifiedPricingCardProps {
   userId?: string;
@@ -17,12 +13,11 @@ interface VerifiedPricingCardProps {
 
 export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPricingCardProps) {
   const router = useRouter();
-  const [loadingPlan, setLoadingPlan] = useState<PlanType | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modalPlan, setModalPlan] = useState<'page' | 'bundle' | null>(null);
 
-  const handleSubscribe = async (plan: PlanType, businessPageSlug?: string) => {
-    setLoadingPlan(plan);
+  const handleSubscribe = async () => {
+    setSubmitting(true);
     setError(null);
 
     try {
@@ -30,8 +25,7 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          plan,
-          ...(businessPageSlug ? { businessPageSlug } : {}),
+          plan: 'account',
         }),
       });
 
@@ -52,15 +46,7 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to start verified checkout.');
-      setLoadingPlan(null);
-    }
-  };
-
-  const handleCardClick = (plan: PlanType) => {
-    if (plan === 'account') {
-      handleSubscribe('account');
-    } else {
-      setModalPlan(plan);
+      setSubmitting(false);
     }
   };
 
@@ -72,8 +58,8 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-xs hover:border-gray-300 dark:hover:border-zinc-700 transition-all duration-200 relative">
+      <div className="max-w-xl mx-auto">
+        <div className="bg-white dark:bg-zinc-900 border-2 border-primary/40 dark:border-primary/50 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xl ring-4 ring-primary/5 relative">
           <div className="space-y-4">
             <div className="w-full rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800/80 bg-zinc-900 shadow-xs">
               <Image
@@ -87,26 +73,27 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
             </div>
 
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-primary dark:text-blue-400 text-[11px] font-bold">
-                Personal
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-extrabold uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Official Verification</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
                 Verified Account
               </h3>
               <div className="flex items-baseline gap-1 pt-1">
-                <span className="text-3xl font-black text-gray-900 dark:text-white">€9.99</span>
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">/month</span>
+                <span className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">€9.99</span>
+                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">/month</span>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-1">
-                Perfect for individual buyers and sellers who want to build trust and save on fees.
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed pt-1">
+                Perfect for buyers and sellers who want to build immediate trust, get priority search ranking, and save on fees.
               </p>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 space-y-2.5">
+            <div className="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 block">
                 What&apos;s Included:
               </span>
-              <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-gray-700 dark:text-gray-300">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <span>Official Verified Badge on your profile and all listings</span>
@@ -131,9 +118,9 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <span>Extra layer of safety. Verified members are checked and trusted</span>
                 </li>
-                <li className="flex items-start gap-2">
+                <li className="flex items-start gap-2 sm:col-span-2">
                   <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Cancel anytime in one click</span>
+                  <span>Cancel anytime in one click from your account settings</span>
                 </li>
               </ul>
             </div>
@@ -142,194 +129,20 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
           <div className="pt-6 mt-6 border-t border-gray-100 dark:border-zinc-800 space-y-2">
             <button
               type="button"
-              onClick={() => handleSubscribe('account')}
-              disabled={loadingPlan !== null}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-zinc-100 font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+              onClick={handleSubscribe}
+              disabled={submitting}
+              className="w-full py-4 px-6 rounded-2xl bg-primary hover:bg-green-700 text-white font-extrabold text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
             >
-              {loadingPlan === 'account' ? (
+              {submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <Lock className="w-3.5 h-3.5" />
+                  <Lock className="w-4 h-4" />
                   <span>Get Verified Account for €9.99/mo</span>
                 </>
               )}
             </button>
-            <p className="text-[10px] text-gray-400 text-center">Cancel anytime with 1 click</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-xs hover:border-gray-300 dark:hover:border-zinc-700 transition-all duration-200 relative">
-          <div className="space-y-4">
-            <div className="w-full rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800/80 bg-zinc-900 shadow-xs">
-              <Image
-                src="/ListMeBusinessVerifiedPage.png"
-                alt="ListMe Business Verified Page Banner"
-                width={1020}
-                height={120}
-                className="w-full h-auto object-cover"
-                priority
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-400 text-[11px] font-bold">
-                Business
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
-                Verified Page
-              </h3>
-              <div className="flex items-baseline gap-1 pt-1">
-                <span className="text-3xl font-black text-gray-900 dark:text-white">€14.99</span>
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">/month</span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-1">
-                Perfect for Business Page owners who want their storefront to stand out.
-              </p>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 space-y-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 block">
-                What&apos;s Included:
-              </span>
-              <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Official Verified Badge on your Business Page</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Priority ranking for your Business Page in search and categories</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Priority support ticket escalation</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Extra layer of safety. Verified businesses are checked and trusted</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Cancel anytime in one click</span>
-                </li>
-              </ul>
-
-              <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-zinc-800/60 border border-gray-200/80 dark:border-zinc-700/60 text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                Please note: Business accounts are seller only and cannot purchase on ListMe.ie, so buyer benefits do not apply.
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-gray-100 dark:border-zinc-800 space-y-2">
-            <button
-              type="button"
-              onClick={() => handleCardClick('page')}
-              disabled={loadingPlan !== null}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-zinc-100 font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
-            >
-              {loadingPlan === 'page' ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Get Verified Page for €14.99/mo</span>
-                </>
-              )}
-            </button>
-            <p className="text-[10px] text-gray-400 text-center">Cancel anytime with 1 click</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 border-2 border-primary rounded-3xl p-6 sm:p-7 flex flex-col justify-between shadow-lg ring-4 ring-primary/10 transition-all duration-200 relative">
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider shadow-sm flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3" />
-            <span>Best Value • Save €4.99/month</span>
-          </div>
-
-          <div className="space-y-4 pt-1">
-            <div className="w-full rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800/80 bg-zinc-900 shadow-xs">
-              <Image
-                src="/ListMeVerifiedBundle.png"
-                alt="ListMe Verified Bundle Banner"
-                width={1020}
-                height={123}
-                className="w-full h-auto object-cover"
-                priority
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-extrabold">
-                Account + Page Bundle
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
-                Verified Bundle
-              </h3>
-              <div className="flex items-baseline gap-1 pt-1">
-                <span className="text-3xl font-black text-primary">€19.99</span>
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">/month</span>
-                <span className="text-[11px] text-gray-400 line-through ml-1.5">€24.98</span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed pt-1">
-                Best value. Get both your personal account and your Business Page verified.
-              </p>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 dark:border-zinc-800 space-y-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-primary block">
-                Complete Bundle Perks:
-              </span>
-              <ul className="space-y-2 text-xs text-gray-700 dark:text-gray-300">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Official Verified Badge on your profile, all listings, and your Business Page</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Priority search ranking across your account and storefront</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Priority support ticket escalation</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Enhanced Buyer Protection coverage up to €10,000 (personal account)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="font-semibold text-gray-900 dark:text-white">50% off all buyer Service Fees on every purchase (personal account)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Extra layer of safety across your account and Business Page</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Cancel anytime in one click</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-gray-100 dark:border-zinc-800 space-y-2">
-            <button
-              type="button"
-              onClick={() => handleCardClick('bundle')}
-              disabled={loadingPlan !== null}
-              className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-green-700 text-white font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
-            >
-              {loadingPlan === 'bundle' ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Get the Bundle for €19.99/mo (Save €4.99/month)</span>
-                </>
-              )}
-            </button>
-            <p className="text-[10px] text-gray-400 text-center">Instant badge activation once payment is confirmed</p>
+            <p className="text-[11px] text-gray-400 text-center">Instant badge activation once payment is confirmed • Cancel anytime with 1 click</p>
           </div>
         </div>
       </div>
@@ -342,22 +155,6 @@ export default function VerifiedPricingCard({ userId, userEmail }: VerifiedPrici
           <span>• 256-bit encryption • Cancel anytime in 1 click • Instant badge activation</span>
         </span>
       </div>
-
-      {modalPlan && (
-        <SelectBusinessPageModal
-          isOpen={true}
-          plan={modalPlan}
-          onClose={() => setModalPlan(null)}
-          onConfirm={async (slug) => {
-            await handleSubscribe(modalPlan, slug);
-          }}
-          onSelectPersonal={() => {
-            setModalPlan(null);
-            handleSubscribe('account');
-          }}
-          isProcessing={loadingPlan === modalPlan}
-        />
-      )}
     </div>
   );
 }

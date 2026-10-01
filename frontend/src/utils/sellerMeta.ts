@@ -197,14 +197,43 @@ export async function enrichListingsWithSellers(listings: any[]): Promise<any[]>
   const sellerIds = Array.from(new Set(listings.map((l) => l.seller_id).filter(Boolean)));
   const metaMap = await getSellerMetaMap(sellerIds);
 
+  const auctionIds = listings
+    .filter((l) => l.price_type?.toLowerCase() === 'auction' && l.id)
+    .map((l) => l.id);
+
+  const highestBidMap = new Map<string, number>();
+  if (auctionIds.length > 0) {
+    try {
+      const supabase = getStatelessClient();
+      const { data: bids } = await supabase
+        .from('bids')
+        .select('listing_id, amount')
+        .in('listing_id', auctionIds)
+        .order('amount', { ascending: false });
+
+      if (bids && Array.isArray(bids)) {
+        for (const b of bids as any[]) {
+          if (!highestBidMap.has(b.listing_id)) {
+            highestBidMap.set(b.listing_id, Number(b.amount));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching highest bids for auctions in enrichListingsWithSellers:', e);
+    }
+  }
+
   return listings.map((item) => {
     const meta = item.seller_id ? metaMap.get(item.seller_id) : undefined;
     const bizMatch = item.description?.match(/\[Business Page:\s*([a-z0-9-]+)(?:\s*\|\s*([^\]]+))?\]/i);
     const businessSlug = item.business_page_slug || (bizMatch ? bizMatch[1].trim().toLowerCase() : undefined);
     const businessName = bizMatch && bizMatch[2] ? bizMatch[2].trim() : (businessSlug ? businessSlug : undefined);
+    const highestBid = highestBidMap.get(item.id);
+    const finalPrice = highestBid !== undefined ? highestBid : Number(item.price);
 
     return {
       ...item,
+      price: finalPrice,
       seller_name: businessName || meta?.username || item.seller_name || 'Seller',
       seller_verified: meta ? meta.is_verified : Boolean(item.seller_verified),
       seller_account_type: businessSlug ? 'business' : (meta?.account_type || item.seller_account_type || 'personal'),

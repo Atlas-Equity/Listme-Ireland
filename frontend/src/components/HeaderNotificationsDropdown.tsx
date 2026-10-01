@@ -46,9 +46,7 @@ export default function HeaderNotificationsDropdown({
       const res = await fetch('/api/messages/unread-count');
       if (res.ok) {
         const data = await res.json();
-        const total = typeof data.totalNotifications === 'number'
-          ? data.totalNotifications
-          : (data.unreadQuestions || 0) + (data.unreadInvites || 0) + ((data.closedListings || []).length);
+        const total = (data.unreadQuestions || 0) + ((data.closedListings || []).length);
         setNotificationsCount(total);
         if (Array.isArray(data.pendingInvites)) {
           setPendingInvites(data.pendingInvites);
@@ -160,7 +158,7 @@ export default function HeaderNotificationsDropdown({
     );
   }
 
-  const activeInvites = pendingInvites.filter((i) => !resolvedInviteIds[i.id]);
+  const activeInvites: any[] = [];
   const activeClosed = closedListings.filter((l) => !relistedIds[l.id]);
 
   return (

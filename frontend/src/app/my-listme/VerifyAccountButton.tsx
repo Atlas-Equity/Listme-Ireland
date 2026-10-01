@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Settings, ExternalLink, X, Check, Lock } from 'lucide-react';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import SelectBusinessPageModal from '@/components/SelectBusinessPageModal';
 import { StripeLogo } from '@/components/StripeLogo';
 
 interface VerifyAccountButtonProps {
@@ -19,9 +18,7 @@ export default function VerifyAccountButton({
   userEmail,
 }: VerifyAccountButtonProps) {
   const router = useRouter();
-  const [selectedPlan, setSelectedPlan] = useState<'personal' | 'business_combined'>('personal');
   const [showModal, setShowModal] = useState(false);
-  const [showSelectPageModal, setShowSelectPageModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +51,7 @@ export default function VerifyAccountButton({
     }
   };
 
-  const handleStartCheckout = async (plan: 'account' | 'bundle', businessPageSlug?: string) => {
+  const handleStartCheckout = async () => {
     setCheckoutLoading(true);
     setError(null);
 
@@ -62,10 +59,7 @@ export default function VerifyAccountButton({
       const res = await fetch('/api/verified/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          plan,
-          ...(businessPageSlug ? { businessPageSlug } : {}),
-        }),
+        body: JSON.stringify({ plan: 'account' }),
       });
 
       const data = await res.json();
@@ -88,16 +82,6 @@ export default function VerifyAccountButton({
       setError(err?.message || 'Failed to start verified checkout.');
       setCheckoutLoading(false);
     }
-  };
-
-  const handleSubscribe = async () => {
-    if (selectedPlan === 'business_combined') {
-      setShowModal(false);
-      setShowSelectPageModal(true);
-      return;
-    }
-
-    await handleStartCheckout('account');
   };
 
   if (isSubscribed) {
@@ -149,7 +133,7 @@ export default function VerifyAccountButton({
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
           <div 
-            className="relative w-full max-w-lg bg-white dark:bg-[#151515] border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+            className="relative w-full max-w-md bg-white dark:bg-[#151515] border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative px-6 pt-6 pb-5 border-b border-gray-100 dark:border-zinc-800 flex items-start justify-between bg-white dark:bg-[#151515]">
@@ -184,46 +168,14 @@ export default function VerifyAccountButton({
                 </div>
               )}
 
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Select Subscription Plan:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div
-                    onClick={() => setSelectedPlan('personal')}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                      selectedPlan === 'personal'
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs'
-                        : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 hover:border-gray-300 dark:hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-gray-900 dark:text-white">Personal / Member</span>
-                      <span className="text-sm font-black text-primary">€9.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                      Verified badge on your personal profile, 50% fee discount &amp; marketplace listings.
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => setSelectedPlan('business_combined')}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                      selectedPlan === 'business_combined'
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs'
-                        : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/60 hover:border-gray-300 dark:hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-gray-900 dark:text-white">Account + Page Bundle</span>
-                      <span className="text-sm font-black text-primary">€19.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
-                    </div>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
-                      Verify yourself &amp; your business storefront with verified commercial badges across both.
-                    </p>
-                  </div>
+              <div className="p-4 rounded-2xl border border-primary/40 bg-primary/5 dark:bg-primary/10 shadow-xs">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">Verified Account</span>
+                  <span className="text-base font-black text-primary">€9.99<span className="text-[10px] font-normal text-gray-500">/mo</span></span>
                 </div>
+                <p className="text-xs text-gray-600 dark:text-gray-300 leading-snug">
+                  Verified badge on your profile and listings, priority search rank, and 50% discount on buyer service fees.
+                </p>
               </div>
 
               <div className="space-y-3 pt-2 border-t border-gray-100 dark:border-zinc-800">
@@ -236,7 +188,7 @@ export default function VerifyAccountButton({
                     <div>
                       <h4 className="text-xs font-bold text-gray-900 dark:text-white">Official Verified Trust Badge</h4>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                        Displayed prominently on your profile, listings, and storefronts.
+                        Displayed prominently on your profile and all marketplace listings.
                       </p>
                     </div>
                   </div>
@@ -265,7 +217,7 @@ export default function VerifyAccountButton({
 
               <button
                 type="button"
-                onClick={handleSubscribe}
+                onClick={handleStartCheckout}
                 disabled={checkoutLoading}
                 className="w-full py-3.5 px-4 rounded-xl bg-primary hover:bg-green-700 text-white font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.99]"
               >
@@ -277,7 +229,7 @@ export default function VerifyAccountButton({
                 ) : (
                   <>
                     <VerifiedBadge size="xs" />
-                    <span>Subscribe for {selectedPlan === 'business_combined' ? '€19.99' : '€9.99'}/mo</span>
+                    <span>Subscribe for €9.99/mo</span>
                   </>
                 )}
               </button>
@@ -300,23 +252,6 @@ export default function VerifyAccountButton({
             </div>
           </div>
         </div>
-      )}
-
-      {showSelectPageModal && (
-        <SelectBusinessPageModal
-          isOpen={true}
-          plan="bundle"
-          onClose={() => setShowSelectPageModal(false)}
-          onConfirm={async (slug) => {
-            await handleStartCheckout('bundle', slug);
-          }}
-          onSelectPersonal={() => {
-            setShowSelectPageModal(false);
-            setSelectedPlan('personal');
-            handleStartCheckout('account');
-          }}
-          isProcessing={checkoutLoading}
-        />
       )}
     </>
   );

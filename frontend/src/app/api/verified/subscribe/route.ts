@@ -102,106 +102,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (isBundle || isPage) {
-      const userPages: { slug: string; name: string; is_verified?: boolean }[] = [];
-      const metaPages = (user.user_metadata?.business_pages || []) as any[];
-      for (const p of metaPages) {
-        if (p?.slug) {
-          userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug, is_verified: Boolean(p.is_verified) });
-        }
-      }
-
-      try {
-        const { data: dbPages } = await supabase
-          .from('business_pages')
-          .select('slug, name, is_verified')
-          .eq('owner_id', user.id);
-
-        if (Array.isArray(dbPages)) {
-          for (const p of dbPages) {
-            if (p?.slug) {
-              const existingIdx = userPages.findIndex((existing) => existing.slug === p.slug.toLowerCase());
-              if (existingIdx >= 0) {
-                userPages[existingIdx].is_verified = Boolean(p.is_verified);
-              } else {
-                userPages.push({ slug: p.slug.toLowerCase(), name: p.name || p.slug, is_verified: Boolean(p.is_verified) });
-              }
-            }
-          }
-        }
-      } catch {}
-
-      if (userPages.length === 0) {
-        return NextResponse.json(
-          { error: 'An active Business Page is required to sign up for this subscription.' },
-          { status: 400 }
-        );
-      }
-
-      if (requestedSlug) {
-        const matched = userPages.find((p) => p.slug === requestedSlug);
-        if (!matched) {
-          return NextResponse.json(
-            { error: 'The selected Business Page was not found on your account.' },
-            { status: 400 }
-          );
-        }
-        // Guard: prevent re-purchasing page verification if page is already verified
-        if (matched.is_verified) {
-          return NextResponse.json(
-            { error: `Your Business Page "@${matched.slug}" is already verified. You can manage your subscription in account settings.` },
-            { status: 400 }
-          );
-        }
-        selectedBusinessSlug = matched.slug;
-      } else if (userPages.length === 1) {
-        // Guard: prevent re-purchasing if the only page is already verified
-        if (userPages[0].is_verified) {
-          return NextResponse.json(
-            { error: `Your Business Page "@${userPages[0].slug}" is already verified. You can manage your subscription in account settings.` },
-            { status: 400 }
-          );
-        }
-        selectedBusinessSlug = userPages[0].slug;
-      } else {
-        return NextResponse.json(
-          { error: 'Please select which Business Page you want to verify.' },
-          { status: 400 }
-        );
-      }
-
-      // Guard: for bundle, also check personal account verification
-      if (isBundle) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_verified')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile?.is_verified || user.user_metadata?.is_verified) {
-          return NextResponse.json(
-            { error: 'Your personal account is already verified. Consider purchasing the Verified Page plan instead of the bundle.' },
-            { status: 400 }
-          );
-        }
-      }
+      return NextResponse.json(
+        { error: 'Business page verification is currently disabled.' },
+        { status: 400 }
+      );
     }
 
-    let productName = 'ListMe Verified Account';
-    let productDesc = 'Official Verified Badge on your profile and all listings. 50% off buyer fees and up to €10,000 Buyer Protection.';
-    let unitAmount = 999;
-    let productImages = [`${origin}/ListMeVerifiedPersonalAccount.png`];
-
-    if (isBundle) {
-      productName = 'ListMe Verified Account + Verified Page Bundle';
-      productDesc = 'Official Verified Badge on your profile, all listings, and your Business Page storefront. Best value bundle.';
-      unitAmount = 1999;
-      productImages = [`${origin}/ListMeVerifiedBundle.png`];
-    } else if (isPage) {
-      productName = 'ListMe Verified Page';
-      productDesc = 'Official Verified Badge and priority ranking for your Business Page storefront.';
-      unitAmount = 1499;
-      productImages = [`${origin}/ListMeBusinessVerifiedPage.png`];
-    }
+    const productName = 'ListMe Verified Account';
+    const productDesc = 'Official Verified Badge on your profile and all listings. 50% off buyer fees and up to €10,000 Buyer Protection.';
+    const unitAmount = 999;
+    const productImages = [`${origin}/ListMeVerifiedPersonalAccount.png`];
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       {

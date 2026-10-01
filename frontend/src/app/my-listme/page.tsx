@@ -215,7 +215,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
   }
 
   const pendingQuestionsCount = listingQuestionsNotifications.length;
-  const totalNotificationsCount = closedListings.length + pendingBusinessInvites.length + pendingQuestionsCount + favUploadNotifications.length;
+  const totalNotificationsCount = closedListings.length + pendingQuestionsCount + favUploadNotifications.length;
 
   const displayName = fullName || username || user.email?.split('@')[0] || 'User';
 
@@ -804,7 +804,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 Standard Member
                               </span>
                               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                                Unlock immediate verified status starting at €9.99/month for individual members or €14.99/month for businesses.
+                                Get verified for €9.99/month to unlock the official trust badge, priority ranking, and 50% off buyer fees.
                               </p>
                             </div>
                             <div className="shrink-0">
@@ -899,19 +899,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                {pendingBusinessInvites.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-black uppercase tracking-wider text-gray-900 dark:text-white">
-                        Business Team Invitations ({pendingBusinessInvites.length})
-                      </h3>
-                    </div>
-                    {pendingBusinessInvites.map((invite: any) => (
-                      <BusinessInviteNotificationCard key={invite.id} invite={invite} />
-                    ))}
-                  </div>
-                )}
 
                 
                 {listingQuestionsNotifications.length > 0 && (
@@ -1012,12 +999,6 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
                                   €{typeof favItem.price === 'number' ? favItem.price.toFixed(2) : favItem.price}
                                 </span>
-                                {favItem.businessSlug && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="text-zinc-400">Storefront @{favItem.businessSlug}</span>
-                                  </>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -1064,7 +1045,7 @@ export default async function MyListMePage({ searchParams }: PageProps) {
                       ))}
                     </div>
                   </div>
-                ) : pendingBusinessInvites.length === 0 && listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 ? (
+                ) : listingQuestionsNotifications.length === 0 && favUploadNotifications.length === 0 ? (
                   /* TradeMe "All up to date!" Empty State matching Screenshot 1 */
                   <div className="text-center py-20 px-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs">
                     

@@ -41,7 +41,6 @@ export default function AboutPage() {
 
   const whatWeOffer = [
     { feature: 'Marketplace', whatItMeans: 'Buy and sell goods across Ireland' },
-    { feature: 'Business Pages', whatItMeans: 'Sellers can create their own branded storefront' },
     { feature: 'Buyer Protection', whatItMeans: 'Up to €5,000 protection on eligible purchases' },
     { feature: 'Human Support', whatItMeans: 'Every ticket handled by a real person' },
     { feature: 'Community Focus', whatItMeans: '10% of income donated to charity' },

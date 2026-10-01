@@ -451,8 +451,7 @@ export default function HelpCentrePage() {
                   { id: 'protection', label: '2. Buyer Protection & Escrow', icon: ShieldCheck },
                   { id: 'fees', label: '3. Selling & Marketplace Fees', icon: Package },
                   { id: 'security', label: '4. Account, Cards & PIN Security', icon: CreditCard },
-                  { id: 'storefronts', label: '5. Business Pages & Marketplace', icon: Building2 },
-                  { id: 'faqs', label: '6. Frequently Asked Questions', icon: HelpCircle },
+                  { id: 'faqs', label: '5. Frequently Asked Questions', icon: HelpCircle },
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeNav === item.id;
@@ -607,7 +606,7 @@ export default function HelpCentrePage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-5">
                       {ticketViewScope === 'admin_all'
                         ? 'All user support tickets have been attended to.'
-                        : 'Need help with a purchase, dispute, linked card, or business storefront? Open a support ticket to start a direct, authenticated conversation.'}
+                        : 'Need help with a purchase, dispute, or linked card? Open a support ticket to start a direct, authenticated conversation.'}
                     </p>
                     {ticketViewScope === 'my' && (
                       <button
@@ -1092,45 +1091,12 @@ export default function HelpCentrePage() {
             </section>
 
             
-            <section id="storefronts" className="scroll-mt-20">
-              <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
-                <div className="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subsidiary Storefronts</span>
-                </div>
-                <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">
-                  5. Business Pages &amp; Marketplace Storefronts
-                </h2>
-                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
-                  Registered business members can establish subsidiary business pages as a <strong>Marketplace Store</strong> to showcase commercial inventory and sell items under a dedicated store brand.
-                </p>
-
-                <div className="space-y-2 mb-5 text-xs">
-                  <div className="p-3 rounded-xl border border-gray-100 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-900/40">
-                    <span className="font-bold text-gray-900 dark:text-white">Storefront Inventory:</span> When creating a listing, business owners with a marketplace page can choose to publish the listing directly into their subsidiary storefront.
-                  </div>
-                  <div className="p-3 rounded-xl border border-gray-100 dark:border-zinc-800/80 bg-gray-50 dark:bg-zinc-900/40">
-                    <span className="font-bold text-gray-900 dark:text-white">Custom Announcements &amp; Hours:</span> Publish a custom announcement (up to 250 characters) and display operational opening hours to prospective customers.
-                  </div>
-                </div>
-
-                <Link
-                  href="/my-listme?tab=business-pages"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
-                >
-                  <span>Manage Business Pages in My ListMe</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </section>
-
-            
             <section id="faqs" className="scroll-mt-20">
               <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-7 shadow-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800 mb-4">
                   <div>
                     <h2 className="text-xl font-black text-gray-900 dark:text-white">
-                      6. Frequently Asked Questions
+                      5. Frequently Asked Questions
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       Quick answers to platform inquiries.
@@ -1244,7 +1210,6 @@ export default function HelpCentrePage() {
                     { value: 'Buyer Protection Claim', label: 'Buyer Protection Claim (Non-Delivery / Item Dispute)' },
                     { value: 'Seller Support & Fees', label: 'Seller Support & Payouts' },
                     { value: 'Account & Card Verification', label: 'Account & Card Security / PIN' },
-                    { value: 'Business Storefront Inquiry', label: 'Business Page & Storefront Inquiry' },
                     { value: 'Report User or Scam', label: 'Report Suspicious User or Scam Listing' },
                     { value: 'General Technical Issue', label: 'General Technical Issue' },
                   ]}

@@ -212,12 +212,10 @@ export function ListingCard({
           )}
         </div>
 
-        {isAuction && !isClosed && (
-          <div className={`mt-2 pt-1.5 border-t border-gray-100 dark:border-zinc-800/60 flex items-center text-[10px] ${timeColorClass}`}>
-            <Clock className="w-3 h-3 mr-1 inline shrink-0" />
-            <span className="truncate">{closesFormatted}</span>
-          </div>
-        )}
+        <div className={`mt-2 pt-1.5 border-t border-gray-100 dark:border-zinc-800/60 flex items-center text-[10px] ${isClosed ? 'text-red-500 dark:text-red-400 font-semibold' : timeColorClass}`}>
+          <Clock className="w-3 h-3 mr-1 inline shrink-0" />
+          <span className="truncate">{closesFormatted}</span>
+        </div>
       </div>
     </Link>
   );
